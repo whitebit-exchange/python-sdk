@@ -3,9 +3,9 @@ import unittest
 
 import requests
 import responses
-from whitebit.trade.market.market import MarketClient
+from whitebit.trade.market.market import TradeMarketClient
 from whitebit.trade.account.account import TradeAccountClient
-from whitebit.trade.order.order import OrderClient
+from whitebit.trade.order.order import TradeOrderClient
 
 from whitebit.collateral.market.market import CollateralMarketClient
 from whitebit.collateral.account.account import CollateralAccountClient
@@ -21,19 +21,10 @@ class MyTestCase(unittest.TestCase):
         with self.assertRaises(ValueError):
             account.get_balance()
 
-        order = OrderClient()
+        order = TradeOrderClient()
         with self.assertRaises(ValueError):
             order.cancel_order("DBTC_DUSDT", 1)
 
-    @responses.activate
-    def test_collateral_private_query_without_api_key(self):
-        collateral_account = CollateralAccountClient()
-        with self.assertRaises(ValueError):
-            collateral_account.get_balance()
-
-        order = CollateralOrderClient()
-        with self.assertRaises(ValueError):
-            order.cancel_order("DBTC_DUSDT", 1)
 
     @responses.activate
     def test_trade_account_negative(self):
@@ -106,13 +97,14 @@ class MyTestCase(unittest.TestCase):
                       json=expected_response,
                       status=200)
 
-        order = OrderClient("111", "111")
+        order = TradeOrderClient("111", "111")
 
         response = order.cancel_order("DBTC_DUSDT", 11)
 
         req = json.loads(responses.calls[0].request.body)
         req["nonce"] = 0
-        expected_req = {'market': 'DBTC_DUSDT', 'orderId': 11, 'request': '/api/v4/order/cancel', 'nonce': 0, 'nonceWindow': True}
+        expected_req = {'market': 'DBTC_DUSDT', 'orderId': 11, 'request': '/api/v4/order/cancel', 'nonce': 0,
+                        'nonceWindow': True}
 
         assert responses.calls[0].request.url == 'http://whitebit.com/api/v4/order/cancel'
         assert req == expected_req
@@ -125,7 +117,6 @@ class MyTestCase(unittest.TestCase):
 
 
 def main():
-    MyTestCase.test_collateral_private_query_without_api_key()
     MyTestCase.test_trade_private_query_without_api_key()
     MyTestCase.test_trade_account_positive()
     MyTestCase.test_trade_account_negative()

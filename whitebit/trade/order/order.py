@@ -2,7 +2,7 @@ import whitebit
 from whitebit.client import Whitebit
 
 
-class OrderClient(Whitebit):
+class TradeOrderClient(Whitebit):
     __ORDER_CANCEL_URL = "/api/v4/order/cancel"
     __LIMIT_URL = "/api/v4/order/new"
     __MARKET_URL = "/api/v4/order/market"
