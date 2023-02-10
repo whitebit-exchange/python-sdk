@@ -3,7 +3,7 @@ import whitebit
 from whitebit.client import Whitebit
 
 
-class MarketClient(Whitebit):
+class TradeMarketClient(Whitebit):
     __MARKETS_URL = "/api/v2/public/markets"
     __MARKET_ACTIVITY_URL = "/api/v2/public/ticker"
     __SINGLE_MARKET_ACTIVITY_URL = "/api/v1/public/ticker"

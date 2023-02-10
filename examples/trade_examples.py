@@ -2,18 +2,18 @@ import time
 import logging.config
 
 try:
-    from whitebit.trade.market.market import MarketClient
+    from whitebit.trade.market.market import TradeMarketClient
     from whitebit.trade.account.account import TradeAccountClient
-    from whitebit.trade.order.order import OrderClient
+    from whitebit.trade.order.order import TradeOrderClient
 
 except ModuleNotFoundError:
     print('USING LOCAL MODULE')
     import sys
 
     sys.path.append('/Users/Documents/repositories/Whitebit/python-sdk')
-    from whitebit.trade.market.market import MarketClient
+    from whitebit.trade.market.market import TradeMarketClient
     from whitebit.trade.account.account import TradeAccountClient
-    from whitebit.trade.order.order import OrderClient
+    from whitebit.trade.order.order import TradeOrderClient
 
 logging.basicConfig(
     format='%(asctime)s %(module)s,line: %(lineno)d %(levelname)8s | %(message)s',
@@ -28,7 +28,7 @@ logging.getLogger('urllib3').setLevel(logging.WARNING)
 
 def market_examples() -> None:
     """Example usage of the Market client"""
-    market = MarketClient()
+    market = TradeMarketClient()
 
     print(market.get_tickers())
     print(market.get_markets_info())
@@ -47,18 +47,21 @@ def market_examples() -> None:
 
 
 def account_examples():
-    account = TradeAccountClient(api_key="2132efca2330cdada2e357f19c0f5593",
-                                 api_secret="e6c331d079a7a3e8e774151655190267")
+    account = TradeAccountClient(api_key="",
+                                 api_secret="")
     print(account.get_balance())
     print(account.get_history())
     print(account.get_order_deals(1))
     print(account.get_executed_history())
     print(account.get_unexecuted_orders("BTC_USDT"))
+    print(account.get_ping())
+    print(account.get_time())
+    print(account.get_ws_token())
 
 
 def order_examples():
-    order = OrderClient(api_key="5d9183ae33b6dba84996054ba458fd28",
-                        api_secret="2708ce93e75bfce1653a3ec4967967fd")
+    order = TradeOrderClient(api_key="",
+                             api_secret="")
 
     print(order.put_limit("BTC_USDT", "sell", "0.1", "40000", True))
     print(order.put_market("BTC_USDT", "buy", "6"))

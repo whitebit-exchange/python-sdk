@@ -8,6 +8,18 @@ class TradeAccountClient(Whitebit):
     __ORDER_HISTORY_URL = "/api/v4/trade-account/order/history"
     __ORDER_EXECUTED_HISTORY_URL = "/api/v4/trade-account/executed-history"
     __ORDERS_URL = "/api/v4/orders"
+    __TIME_URL = "/api/v4/public/time"
+    __PING_URL = "/api/v4/public/ping"
+    __WS_TOKEN_URL = "/api/v4/profile/websocket_token"
+
+    def get_time(self):
+        return self._request(method='GET', uri=self.__TIME_URL, auth=False)
+
+    def get_ping(self):
+        return self._request(method='GET', uri=self.__PING_URL, auth=False)
+
+    def get_ws_token(self):
+        return self._request(method='POST', uri=self.__WS_TOKEN_URL, auth=True)
 
     def get_balance(self, ticker: str = ""):
         params = {}

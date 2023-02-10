@@ -23,8 +23,8 @@ logging.getLogger('urllib3').setLevel(logging.WARNING)
 
 def main_examples() -> None:
     """Example usage of the main account client"""
-    account = MainAccountClient(api_key="2132efca2330cdada2e357f19c0f5593",
-                                api_secret="e6c331d079a7a3e8e774151655190267")
+    account = MainAccountClient(api_key="",
+                                api_secret="")
 
     print(account.get_my_Whitebit_codes())
     print(account.get_Whitebit_codes_history())
