@@ -20,7 +20,7 @@ class Whitebit:
     def __init__(self, api_key: str = '', api_secret: str = ''):
         self.__api_key = api_key
         self.__api_secret = api_secret
-        self.__url = "http://whitebit.com"
+        self.__url = "https://whitebit.com"
         self.__session = requests.Session()
         self.__session.headers.update({'User-Agent': 'python-whitebit-sdk'})
 
