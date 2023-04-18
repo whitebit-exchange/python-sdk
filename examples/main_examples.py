@@ -26,6 +26,8 @@ def main_examples() -> None:
     print(account.get_history())
     print(account.create_code("USDT", "10"))
     print(account.apply_code("WB5cb61d11-baa5-40a9-a9ad-ee81f50909f4USDT"))
+    print(account.get_custom_fee())
+    print(account.get_custom_fee_by_market("BTC_USDT"))
 
     time.sleep(2)
 
