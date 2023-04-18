@@ -52,7 +52,6 @@ def account_examples():
 def order_examples():
     order = TradeOrderClient(api_key="",
                              api_secret="")
-
     print(order.put_limit("BTC_USDT", "sell", "0.1", "40000", True))
     print(order.put_market("BTC_USDT", "buy", "6"))
     print(order.put_market_stock("BTC_USDT", "sell", "0.1"))

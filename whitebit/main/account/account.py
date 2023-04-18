@@ -14,6 +14,9 @@ class MainAccountClient(Whitebit):
     __CODES_MY_URL = "/api/v4/main-account/codes/my"
     __CODES_HISTORY_URL = "/api/v4/main-account/codes/history"
 
+    __CUSTOM_FEE_BY_MARKET_URL = "/api/v4/market/fee/single"
+    __CUSTOM_FEE_URL = "/api/v4/market/fee"
+
     def transfer(self, limit: int = None, offset: int = None):
         params = {}
         if limit is not None:
@@ -72,4 +75,12 @@ class MainAccountClient(Whitebit):
             params['limit'] = limit
         if offset is not None:
             offset['offset'] = offset
+        return self._request(method='POST', uri=self.__CODES_HISTORY_URL, params=params, auth=True)
+
+    def get_custom_fee(self):
+        params = {}
+        return self._request(method='POST', uri=self.__CODES_HISTORY_URL, params=params, auth=True)
+
+    def get_custom_fee_by_market(self, market: str):
+        params = {'market': market}
         return self._request(method='POST', uri=self.__CODES_HISTORY_URL, params=params, auth=True)
