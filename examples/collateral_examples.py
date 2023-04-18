@@ -1,19 +1,9 @@
 import time
 import logging.config
 
-try:
-    from whitebit.collateral.market.market import CollateralMarketClient
-    from whitebit.collateral.account.account import CollateralAccountClient
-    from whitebit.collateral.order.order import CollateralOrderClient
-
-except ModuleNotFoundError:
-    print('USING LOCAL MODULE')
-    import sys
-
-    sys.path.append('/Users/Documents/repositories/Whitebit/python-sdk')
-    from whitebit.collateral.market.market import CollateralMarketClient
-    from whitebit.collateral.account.account import CollateralAccountClient
-    from whitebit.collateral.order.order import CollateralOrderClient
+from whitebit.collateral.market.market import CollateralMarketClient
+from whitebit.collateral.account.account import CollateralAccountClient
+from whitebit.collateral.order.order import CollateralOrderClient
 
 logging.basicConfig(
     format='%(asctime)s %(module)s,line: %(lineno)d %(levelname)8s | %(message)s',

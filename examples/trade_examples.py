@@ -1,19 +1,9 @@
 import time
 import logging.config
 
-try:
-    from whitebit.trade.market.market import TradeMarketClient
-    from whitebit.trade.account.account import TradeAccountClient
-    from whitebit.trade.order.order import TradeOrderClient
-
-except ModuleNotFoundError:
-    print('USING LOCAL MODULE')
-    import sys
-
-    sys.path.append('/Users/Documents/repositories/Whitebit/python-sdk')
-    from whitebit.trade.market.market import TradeMarketClient
-    from whitebit.trade.account.account import TradeAccountClient
-    from whitebit.trade.order.order import TradeOrderClient
+from whitebit.trade.market.market import TradeMarketClient
+from whitebit.trade.account.account import TradeAccountClient
+from whitebit.trade.order.order import TradeOrderClient
 
 logging.basicConfig(
     format='%(asctime)s %(module)s,line: %(lineno)d %(levelname)8s | %(message)s',

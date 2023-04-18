@@ -44,7 +44,7 @@ class MainAccountClient(Whitebit):
         params = {'ticker': ticker}
         return self._request(method='POST', uri=self.__BALANCE_URL, params=params, auth=True)
 
-    def create_Whitebit_code(self, ticker: str, amount: str, passw: str = None, description: str = None):
+    def create_code(self, ticker: str, amount: str, passw: str = None, description: str = None):
         params = {'ticker': ticker, "amount": amount}
         if passw is not None:
             params['passphrase'] = passw
@@ -52,13 +52,13 @@ class MainAccountClient(Whitebit):
             params['description'] = description
         return self._request(method='POST', uri=self.__CODES_URL, params=params, auth=True)
 
-    def apply_Whitebit_code(self, code: str, passw: str = None):
+    def apply_code(self, code: str, passw: str = None):
         params = {'code': code}
         if passw is not None:
             params['passphrase'] = passw
         return self._request(method='POST', uri=self.__CODES_APPLY_URL, params=params, auth=True)
 
-    def get_my_Whitebit_codes(self, limit: int = None, offset: int = None):
+    def get_my_codes(self, limit: int = None, offset: int = None):
         params = {}
         if limit is not None:
             params['limit'] = limit
@@ -66,7 +66,7 @@ class MainAccountClient(Whitebit):
             offset['offset'] = offset
         return self._request(method='POST', uri=self.__CODES_MY_URL, params=params, auth=True)
 
-    def get_Whitebit_codes_history(self, limit: int = None, offset: int = None):
+    def get_codes_history(self, limit: int = None, offset: int = None):
         params = {}
         if limit is not None:
             params['limit'] = limit

@@ -21,13 +21,14 @@ class CollateralOrderClient(Whitebit):
             params['clientOrderId'] = client_order_id
         return self._request(method='POST', uri=self.__MARKET_URL, params=params, auth=True)
 
-    def put_limit(self, market: str, side: str, amount, price, post_only: bool = False,  client_order_id: str = ""):
+    def put_limit(self, market: str, side: str, amount, price, post_only: bool = False, ioc: bool = False,  client_order_id: str = ""):
         params = {
             "market": market,
             "side": side,
             "amount": amount,
             "price": price,
-            "postOnly": post_only
+            "postOnly": post_only,
+            "ioc": ioc
         }
         if client_order_id != "":
             params['clientOrderId'] = client_order_id
