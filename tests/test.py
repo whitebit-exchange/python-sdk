@@ -28,7 +28,7 @@ class MyTestCase(unittest.TestCase):
 
     @responses.activate
     def test_trade_account_negative(self):
-        responses.add(responses.POST, 'http://whitebit.com/api/v4/trade-account/balance',
+        responses.add(responses.POST, 'https://whitebit.com/api/v4/trade-account/balance',
                       json={'error': 'not found'}, status=404)
 
         account = TradeAccountClient("1a11c", "z1b0r1")
@@ -42,7 +42,7 @@ class MyTestCase(unittest.TestCase):
                              "ETH": {"main_balance": "0"},
                              "USD": {"main_balance": "0"}}
         responses.add(responses.POST,
-                      'http://whitebit.com/api/v4/trade-account/balance',
+                      'https://whitebit.com/api/v4/trade-account/balance',
                       json=expected_response,
                       status=200)
 
@@ -54,7 +54,7 @@ class MyTestCase(unittest.TestCase):
         req["nonce"] = 0
         expected_req = {'ticker': 'BTC', 'request': '/api/v4/trade-account/balance', 'nonce': 0, 'nonceWindow': True}
 
-        assert responses.calls[0].request.url == 'http://whitebit.com/api/v4/trade-account/balance'
+        assert responses.calls[0].request.url == 'https://whitebit.com/api/v4/trade-account/balance'
         assert req == expected_req
         assert responses.calls[0].request.method == "POST"
 
@@ -65,7 +65,7 @@ class MyTestCase(unittest.TestCase):
 
     @responses.activate
     def test_trade_order_negative(self):
-        responses.add(responses.POST, 'http://whitebit.com/api/v4/trade-account/balance',
+        responses.add(responses.POST, 'https://whitebit.com/api/v4/trade-account/balance',
                       json={'error': 'not found'}, status=404)
 
         account = TradeAccountClient("1a11c", "z1b0r1")
@@ -93,7 +93,7 @@ class MyTestCase(unittest.TestCase):
             "activation_price": "40000"
         }
         responses.add(responses.POST,
-                      'http://whitebit.com/api/v4/order/cancel',
+                      'https://whitebit.com/api/v4/order/cancel',
                       json=expected_response,
                       status=200)
 
@@ -106,7 +106,7 @@ class MyTestCase(unittest.TestCase):
         expected_req = {'market': 'DBTC_DUSDT', 'orderId': 11, 'request': '/api/v4/order/cancel', 'nonce': 0,
                         'nonceWindow': True}
 
-        assert responses.calls[0].request.url == 'http://whitebit.com/api/v4/order/cancel'
+        assert responses.calls[0].request.url == 'https://whitebit.com/api/v4/order/cancel'
         assert req == expected_req
         assert responses.calls[0].request.method == "POST"
 
