@@ -9,7 +9,7 @@ class Bot(WhitebitWsClient):
     '''Can be used to create a custom trading strategy/bot'''
 
     def __init__(self):
-        super().__init__()
+        super().__init__(key="", secret="")
 
     async def on_message(self, event) -> None:
         '''receives the websocket events'''
