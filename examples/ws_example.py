@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import time
 
 from whitebit.stream.ws import WhitebitWsClient
 

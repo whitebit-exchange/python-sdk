@@ -8,15 +8,7 @@ from random import random
 import traceback
 from typing import List
 import websockets
-
-try:
-    from whitebit.trade.account.account import TradeAccountClient
-except ModuleNotFoundError:
-    print('USING LOCAL MODULE')
-    import sys
-
-    sys.path.append('/Users/Documents/repositories/Whitebit/python-sdk')
-    from whitebit.trade.account.account import TradeAccountClient
+from whitebit.trade.account.account import TradeAccountClient
 
 
 class ConnectWebsocket:
