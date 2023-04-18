@@ -49,8 +49,8 @@ def account_examples() -> None:
 
 
 def order_examples() ->None:
-    margin_order = CollateralOrderClient(api_key="2132efca2330cdada2e357f19c0f5593",
-                        api_secret="2708ce93e75bfce1653a3ec4967967fd")
+    margin_order = CollateralOrderClient(api_key="",
+                        api_secret="")
 
     print(margin_order.put_limit("BTC_USDT", "sell", "0.1", "40000", True))
     print(margin_order.put_market("BTC_USDT", "sell", "6"))
