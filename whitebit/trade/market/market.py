@@ -1,4 +1,3 @@
-'''Module that implements the Kraken Spot market client'''
 import whitebit
 from whitebit.client import Whitebit
 
@@ -18,8 +17,6 @@ class TradeMarketClient(Whitebit):
     __DEALS_URL = "/api/v4/public/trades/"
     __TRADE_HISTORY_URL = "/api/v1/public/history"
     __ASSETS_URL = "/api/v4/public/assets"
-
-    '''Class that implements the Kraken Spot market client'''
 
     def __init__(self, api_key: str = '', api_secret: str = ''):
         super().__init__(api_key, api_secret)

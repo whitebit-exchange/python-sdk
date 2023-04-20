@@ -1,4 +1,3 @@
-'''Module that implements the kraken Spot websocket clients'''
 import logging
 import json
 import time
@@ -256,7 +255,7 @@ class WhitebitWsClient(TradeAccountClient):
             await self.__callback(msg)
         else:
             logging.warning('Received event but no callback is defined')
-            print(msg)
+            logging.info(msg)
 
     async def __subscribe(self, subscription: dict) -> None:
         self._conn.append_subscription(subscription)
