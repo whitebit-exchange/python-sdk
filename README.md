@@ -1,8 +1,6 @@
 ## A Python SDK for [whitebit](https://www.whitebit.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-For best compatibility, please use Python >= 1.18
-
 Please read [whitebit API document](https://whitebit-exchange.github.io/api-docs/) before continuing.
 
 ## API List
