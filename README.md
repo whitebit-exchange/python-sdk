@@ -27,9 +27,17 @@ warranties are made by author or granted by law whenever it is permitted by law.
 
 ### Setup
 
+#### Install the Python module:
+
+```bash
+python3 -m pip install python-whitebit-sdk
+```
+
 Init client for API services. Get APIKey/SecretKey from your whitebit account.
 
 ```python
+from whitebit import MainAccountClient
+
 account = MainAccountClient(api_key="", api_secret=""))
 ```
 
