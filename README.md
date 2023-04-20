@@ -1,14 +1,12 @@
 ## A Python SDK for [whitebit](https://www.whitebit.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-For best compatibility, please use Python >= 1.18
-
 Please read [whitebit API document](https://whitebit-exchange.github.io/api-docs/) before continuing.
 
 ## API List
 
-- [Private API](https://whitebit-exchange.github.io/api-docs/docs/category/private)
-- [Public API](https://whitebit-exchange.github.io/api-docs/docs/category/public)
+- [Private API](https://whitebit-exchange.github.io/api-docs/private/http-trade-v4/)
+- [Public API](https://whitebit-exchange.github.io/api-docs/public/http-v4/)
 - [Private WS](https://whitebit-exchange.github.io/api-docs/private/websocket/)
 - [Public WS](https://whitebit-exchange.github.io/api-docs/public/websocket/)
 
