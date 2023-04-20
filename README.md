@@ -7,8 +7,8 @@ Please read [whitebit API document](https://whitebit-exchange.github.io/api-docs
 
 ## API List
 
-- [Private API](https://whitebit-exchange.github.io/api-docs/docs/category/private)
-- [Public API](https://whitebit-exchange.github.io/api-docs/docs/category/public)
+- [Private API](https://whitebit-exchange.github.io/api-docs/private/http-trade-v4/)
+- [Public API](https://whitebit-exchange.github.io/api-docs/public/http-v4/)
 - [Private WS](https://whitebit-exchange.github.io/api-docs/private/websocket/)
 - [Public WS](https://whitebit-exchange.github.io/api-docs/public/websocket/)
 
