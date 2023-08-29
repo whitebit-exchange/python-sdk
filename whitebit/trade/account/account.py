@@ -63,9 +63,11 @@ class TradeAccountClient(Whitebit):
             params["offset"] = offset
         return self._request(method='POST', uri=self.__ORDER_HISTORY_URL, params=params, auth=True)
 
-    def get_unexecuted_orders(self, market, order_id: str = None, client_order_id: str = None,
+    def get_unexecuted_orders(self, market: str = None, order_id: str = None, client_order_id: str = None,
                               offset: int = None, limit: int = None):
-        params = {"market": market}
+        params = {}
+        if market is not None:
+            params["market"] = market
         if order_id is not None:
             params["orderId"] = order_id
         if client_order_id is not None:
