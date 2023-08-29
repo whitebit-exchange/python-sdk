@@ -52,12 +52,21 @@ def account_examples():
 def order_examples():
     order = TradeOrderClient(api_key="",
                              api_secret="")
-    print(order.put_limit("BTC_USDT", "sell", "0.1", "40000", True))
+    print(order.put_limit("BTC_UzSDT", "sell", "0.1", "40000", True))
     print(order.put_market("BTC_USDT", "buy", "6"))
     print(order.put_market_stock("BTC_USDT", "sell", "0.1"))
     print(order.put_stop_limit("BTC_USDT", "sell", "0.1", "30000", "31000"))
     print(order.put_stop_market("BTC_USDT", "sell", "0.1", "30000"))
     print(order.cancel_order("BTC_USDT", 168935136388))
+
+    bulk_orders = list()
+    bulk_orders.append(order.build_limit_order("BTC_USDT", "buy", "0.000199", "20000"))
+    bulk_orders.append(
+       order.build_limit_order("ETH_USDT", "buy", "0.00428", "1400", post_only=True, ioc=False, client_order_id="myId")
+    )
+    print(order.limit_bulk(bulk_orders))
+    print(order.put_kill_switch("BTC_USDT", "30", [order.ORDER_TYPE_SPOT]))
+    print(order.get_kill_switch_status())
 
 
 def main() -> None:
