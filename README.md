@@ -1,123 +1,94 @@
-## A Python SDK for [whitebit](https://www.whitebit.com)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+# WhiteBIT SDK for Python
 
-Please read [whitebit API document](https://whitebit-exchange.github.io/api-docs/) before continuing.
+Python SDK for WhiteBIT cryptocurrency exchange.
 
-## API List
+## Generation
 
-- [Private API](https://whitebit-exchange.github.io/api-docs/private/http-trade-v4/)
-- [Public API](https://whitebit-exchange.github.io/api-docs/public/http-v4/)
-- [Private WS](https://whitebit-exchange.github.io/api-docs/private/websocket/)
-- [Public WS](https://whitebit-exchange.github.io/api-docs/public/websocket/)
-
-v4 is the preferred one to use
-
-## Disclaimer
-“You acknowledge that the software is provided “as is”. Author makes no representations or warranties with respect to
-the software whether express or implied, including but not limited to, implied warranties of merchantability and fitness
-for a particular purpose. author makes no representation or warranty that: (i) the use and distribution of the software
-will be uninterrupted or error free, and (ii) any use and distribution of the software is free from infringement of any
-third party intellectual property rights. It shall be your sole responsibility to make such determination before the use
-of software. Author disclaims any liability in case any such use and distribution infringe any third party’s
-intellectual property rights. Author hereby disclaims any warranty and liability whatsoever for any development created
-by or for you with respect to your customers. You acknowledge that you have relied on no warranties and that no
-warranties are made by author or granted by law whenever it is permitted by law.”
-
-## REST API
-
-### Setup
-
-#### Install the Python module:
+To generate the SDK:
 
 ```bash
-python3 -m pip install python-whitebit-sdk
+make go
 ```
 
-Init client for API services. Get APIKey/SecretKey from your whitebit account.
+This will generate:
+- WebSocket API (AsyncAPI) - handlers and models
+- HTTP API (OpenAPI) - typed clients with all methods
+- Unified WhiteBitClient interface
+
+## Requirements
+
+- Python 3.8+
+- Java 11+ (for OpenAPI Generator)
+
+## Installation
+
+```bash
+pip install -r requirements.txt
+```
+
+## Quick Start
+
+### Test All Endpoints (One Click)
+
+```bash
+# Test public endpoints (no credentials needed)
+python3 example.py
+
+# Test private endpoints (with credentials)
+export WHITEBIT_API_KEY='your_key'
+export WHITEBIT_API_SECRET='your_secret'
+python3 example.py
+```
+
+The `example.py` script tests ALL available endpoints and shows complete API usage.
+
+### Usage in Code
 
 ```python
-from whitebit import MainAccountClient
+from whitebit_sdk import WhiteBitClient
 
-account = MainAccountClient(api_key="", api_secret=""))
+# Initialize client
+client = WhiteBitClient(
+    api_key="your_key",
+    api_secret="your_secret"
+)
+
+async with client:
+    # Public API (no authentication)
+    markets = await client.public_api.public.api_v4_public_markets_get()
+    ticker = await client.public_api.public.api_v4_public_ticker_get()
+
+    # Main API (requires authentication)
+    from whitebit_sdk.http.generated.main_api.main_api_generated.models.get_main_balance_request import GetMainBalanceRequest
+
+    balance = await client.main_api.main_account.get_main_balance(
+        GetMainBalanceRequest(request="/api/v4/main-account/balance")
+    )
+
+    # All 13 Main API classes available:
+    # - client.main_api.main_account
+    # - client.main_api.fees
+    # - client.main_api.codes
+    # - client.main_api.deposit
+    # - client.main_api.withdraw
+    # - client.main_api.transfer
+    # - client.main_api.sub_account
+    # - client.main_api.credit_line
+    # - client.main_api.crypto_lending_flex
+    # - client.main_api.crypto_lending_fixed
+    # - client.main_api.jwt
+    # - client.main_api.mining_pool
+    # - client.main_api.sub_account_api_keys
 ```
 
-Following are some simple examples.
+## Testing
 
-See the **examples** folder for full references.
-
-#### Create Spot Limit Order
-
-```python
-# Create order/spot client
-order = OrderClient(api_key="",
-                    api_secret="")
-
-# Call SDK function put_limit
-print(order.put_limit("BTC_USDT", "sell", "0.1", "40000", True))
+```bash
+make test-import  # Quick import test
+make test         # Full test suite
+python3 example.py # Test all endpoints
 ```
 
-## Websocket API
+## Technical Details
 
-### Setup
-
-Init bot class and "on_message" method for work with ws responses. Get APIKey/SecretKey from your whitebit account.
-
-```python
-class Bot(WhitebitWsClient):
-    def __init__(self):
-        super().__init__(key="", secret="")
-
-    async def on_message(self, event) -> None:
-        logging.info(event)
-        
-```
-
-Following are some simple examples.
-
-See the **examples** folder for full references.
-
-#### Subscribe on deals topic
-
-```python
-class Bot(WhitebitWsClient):
-    '''Can be used to create a custom trading strategy/bot'''
-
-    def __init__(self):
-        super().__init__(key="", secret="")
-
-    async def on_message(self, event) -> None:
-        '''receives the websocket events'''
-        if 'result' in event:
-            result = event['result']
-            match result:
-                case 'pong': return
-            logging.info(event['result'])
-            return
-        else:
-            method = event['method']
-            match method:
-                case WhitebitWsClient.DEALS_UPDATE:
-                    logging.info(event['params'])
-            return
-
-
-async def main() -> None:
-    bot = Bot()
-    await bot.get_deals("BTC_USDT", 0, 100)
-    await bot.subscribe_deals(["BTC_USDT"])
-    while not bot.exception_occur:
-        await asyncio.sleep(100)
-    return
-
-
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        pass
-    finally:
-        loop.close()
-```
+See `CLAUDE.md` for complete generation instructions and architecture details.

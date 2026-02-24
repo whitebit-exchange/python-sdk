@@ -1,0 +1,442 @@
+openapi: 3.0.3
+info:
+  title: OAuth 2.0 API Reference
+  description: WhiteBIT OAuth 2.0 API for authentication and account management
+  version: 1.0.0
+servers:
+  - url: https://whitebit.com
+    description: WhiteBIT Global Server
+  - url: https://whitebit.eu
+    description: WhiteBIT EU Server
+
+paths:
+  /auth/login:
+    get:
+      summary: OAuth 2.0 Authorization
+      description: |
+        This endpoint initiates the OAuth 2.0 authorization flow for user authentication and obtaining an authorization code.
+
+        **Using the State Parameter (Best Practice)**
+
+        The `state` parameter is crucial for security in OAuth flows:
+
+        - Generate a cryptographically secure random string
+        - Store it in the user's session before redirecting
+        - Validate it matches when handling the callback
+        - This prevents CSRF attacks
+        <Note>
+        **Note:** OAuth scopes are predefined during client application setup and cannot be modified during the authorization request. The access token will include all scopes that were approved during client creation.
+        </Note>
+      tags:
+        - Authentication
+      parameters:
+        - name: clientId
+          in: query
+          required: true
+          description: Your application's client ID
+          schema:
+            type: string
+            example: YOUR_CLIENT_ID
+        - name: state
+          in: query
+          required: false
+          description: A secure random string used to maintain state between the request and callback and prevent CSRF attacks (Recommended)
+          schema:
+            type: string
+            example: SECURE_RANDOM_STATE
+      responses:
+        "302":
+          description: Redirect to authorization page
+
+  /oauth2/token:
+    post:
+      summary: Get Access Token
+      description: |
+        This endpoint activates an access token by exchanging an authorization code.
+
+        <Warning>
+        **Important Notes:**
+
+        - Access token duration is 300 seconds
+        - The IP of the client must be added to WB Allowlist
+        </Warning>
+
+        **Request Headers:**
+        - Content-Type: application/x-www-form-urlencoded
+        
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - client_id
+                - client_secret
+                - code
+              properties:
+                client_id:
+                  type: string
+                  description: Your application's client ID
+                  example: YOUR_CLIENT_ID
+                client_secret:
+                  type: string
+                  description: Your application's client secret
+                  example: YOUR_CLIENT_SECRET
+                code:
+                  type: string
+                  description: The authorization code received from the authorization endpoint
+                  example: AUTHORIZATION_CODE
+      responses:
+        "200":
+          description: Successful token exchange
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      access_token:
+                        type: string
+                        description: The access token for API requests
+                        example: MZM1MDBMMJYTNWM4MI0ZNTIYLTKXNDATNZY1MZHKM2Y2MJY3
+                      expires_in:
+                        type: integer
+                        description: Token expiration time in seconds
+                        example: 300
+                      refresh_token:
+                        type: string
+                        description: Token used to refresh the access token
+                        example: ODK5ZTVKZDUTYTI5ZC01NWJHLTGZZDMTYWFKYTNMNJHHMGZM
+                      scope:
+                        type: string
+                        description: Comma-separated list of granted scopes
+                        example: codes.apply,show.userinfo
+                      token_type:
+                        type: string
+                        description: Type of the token
+                        example: Bearer
+        "401":
+          description: Not authorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: array
+                        items:
+                          type: string
+                        example: ["Invalid request"]
+        "422":
+          description: Validation errors
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errors:
+                    type: object
+                    properties:
+                      client_id:
+                        type: array
+                        items:
+                          type: string
+                        example: ["validation.required"]
+                      client_secret:
+                        type: array
+                        items:
+                          type: string
+                        example: ["validation.required"]
+                      code:
+                        type: array
+                        items:
+                          type: string
+                        example: ["validation.required"]
+                  notification:
+                    type: string
+                    nullable: true
+                    example: null
+
+  /oauth2/refresh_token:
+    post:
+      summary: Refresh Token
+      description: |
+        This endpoint creates a new access token using a refresh token.
+
+        **Request Headers:**
+        - Content-Type: application/x-www-form-urlencoded
+
+        <Warning>
+        **Important Notes:**
+
+        - Refresh token duration is 600 seconds
+        - Rate limit: 1 request per second
+        - The IP of the client must be added to WB Allowlist
+        </Warning>
+
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - client_id
+                - client_secret
+                - token
+              properties:
+                client_id:
+                  type: string
+                  description: Your application's client ID
+                  example: YOUR_CLIENT_ID
+                client_secret:
+                  type: string
+                  description: Your application's client secret
+                  example: YOUR_CLIENT_SECRET
+                token:
+                  type: string
+                  description: The refresh token received from the token endpoint
+                  example: REFRESH_TOKEN
+      responses:
+        "200":
+          description: Successful token refresh
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      access_token:
+                        type: string
+                        description: The new access token for API requests
+                        example: NTBLZJKYNZETNJFIZC0ZNGM1LWJMYTMTODBJYZRKNWE2NMRM
+                      expires_in:
+                        type: integer
+                        description: Token expiration time in seconds
+                        example: 300
+                      refresh_token:
+                        type: string
+                        description: New refresh token
+                        example: ODZMNMRHM2ETMZQZZI01OTQYLWEWMZATNWQ0NDYZNJBMOWUW
+                      scope:
+                        type: string
+                        description: Comma-separated list of granted scopes
+                        example: codes.apply,show.userinfo
+                      token_type:
+                        type: string
+                        description: Type of the token
+                        example: Bearer
+        "400":
+          description: Invalid token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: array
+                        items:
+                          type: string
+                        example: ["Invalid token."]
+
+  /api/v4/accounts/transactions:
+    post:
+      summary: Get Account Transactions
+      description: This endpoint retrieves a paginated list of account transactions.
+      tags:
+        - Account Endpoints
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      externalDocs:
+        description: View complete documentation
+        url: /private/http-main-v4#get-depositwithdraw-history
+
+  /api/v4/accounts/converts:
+    post:
+      summary: Get Currency Conversions
+      description: This endpoint retrieves the history of currency conversions.
+      tags:
+        - Account Endpoints
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      externalDocs:
+        description: View complete documentation
+        url: /private/http-trade-v4#convert-history
+
+  /api/v4/accounts/orders:
+    post:
+      summary: Get Orders History
+      description: This endpoint retrieves the history of trading orders.
+      tags:
+        - Account Endpoints
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      externalDocs:
+        description: View complete documentation
+        url: /private/http-trade-v4#query-executed-orders
+
+  /api/v4/accounts/deals:
+    post:
+      summary: Get Executed Deals
+      description: This endpoint retrieves the history of executed deals.
+      tags:
+        - Account Endpoints
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      externalDocs:
+        description: View complete documentation
+        url: /private/http-trade-v4#query-executed-order-history
+
+  /api/v4/accounts/balances/main:
+    post:
+      summary: Get Main Account Balance
+      description: This endpoint retrieves the main account balance information.
+      tags:
+        - Account Endpoints
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      externalDocs:
+        description: View complete documentation
+        url: /private/http-main-v4#main-balance
+
+  /api/v4/accounts/balances/spot:
+    post:
+      summary: Get Spot Account Balance
+      description: This endpoint retrieves the spot trading account balance information.
+      tags:
+        - Account Endpoints
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+      externalDocs:
+        description: View complete documentation
+        url: /private/http-trade-v4#trading-balance
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        OAuth 2.0 Bearer Token authentication. Include the access token in the Authorization header.
+
+        Example: `Authorization: Bearer YOUR_ACCESS_TOKEN`
+
+tags:
+  - name: Authentication
+    description: |
+      OAuth 2.0 authentication endpoints for obtaining and refreshing access tokens.
+
+      Available Scopes (requested during client setup):
+      - general: General API access
+      - show.userinfo: Access to basic user information
+      - users.read: Read user data
+      - users.email.read: Read user email information
+      - users.kyc.read: Information about whether a user has passed KYC verification
+      - orders.read: Read trading orders
+      - orders.create: Create trading orders
+      - orders.delete: Delete trading orders
+      - balances.read: Read account balances
+      - markets.read: Read market information
+      - deals.read: Read trading deals
+      - orders_history.read: Read order history
+      - users.transactions.read: Read user transactions
+      - users.converts.read: Read currency conversion history
+      - users.balances.read: Read user account balances
+      - users.orders.read: Read user orders
+      - users.deals.read: Read user deals
+  - name: Account Endpoints
+    description: Endpoints for retrieving account information, balances, and transaction history

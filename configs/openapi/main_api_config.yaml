@@ -1,0 +1,27 @@
+# OpenAPI Generator Configuration for Main API (main_api_v4.yaml)
+
+# Package and project settings - SIMPLIFIED
+packageName: main_api_generated
+projectName: whitebit-main-api
+packageVersion: 1.0.0
+
+# Generator settings
+library: asyncio
+httpLibrary: aiohttp
+
+# Features
+generateSourceCodeOnly: false
+hideGenerationTimestamp: true
+sortModelPropertiesByRequiredFlag: true
+sortParamsByRequiredFlag: true
+
+# Additional properties
+disallowAdditionalPropertiesIfNotPresent: false
+ensureUniqueParams: true
+
+# Model and API settings
+modelPackage: models
+apiPackage: api
+
+# Python specific
+pythonAttrNoneIfUnset: true

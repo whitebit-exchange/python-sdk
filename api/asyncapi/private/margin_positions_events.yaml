@@ -1,0 +1,315 @@
+asyncapi: 3.0.0
+info:
+  title: WhiteBit Margin Positions Events
+  version: 1.0.0
+  description: |
+    Subscribe to margin positions events (margin call and liquidation events).
+    This endpoint does NOT support query operations - only subscribe/update/unsubscribe.
+    
+    ## Event Types
+    
+    | Event Type | Description     |
+    | ---------- | --------------- |
+    | 1          | Margin call     |
+    | 2          | Liquidation     |
+
+servers:
+  production:
+    host: api.whitebit.com
+    protocol: wss
+    description: WhiteBIT Global Server
+  eu:
+    host: api.whitebit.eu
+    protocol: wss
+    description: WhiteBIT EU Server
+
+channels:
+  /ws:
+    address: /ws
+    description: Margin positions events operations
+    messages:
+      marginPositionsEventsSubscribe:
+        $ref: '#/components/messages/marginPositionsEventsSubscribe'
+      marginPositionsEventsSubscribeResponse:
+        $ref: '#/components/messages/marginPositionsEventsSubscribeResponse'
+      marginPositionsEventsUpdate:
+        $ref: '#/components/messages/marginPositionsEventsUpdate'
+      marginPositionsEventsUnsubscribe:
+        $ref: '#/components/messages/marginPositionsEventsUnsubscribe'
+      marginPositionsEventsUnsubscribeResponse:
+        $ref: '#/components/messages/marginPositionsEventsUnsubscribeResponse'
+
+operations:
+  sendMarginPositionsEventsSubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/marginPositionsEventsSubscribe'
+
+  receiveMarginPositionsEventsSubscribeResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/marginPositionsEventsSubscribeResponse'
+
+  receiveMarginPositionsEventsUpdates:
+    action: send
+    description: Receive real-time margin positions events (margin call and liquidation)
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/marginPositionsEventsUpdate'
+
+  sendMarginPositionsEventsUnsubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/marginPositionsEventsUnsubscribe'
+
+  receiveMarginPositionsEventsUnsubscribeResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/marginPositionsEventsUnsubscribeResponse'
+
+components:
+  messages:
+    marginPositionsEventsSubscribe:
+      name: MarginPositionsEventsSubscribe
+      title: Subscribe to Margin Positions Events
+      summary: Subscribe to margin positions events (margin call and liquidation)
+      payload:
+        $ref: '#/components/schemas/MarginPositionsEventsSubscribe'
+      examples:
+        - name: subscribeToEvents
+          summary: |
+            Subscribe to margin position events:
+            - params: Empty array (subscribes to all position events - margin call and liquidation)
+          payload:
+            method: positionsAccountMargin_subscribe
+            params: []
+            id: 1
+
+    marginPositionsEventsSubscribeResponse:
+      name: MarginPositionsEventsSubscribeResponse
+      title: Subscribe Response
+      summary: Subscription confirmation
+      payload:
+        $ref: '#/components/schemas/SubscriptionResponse'
+      examples:
+        - name: subscriptionSuccess
+          summary: Subscription successful
+          payload:
+            error: null
+            result:
+              status: success
+            id: 1
+
+    marginPositionsEventsUpdate:
+      name: MarginPositionsEventsUpdate
+      title: Margin Positions Events Update
+      summary: "Real-time margin positions events. Event type: 1=Margin call, 2=Liquidation"
+      payload:
+        $ref: '#/components/schemas/MarginPositionsEventsUpdate'
+      examples:
+        - name: marginCallEvent
+          summary: |
+            Margin position event with parameters:
+            - params[0]: Event type (1=Margin call, 2=Liquidation)
+            - params[1]: Position object with all position details including market, position_side (LONG/SHORT/BOTH), liq_stage, etc.
+          payload:
+            method: positionsAccountMargin_update
+            params:
+              - 1
+              - id: 184
+                market: "BTC_USDT"
+                ctime: 1737731271.3069341
+                mtime: 1737731271.3069341
+                amount: "-0.094048"
+                amount_in_money: "9939.79769088"
+                base_price: "105688.56"
+                pnl: "-1157.88"
+                liq_price: "126462.54"
+                liq_stage: "margin_call"
+                unrealized_funding: "0.0231431327519745"
+                funding: "0"
+                margin: "1109.77"
+                free_margin: "-652.9"
+                realized_pnl: "-8.945817921792"
+                position_side: "LONG"
+            id: null
+
+    marginPositionsEventsUnsubscribe:
+      name: MarginPositionsEventsUnsubscribe
+      title: Unsubscribe from Margin Positions Events
+      summary: Stop receiving margin positions events
+      payload:
+        $ref: '#/components/schemas/UnsubscribeRequest'
+      examples:
+        - name: unsubscribe
+          summary: Unsubscribe from margin positions events
+          payload:
+            method: positionsAccountMargin_unsubscribe
+            params: []
+            id: 1
+
+    marginPositionsEventsUnsubscribeResponse:
+      name: MarginPositionsEventsUnsubscribeResponse
+      title: Unsubscribe Response
+      summary: Unsubscription confirmation
+      payload:
+        $ref: '#/components/schemas/SubscriptionResponse'
+      examples:
+        - name: unsubscribeSuccess
+          summary: Unsubscription successful
+          payload:
+            error: null
+            result:
+              status: success
+            id: 1
+
+  schemas:
+    MarginPositionsEventsSubscribe:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+          description: Unique request identifier
+        method:
+          const: positionsAccountMargin_subscribe
+          description: Method name for margin positions events subscription
+        params:
+          type: array
+          items: {}
+          maxItems: 0
+          description: Empty array
+
+    SubscriptionResponse:
+      type: object
+      required:
+        - id
+        - result
+        - error
+      properties:
+        id:
+          type: integer
+          description: Request identifier matching the request
+        result:
+          type: object
+          required:
+            - status
+          properties:
+            status:
+              type: string
+              enum: [success]
+              description: Subscription status
+        error:
+          type: "null"
+          description: Error object (null on success)
+
+    MarginPositionsEventsUpdate:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: "null"
+          description: Update events have null id
+        method:
+          const: positionsAccountMargin_update
+          description: Method name for margin positions events updates
+        params:
+          type: array
+          description: |
+            Event tuple:
+            - [0] Event type (1=Margin call, 2=Liquidation)
+            - [1] Position object with all position details
+          minItems: 2
+          maxItems: 2
+          items:
+            - type: integer
+              enum: [1, 2]
+              description: "Event type: 1=Margin call, 2=Liquidation"
+            - type: object
+              description: "Position object (same structure as Positions endpoint)"
+              properties:
+                id:
+                  type: integer
+                  description: "Position ID"
+                market:
+                  type: string
+                  description: "[Market](/glossary#market) name"
+                ctime:
+                  type: number
+                  description: "Date of position opening in Unix time"
+                mtime:
+                  type: number
+                  description: "Date of position modifying in Unix time"
+                amount:
+                  type: string
+                  description: "Position amount"
+                amount_in_money:
+                  type: string
+                  description: "Position amount in [money](/glossary#money)"
+                base_price:
+                  type: string
+                  description: "Base price of position"
+                pnl:
+                  type: string
+                  description: "Unrealized PnL in money"
+                liq_price:
+                  type: string
+                  description: "Liquidation price"
+                liq_stage:
+                  type: string
+                  nullable: true
+                  enum: [null, "margin_call"]
+                  description: "Liquidation state"
+                unrealized_funding:
+                  type: string
+                  description: "Funding to be paid on next position stage change"
+                funding:
+                  type: string
+                  description: "Funding already disbursed"
+                margin:
+                  type: string
+                  description: "Own funds amount in open position in money"
+                free_margin:
+                  type: string
+                  description: "Free funds for trading"
+                realized_pnl:
+                  type: string
+                  description: "Realized PnL in money"
+                position_side:
+                  type: string
+                  enum: ["LONG", "SHORT", "BOTH"]
+                  description: "Position side"
+
+    UnsubscribeRequest:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+          description: Unique request identifier
+        method:
+          type: string
+          description: Unsubscribe method name
+        params:
+          type: array
+          items: {}
+          maxItems: 0
+          description: Empty array for unsubscribe

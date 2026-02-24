@@ -1,0 +1,16 @@
+{
+  "packageName": "whitebit_sdk.http.public_api",
+  "projectName": "whitebit-sdk",
+  "packageVersion": "1.0.0",
+  "library": "asyncio",
+  "generateSourceCodeOnly": false,
+  "hideGenerationTimestamp": true,
+  "sortParamsByRequiredFlag": true,
+  "sortModelPropertiesByRequiredFlag": true,
+  "ensureUniqueParams": true,
+  "allowUnicodeIdentifiers": false,
+  "prependFormOrBodyParameters": false,
+  "modelPackage": "models.http.public_api",
+  "apiPackage": "http.public_api",
+  "pythonPackageName": "whitebit_sdk"
+}

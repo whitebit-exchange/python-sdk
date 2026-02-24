@@ -1,0 +1,38 @@
+sdk:
+  name: whitebit-sdk
+  version: 1.0.0
+  python_requires: ">=3.8"
+
+api:
+  base_url: https://whitebit.com
+  eu_url: https://whitebit.eu
+  websocket_url: wss://api.whitebit.com/ws
+  websocket_eu_url: wss://api.whitebit.eu/ws
+
+http:
+  timeout: 30
+  max_retries: 3
+  rate_limit:
+    public: 200
+    private: 100
+
+websocket:
+  reconnect_attempts: 5
+  reconnect_delay: 5
+  ping_interval: 30
+  ping_timeout: 10
+
+generation:
+  output_dir: whitebit_sdk
+  temp_dir: generated
+  cleanup_temp: false
+
+openapi:
+  generator_version: "7.0.0"
+  library: asyncio
+  http_client: httpx
+  generate_source_only: false
+
+asyncapi:
+  use_pydantic: true
+  generate_validators: true

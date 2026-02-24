@@ -1,0 +1,350 @@
+asyncapi: 3.0.0
+info:
+  title: WhiteBit Market Statistics
+  version: 1.0.0
+  description: Market statistics for a specified time period including open, close, high, low prices and volume data.
+
+servers:
+  production:
+    host: api.whitebit.com
+    protocol: wss
+    description: WhiteBIT Global Server
+  eu:
+    host: api.whitebit.eu
+    protocol: wss
+    description: WhiteBIT EU Server
+
+channels:
+  /ws:
+    address: /ws
+    description: |
+      Market statistics operations for a specified period.
+
+      **Update Interval**: 1 second (for subscriptions)
+
+      <Warning>
+      You can only subscribe for 86400s (24 hours from now).
+      </Warning>
+    messages:
+      marketRequest:
+        $ref: '#/components/messages/marketRequest'
+      marketResponse:
+        $ref: '#/components/messages/marketResponse'
+      marketSubscribe:
+        $ref: '#/components/messages/marketSubscribe'
+      marketSubscribeResponse:
+        $ref: '#/components/messages/marketSubscribeResponse'
+      marketUpdate:
+        $ref: '#/components/messages/marketUpdate'
+      marketUnsubscribe:
+        $ref: '#/components/messages/marketUnsubscribe'
+
+operations:
+  sendMarketRequest:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/marketRequest'
+
+  receiveMarketResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/marketResponse'
+
+  sendMarketSubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/marketSubscribe'
+
+  receiveMarketSubscribeResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/marketSubscribeResponse'
+
+  receiveMarketUpdates:
+    action: send
+    description: Receive periodic market statistics updates every 1 second
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/marketUpdate'
+
+  sendMarketUnsubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/marketUnsubscribe'
+
+components:
+  messages:
+    marketRequest:
+      name: MarketRequest
+      title: Market Statistics Query
+      summary: Get market statistics for a specified period
+      payload:
+        $ref: '#/components/schemas/MarketRequest'
+      examples:
+        - name: marketQuery
+          summary: |
+            Query market statistics with parameters:
+            - params[0]: Market name (ETH_BTC)
+            - params[1]: Period in seconds (86400 = 24 hours)
+          payload:
+            id: 5
+            method: market_request
+            params:
+              - ETH_BTC
+              - 86400
+
+    marketResponse:
+      name: MarketResponse
+      title: Market Statistics Response
+      summary: Market statistics including OHLCV data
+      payload:
+        $ref: '#/components/schemas/MarketResponse'
+      examples:
+        - name: marketData
+          summary: |
+            Market statistics response containing:
+            - period: Period in seconds (86400)
+            - last: Last price (0.020981)
+            - open: Open price at 'now - period' time (0.02035)
+            - close: Price that closes this period (0.020981)
+            - high: Highest price (0.020988)
+            - low: Lowest price (0.020281)
+            - volume: Volume in stock (135220.218)
+            - deal: Volume in money (2776.587022649)
+          payload:
+            id: 5
+            result:
+              period: 86400
+              last: "0.020981"
+              open: "0.02035"
+              close: "0.020981"
+              high: "0.020988"
+              low: "0.020281"
+              volume: "135220.218"
+              deal: "2776.587022649"
+            error: null
+
+    marketSubscribe:
+      name: MarketSubscribe
+      title: Subscribe to Market Statistics
+      summary: Subscribe to market statistics updates
+      payload:
+        $ref: '#/components/schemas/MarketSubscribe'
+      examples:
+        - name: subscribeMarket
+          summary: |
+            Subscribe to market statistics:
+            - params: Array of market names (ETH_BTC, BTC_USDT)
+            Note: Can only subscribe for 86400s (24 hours from now)
+          payload:
+            id: 6
+            method: market_subscribe
+            params:
+              - ETH_BTC
+              - BTC_USDT
+
+    marketSubscribeResponse:
+      name: MarketSubscribeResponse
+      title: Subscribe Response
+      summary: Subscription confirmation
+      payload:
+        $ref: '#/components/schemas/SubscriptionResponse'
+
+    marketUpdate:
+      name: MarketUpdate
+      title: Market Statistics Update
+      summary: Periodic market statistics update (every 1 second)
+      payload:
+        $ref: '#/components/schemas/MarketUpdate'
+      examples:
+        - name: marketUpdate
+          summary: |
+            Market statistics update event:
+            - params[0]: Market name (ETH_BTC)
+            - params[1]: MarketStatistics object (same structure as query response)
+          payload:
+            id: null
+            method: market_update
+            params:
+              - ETH_BTC
+              - period: 86400
+                last: "0.020964"
+                open: "0.020349"
+                close: "0.020964"
+                high: "0.020997"
+                low: "0.020281"
+                volume: "135574.476"
+                deal: "2784.413999488"
+
+    marketUnsubscribe:
+      name: MarketUnsubscribe
+      title: Unsubscribe from Market Statistics
+      summary: Stop receiving market statistics updates
+      payload:
+        $ref: '#/components/schemas/UnsubscribeRequest'
+
+  schemas:
+    MarketStatistics:
+      type: object
+      required:
+        - period
+        - last
+        - open
+        - close
+        - high
+        - low
+        - volume
+        - deal
+      properties:
+        period:
+          type: integer
+          description: Period in seconds
+        last:
+          type: string
+          description: Last price
+        open:
+          type: string
+          description: "Open price that was at 'now - period' time"
+        close:
+          type: string
+          description: Price that closes this period
+        high:
+          type: string
+          description: Highest price in the period
+        low:
+          type: string
+          description: Lowest price in the period
+        volume:
+          type: string
+          description: "Volume in [stock](/glossary#stock) currency"
+        deal:
+          type: string
+          description: "Volume in [money](/glossary#money) currency"
+
+    MarketRequest:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+          description: Unique request identifier
+        method:
+          const: market_request
+        params:
+          type: array
+          description: |
+            Query parameters:
+            - [0] Market name
+            - [1] Period in seconds
+          maxItems: 2
+          items:
+            - type: string
+              description: "[Market](/glossary#market) name"
+            - type: integer
+              description: Period in seconds
+
+    MarketResponse:
+      type: object
+      required:
+        - id
+        - result
+        - error
+      properties:
+        id:
+          type: integer
+        result:
+          $ref: '#/components/schemas/MarketStatistics'
+        error:
+          type: "null"
+
+    MarketSubscribe:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+        method:
+          const: market_subscribe
+        params:
+          type: array
+          items:
+            type: string
+            description: "[Market](/glossary#market) names"
+
+    SubscriptionResponse:
+      type: object
+      required:
+        - id
+        - result
+        - error
+      properties:
+        id:
+          type: integer
+        result:
+          type: object
+          required:
+            - status
+          properties:
+            status:
+              type: string
+              enum: [success]
+        error:
+          type: "null"
+
+    MarketUpdate:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: "null"
+        method:
+          const: market_update
+        params:
+          type: array
+          description: |
+            Update event parameters:
+            - [0] Market name
+            - [1] MarketStatistics object
+          minItems: 2
+          maxItems: 2
+          items:
+            - type: string
+              description: Market name
+            - $ref: '#/components/schemas/MarketStatistics'
+
+    UnsubscribeRequest:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+        method:
+          type: string
+          enum: [market_unsubscribe]
+        params:
+          type: array
+          items: {}
+          maxItems: 0

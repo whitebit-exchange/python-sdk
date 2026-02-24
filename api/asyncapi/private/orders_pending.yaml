@@ -1,0 +1,469 @@
+asyncapi: 3.0.0
+info:
+  title: WhiteBit Orders Pending
+  version: 1.0.0
+  description: |
+    Query and subscribe to [active orders](/glossary#active-orders) (orders not yet executed). 
+    The WebSocket methods use `ordersPending_*` naming for API compatibility.
+    
+    **Important**: [Market](/glossary#market) should exist. The maximum limit is 100.
+    
+    **Note**: If new [order](/glossary#orders) instantly matches an order from [orderbook](/glossary#order-book), then you will receive only one message with update event ID equal to 3.
+    
+    ## Update Event IDs
+    
+    | Update event ID | Description                      |
+    | --------------- | -------------------------------- |
+    | 1               | New order                        |
+    | 2               | Update order                     |
+    | 3               | Finish order (cancel or execute) |
+
+servers:
+  production:
+    host: api.whitebit.com
+    protocol: wss
+    description: WhiteBIT Global Server
+  eu:
+    host: api.whitebit.eu
+    protocol: wss
+    description: WhiteBIT EU Server
+
+channels:
+  /ws:
+    address: /ws
+    description: Pending orders operations
+    messages:
+      ordersPendingRequest:
+        $ref: '#/components/messages/ordersPendingRequest'
+      ordersPendingResponse:
+        $ref: '#/components/messages/ordersPendingResponse'
+      ordersPendingSubscribe:
+        $ref: '#/components/messages/ordersPendingSubscribe'
+      ordersPendingSubscribeResponse:
+        $ref: '#/components/messages/ordersPendingSubscribeResponse'
+      ordersPendingUpdate:
+        $ref: '#/components/messages/ordersPendingUpdate'
+      ordersPendingUnsubscribe:
+        $ref: '#/components/messages/ordersPendingUnsubscribe'
+      ordersPendingUnsubscribeResponse:
+        $ref: '#/components/messages/ordersPendingUnsubscribeResponse'
+
+operations:
+  sendOrdersPendingRequest:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/ordersPendingRequest'
+
+  receiveOrdersPendingResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/ordersPendingResponse'
+
+  sendOrdersPendingSubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/ordersPendingSubscribe'
+
+  receiveOrdersPendingSubscribeResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/ordersPendingSubscribeResponse'
+
+  receiveOrdersPendingUpdates:
+    action: send
+    description: "Receive real-time pending orders updates (Update interval: real-time)"
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/ordersPendingUpdate'
+
+  sendOrdersPendingUnsubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/ordersPendingUnsubscribe'
+
+  receiveOrdersPendingUnsubscribeResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/ordersPendingUnsubscribeResponse'
+
+components:
+  messages:
+    ordersPendingRequest:
+      name: OrdersPendingRequest
+      title: Orders Pending Query
+      summary: Get current pending orders
+      payload:
+        $ref: '#/components/schemas/OrdersPendingRequest'
+      examples:
+        - name: queryPendingOrders
+          summary: |
+            Query pending orders with parameters:
+            - params[0]: Market name (BTC_USDT)
+            - params[1]: Offset for pagination (0)
+            - params[2]: Limit, maximum 100 (30)
+          payload:
+            id: 8
+            method: ordersPending_request
+            params:
+              - "BTC_USDT"
+              - 0
+              - 30
+
+    ordersPendingResponse:
+      name: OrdersPendingResponse
+      title: Orders Pending Response
+      summary: List of pending orders
+      payload:
+        $ref: '#/components/schemas/OrdersPendingResponse'
+      examples:
+        - name: pendingOrdersResponse
+          summary: Pending orders response
+          payload:
+            id: 8
+            result:
+              limit: 100
+              offset: 0
+              total: 1
+              records:
+                - id: 1212901344783
+                  market: "BTC_USDT"
+                  type: 1
+                  side: 2
+                  post_only: false
+                  ioc: false
+                  ctime: 1738250918.558867
+                  mtime: 1738250918.558867
+                  price: "90000"
+                  amount: "1"
+                  left: "1"
+                  deal_stock: "0"
+                  deal_money: "0"
+                  deal_fee: "0"
+                  client_order_id: ""
+                  stp: "no"
+                  status: "OPEN"
+                  position_side: "LONG"
+                  rpi: true
+            error: null
+
+    ordersPendingSubscribe:
+      name: OrdersPendingSubscribe
+      title: Subscribe to Pending Orders
+      summary: "Subscribe to pending orders updates (Update interval: real-time)"
+      payload:
+        $ref: '#/components/schemas/OrdersPendingSubscribe'
+      examples:
+        - name: subscribeToOrders
+          summary: |
+            Subscribe to pending orders updates:
+            - params: Array of market names (BTC_USDT, ETH_BTC)
+          payload:
+            id: 9
+            method: ordersPending_subscribe
+            params:
+              - "BTC_USDT"
+              - "ETH_BTC"
+
+    ordersPendingSubscribeResponse:
+      name: OrdersPendingSubscribeResponse
+      title: Subscribe Response
+      summary: Subscription confirmation
+      payload:
+        $ref: '#/components/schemas/SubscriptionResponse'
+      examples:
+        - name: subscriptionSuccess
+          summary: Subscription successful
+          payload:
+            id: 9
+            result:
+              status: success
+            error: null
+
+    ordersPendingUpdate:
+      name: OrdersPendingUpdate
+      title: Orders Pending Update
+      summary: |
+        Real-time pending orders update.
+        Update event ID: 1=New order, 2=Update order, 3=Finish order (cancel or execute)
+      payload:
+        $ref: '#/components/schemas/OrdersPendingUpdate'
+      examples:
+        - name: orderUpdate
+          summary: |
+            Pending order update event with parameters:
+            - params[0]: Update event ID (1=New order, 2=Update order, 3=Finish order - cancel or execute)
+            - params[1]: Order object with all order details
+          payload:
+            id: null
+            method: ordersPending_update
+            params:
+              - 1
+              - id: 1212904480922
+                market: "BTC_USDT"
+                type: 1
+                side: 2
+                post_only: false
+                ioc: false
+                ctime: 1738250982.28914
+                mtime: 1738250982.28914
+                price: "90000"
+                amount: "1"
+                left: "1"
+                deal_stock: "0"
+                deal_money: "0"
+                deal_fee: "0"
+                client_order_id: ""
+                stp: "no"
+                status: "OPEN"
+                position_side: "LONG"
+                rpi: true
+
+    ordersPendingUnsubscribe:
+      name: OrdersPendingUnsubscribe
+      title: Unsubscribe from Pending Orders
+      summary: Stop receiving pending orders updates
+      payload:
+        $ref: '#/components/schemas/UnsubscribeRequest'
+      examples:
+        - name: unsubscribe
+          summary: Unsubscribe from pending orders
+          payload:
+            id: 10
+            method: ordersPending_unsubscribe
+            params: []
+
+    ordersPendingUnsubscribeResponse:
+      name: OrdersPendingUnsubscribeResponse
+      title: Unsubscribe Response
+      summary: Unsubscription confirmation
+      payload:
+        $ref: '#/components/schemas/SubscriptionResponse'
+      examples:
+        - name: unsubscribeSuccess
+          summary: Unsubscription successful
+          payload:
+            id: 10
+            result:
+              status: success
+            error: null
+
+  schemas:
+    OrdersPendingRequest:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+          description: Unique request identifier
+        method:
+          const: ordersPending_request
+          description: Method name for pending orders query
+        params:
+          type: array
+          minItems: 3
+          maxItems: 3
+          items:
+            - type: string
+              description: "[Market](/glossary#market). Example: BTC_USDT"
+            - type: integer
+              description: "Offset"
+            - type: integer
+              description: "Limit (maximum 100)"
+          description: "Array with market, offset, and limit"
+
+    OrdersPendingResponse:
+      type: object
+      required:
+        - id
+        - result
+        - error
+      properties:
+        id:
+          type: integer
+          description: Request identifier matching the request
+        result:
+          type: object
+          properties:
+            limit:
+              type: integer
+              description: "Limit from request"
+            offset:
+              type: integer
+              description: "Offset from request"
+            total:
+              type: integer
+              description: "Total count of records"
+            records:
+              type: array
+              items:
+                $ref: '#/components/schemas/OrderObject'
+        error:
+          type: "null"
+          description: Error object (null on success)
+
+    OrdersPendingSubscribe:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+          description: Unique request identifier
+        method:
+          const: ordersPending_subscribe
+          description: Method name for pending orders subscription
+        params:
+          type: array
+          items:
+            type: string
+            description: "[Market](/glossary#market). Example: BTC_USDT"
+          description: "Array of markets to subscribe to"
+
+    SubscriptionResponse:
+      type: object
+      required:
+        - id
+        - result
+        - error
+      properties:
+        id:
+          type: integer
+          description: Request identifier matching the request
+        result:
+          type: object
+          required:
+            - status
+          properties:
+            status:
+              type: string
+              enum: [success]
+              description: Subscription status
+        error:
+          type: "null"
+          description: Error object (null on success)
+
+    OrdersPendingUpdate:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: "null"
+          description: Update events have null id
+        method:
+          const: ordersPending_update
+          description: Method name for pending orders updates
+        params:
+          type: array
+          minItems: 2
+          maxItems: 2
+          items:
+            - type: integer
+              enum: [1, 2, 3]
+              description: "Update event ID: 1=New order, 2=Update order, 3=Finish order (cancel or execute)"
+            - $ref: '#/components/schemas/OrderObject'
+          description: "Array with update event ID and order object"
+
+    OrderObject:
+      type: object
+      description: Order object with all order details
+      properties:
+        id:
+          type: integer
+          description: "Order ID"
+        market:
+          type: string
+          description: "[Market](/glossary#market)"
+        type:
+          type: integer
+          description: "Order type. See order types table in overview"
+        side:
+          type: integer
+          enum: [1, 2]
+          description: "Side: 1=sell, 2=buy/bid"
+        post_only:
+          type: boolean
+          description: "Post only flag"
+        ioc:
+          type: boolean
+          description: "IOC (Immediate or Cancel) flag"
+        ctime:
+          type: number
+          description: "Created at in Unix time"
+        mtime:
+          type: number
+          description: "Modified at in Unix time"
+        price:
+          type: string
+          description: "Order price"
+        amount:
+          type: string
+          description: "[Stock](/glossary#stock) amount"
+        left:
+          type: string
+          description: "Stock amount that left to be executed"
+        deal_stock:
+          type: string
+          description: "Stock amount that executed"
+        deal_money:
+          type: string
+          description: "[Money](/glossary#money) amount that executed"
+        deal_fee:
+          type: string
+          description: "Charged fee amount in money"
+        client_order_id:
+          type: string
+          description: "Custom client order id"
+        stp:
+          type: string
+          enum: ["no", "co", "cn", "cb"]
+          description: "STP flag: no=No Prevention, co=Cancel Oldest, cn=Cancel Newest, cb=Cancel Both"
+        status:
+          type: string
+          description: "Order status (e.g., OPEN, FILLED, CANCELED)"
+        position_side:
+          type: string
+          enum: ["LONG", "SHORT", "BOTH"]
+          description: "Position side - LONG or SHORT or BOTH"
+        rpi:
+          type: boolean
+          description: "RPI order flag"
+
+    UnsubscribeRequest:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+          description: Unique request identifier
+        method:
+          type: string
+          description: Unsubscribe method name
+        params:
+          type: array
+          items: {}
+          maxItems: 0
+          description: Empty array for unsubscribe

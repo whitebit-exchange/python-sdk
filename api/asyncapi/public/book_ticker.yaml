@@ -1,0 +1,259 @@
+asyncapi: 3.0.0
+info:
+  title: WhiteBit Book Ticker
+  version: 1.0.0
+  description: Real-time best bid/ask (BBO) price and quantity updates. Provides instant snapshots followed by incremental updates.
+
+servers:
+  production:
+    host: api.whitebit.com
+    protocol: wss
+    description: WhiteBIT Global Server
+  eu:
+    host: api.whitebit.eu
+    protocol: wss
+    description: WhiteBIT EU Server
+
+channels:
+  /ws:
+    address: /ws
+    description: |
+      Book Ticker stream for best bid and ask prices.
+
+      **Update Interval**: Instant snapshot followed by incremental updates
+
+      **Subscription**: Can be for specific market or all markets (empty params)
+    messages:
+      bookTickerSubscribe:
+        $ref: '#/components/messages/bookTickerSubscribe'
+      bookTickerSubscribeResponse:
+        $ref: '#/components/messages/bookTickerSubscribeResponse'
+      bookTickerUpdate:
+        $ref: '#/components/messages/bookTickerUpdate'
+      bookTickerUnsubscribe:
+        $ref: '#/components/messages/bookTickerUnsubscribe'
+
+operations:
+  sendBookTickerSubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/bookTickerSubscribe'
+
+  receiveBookTickerSubscribeResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/bookTickerSubscribeResponse'
+
+  receiveBookTickerUpdates:
+    action: send
+    description: Receive instant best bid/ask price updates
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/bookTickerUpdate'
+
+  sendBookTickerUnsubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/bookTickerUnsubscribe'
+
+components:
+  messages:
+    bookTickerSubscribe:
+      name: BookTickerSubscribe
+      title: Subscribe to Book Ticker
+      summary: Subscribe to best bid/ask price and quantity updates
+      payload:
+        $ref: '#/components/schemas/BookTickerSubscribe'
+      examples:
+        - name: subscribeSpecificMarket
+          summary: |
+            Subscribe to best bid/ask updates for a specific market:
+            - params[0]: Market name (SHIB_PERP)
+            Optional: empty array subscribes to all markets
+          payload:
+            id: 1
+            method: bookTicker_subscribe
+            params:
+              - SHIB_PERP
+        - name: subscribeAllMarkets
+          summary: Subscribe to all markets
+          payload:
+            id: 1
+            method: bookTicker_subscribe
+            params: []
+
+    bookTickerSubscribeResponse:
+      name: BookTickerSubscribeResponse
+      title: Subscribe Response
+      summary: Subscription confirmation
+      payload:
+        $ref: '#/components/schemas/SubscriptionResponse'
+      examples:
+        - name: subscribeSuccess
+          summary: Subscription successful
+          payload:
+            id: 1
+            result:
+              status: success
+            error: null
+
+    bookTickerUpdate:
+      name: BookTickerUpdate
+      title: Book Ticker Update
+      summary: Instant best bid/ask price and quantity snapshot
+      payload:
+        $ref: '#/components/schemas/BookTickerUpdate'
+      examples:
+        - name: bookTickerSnapshot
+          summary: |
+            Book ticker update with 8 elements:
+            - [0]: Transaction time (1751958383.5933869, Unix timestamp from matchengine)
+            - [1]: Message time (1751958383.5935569, Unix timestamp from websocket)
+            - [2]: Market (SHIB_PERP)
+            - [3]: Update ID (80670102)
+            - [4]: Best bid price (0.000011751)
+            - [5]: Best bid amount (12547000)
+            - [6]: Best ask price (0.000011776)
+            - [7]: Best ask amount (17424000)
+          payload:
+            id: null
+            method: bookTicker_update
+            params:
+              - - 1751958383.5933869
+                - 1751958383.5935569
+                - SHIB_PERP
+                - 80670102
+                - "0.000011751"
+                - "12547000"
+                - "0.000011776"
+                - "17424000"
+
+    bookTickerUnsubscribe:
+      name: BookTickerUnsubscribe
+      title: Unsubscribe from Book Ticker
+      summary: Stop receiving book ticker updates
+      payload:
+        $ref: '#/components/schemas/UnsubscribeRequest'
+      examples:
+        - name: unsubscribeBookTicker
+          summary: Unsubscribe from book ticker
+          payload:
+            id: 2
+            method: bookTicker_unsubscribe
+            params: []
+
+  schemas:
+    BookTickerSubscribe:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+          description: Unique request identifier
+        method:
+          const: bookTicker_subscribe
+        params:
+          type: array
+          minItems: 0
+          maxItems: 1
+          items:
+            type: string
+            description: "[Market](/glossary#market) name (optional - empty for all markets)"
+
+    SubscriptionResponse:
+      type: object
+      required:
+        - id
+        - result
+        - error
+      properties:
+        id:
+          type: integer
+        result:
+          type: object
+          required:
+            - status
+          properties:
+            status:
+              type: string
+              enum: [success]
+        error:
+          type: "null"
+
+    BookTickerUpdateData:
+      type: array
+      description: |
+        Book ticker update tuple with 8 elements:
+        - [0] Transaction time (Unix timestamp from matchengine)
+        - [1] Message time (Unix timestamp from websocket)
+        - [2] Market name
+        - [3] Update ID
+        - [4] Best bid price
+        - [5] Best bid amount
+        - [6] Best ask price
+        - [7] Best ask amount
+      minItems: 8
+      maxItems: 8
+      items:
+        - type: number
+          description: "Transaction time - timestamp of the update from matchengine"
+        - type: number
+          description: "Message time - timestamp of the message from websocket"
+        - type: string
+          description: "[Market](/glossary#market) name"
+        - type: integer
+          description: Update ID
+        - type: string
+          description: "Best [bid](/glossary#bid) price"
+        - type: string
+          description: Best bid amount
+        - type: string
+          description: "Best [ask](/glossary#ask) price"
+        - type: string
+          description: Best ask amount
+
+    BookTickerUpdate:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: "null"
+        method:
+          const: bookTicker_update
+        params:
+          type: array
+          minItems: 1
+          maxItems: 1
+          items:
+            $ref: '#/components/schemas/BookTickerUpdateData'
+
+    UnsubscribeRequest:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+          description: Unique request identifier
+        method:
+          type: string
+          enum: [bookTicker_unsubscribe]
+        params:
+          type: array
+          items: {}
+          maxItems: 0

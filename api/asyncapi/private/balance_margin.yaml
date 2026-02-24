@@ -1,0 +1,379 @@
+asyncapi: 3.0.0
+info:
+  title: WhiteBit Margin Balance
+  version: 1.0.0
+  description: |
+    Get and subscribe to margin wallet balance updates.
+    
+    Request for amount on [margin balance](/glossary#balance-collateral).
+    Balance available for [margin trade](/glossary#margin-trading) is equal to `balance * leverage` and it depends on liquidity in [orderbook](/glossary#order-book) and your open positions.
+    When you open position, your balance will not change, but amount available for [trade](/glossary#deal-trade) will decrease.
+
+servers:
+  production:
+    host: api.whitebit.com
+    protocol: wss
+    description: WhiteBIT Global Server
+  eu:
+    host: api.whitebit.eu
+    protocol: wss
+    description: WhiteBIT EU Server
+
+channels:
+  /ws:
+    address: /ws
+    description: Margin balance operations
+    messages:
+      balanceMarginRequest:
+        $ref: '#/components/messages/balanceMarginRequest'
+      balanceMarginResponse:
+        $ref: '#/components/messages/balanceMarginResponse'
+      balanceMarginSubscribe:
+        $ref: '#/components/messages/balanceMarginSubscribe'
+      balanceMarginSubscribeResponse:
+        $ref: '#/components/messages/balanceMarginSubscribeResponse'
+      balanceMarginUpdate:
+        $ref: '#/components/messages/balanceMarginUpdate'
+      balanceMarginUnsubscribe:
+        $ref: '#/components/messages/balanceMarginUnsubscribe'
+      balanceMarginUnsubscribeResponse:
+        $ref: '#/components/messages/balanceMarginUnsubscribeResponse'
+
+operations:
+  sendBalanceMarginRequest:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/balanceMarginRequest'
+
+  receiveBalanceMarginResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/balanceMarginResponse'
+
+  sendBalanceMarginSubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/balanceMarginSubscribe'
+
+  receiveBalanceMarginSubscribeResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/balanceMarginSubscribeResponse'
+
+  receiveBalanceMarginUpdates:
+    action: send
+    description: "Receive real-time margin balance updates (Update interval: 1.5 sec)"
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/balanceMarginUpdate'
+
+  sendBalanceMarginUnsubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/balanceMarginUnsubscribe'
+
+  receiveBalanceMarginUnsubscribeResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/balanceMarginUnsubscribeResponse'
+
+components:
+  messages:
+    balanceMarginRequest:
+      name: BalanceMarginRequest
+      title: Balance Margin Query
+      summary: Get current margin wallet balance
+      payload:
+        $ref: '#/components/schemas/BalanceMarginRequest'
+      examples:
+        - name: queryMarginBalance
+          summary: |
+            Query margin balance for specific assets:
+            - params: Array of asset tickers (BTC, USDT)
+          payload:
+            id: 2
+            method: balanceMargin_request
+            params:
+              - "BTC"
+              - "USDT"
+
+    balanceMarginResponse:
+      name: BalanceMarginResponse
+      title: Balance Margin Response
+      summary: Current margin wallet balances
+      payload:
+        $ref: '#/components/schemas/BalanceMarginResponse'
+      examples:
+        - name: marginBalanceResponse
+          summary: Margin balance response
+          payload:
+            error: null
+            result:
+              BTC:
+                balance: "0.0006092"
+                borrow: "0"
+                available_without_borrow: "0.0006092"
+                available_with_borrow: "0.00288701"
+              USDT:
+                balance: "0.00538073"
+                borrow: "0"
+                available_without_borrow: "0.00538073"
+                available_with_borrow: "28.43739825"
+            id: 1
+
+    balanceMarginSubscribe:
+      name: BalanceMarginSubscribe
+      title: Subscribe to Margin Balance
+      summary: "Subscribe to margin balance updates (Update interval: 1.5 sec)"
+      payload:
+        $ref: '#/components/schemas/BalanceMarginSubscribe'
+      examples:
+        - name: subscribeToMargin
+          summary: |
+            Subscribe to margin balance updates:
+            - params: Array of asset tickers (BTC, USDT)
+          payload:
+            id: 3
+            method: balanceMargin_subscribe
+            params:
+              - "BTC"
+              - "USDT"
+
+    balanceMarginSubscribeResponse:
+      name: BalanceMarginSubscribeResponse
+      title: Subscribe Response
+      summary: Subscription confirmation
+      payload:
+        $ref: '#/components/schemas/SubscriptionResponse'
+      examples:
+        - name: subscriptionSuccess
+          summary: Subscription successful
+          payload:
+            id: 3
+            result:
+              status: success
+            error: null
+
+    balanceMarginUpdate:
+      name: BalanceMarginUpdate
+      title: Balance Margin Update
+      summary: Real-time margin balance update (uses abbreviated field names)
+      payload:
+        $ref: '#/components/schemas/BalanceMarginUpdate'
+      examples:
+        - name: marginUpdate
+          summary: |
+            Margin balance update with abbreviated field names:
+            - params: Array of balance objects with abbreviated keys:
+              - a: Asset ticker (BTC, USDT)
+              - B: Total amount on collateral balance
+              - b: Borrowed amount
+              - av: Available without borrow
+              - ab: Available with borrow
+          payload:
+            method: balanceMargin_update
+            params:
+              - a: "BTC"
+                B: "0.0006092"
+                b: "0"
+                av: "0.0006092"
+                ab: "0.00288701"
+              - a: "USDT"
+                B: "0.00538073"
+                b: "0"
+                av: "0.00538073"
+                ab: "28.43739825"
+            id: null
+
+    balanceMarginUnsubscribe:
+      name: BalanceMarginUnsubscribe
+      title: Unsubscribe from Balance Margin
+      summary: Stop receiving margin balance updates
+      payload:
+        $ref: '#/components/schemas/UnsubscribeRequest'
+      examples:
+        - name: unsubscribe
+          summary: Unsubscribe from margin balance updates
+          payload:
+            id: 4
+            method: balanceMargin_unsubscribe
+            params: []
+
+    balanceMarginUnsubscribeResponse:
+      name: BalanceMarginUnsubscribeResponse
+      title: Unsubscribe Response
+      summary: Unsubscription confirmation
+      payload:
+        $ref: '#/components/schemas/SubscriptionResponse'
+      examples:
+        - name: unsubscribeSuccess
+          summary: Unsubscription successful
+          payload:
+            id: 4
+            result:
+              status: success
+            error: null
+
+  schemas:
+    BalanceMarginRequest:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+          description: Unique request identifier
+        method:
+          const: balanceMargin_request
+          description: Method name for margin balance query
+        params:
+          type: array
+          items:
+            type: string
+            description: "Asset [ticker](/glossary#ticker). Example: BTC"
+          description: "Array of asset tickers to query"
+
+    BalanceMarginResponse:
+      type: object
+      required:
+        - id
+        - result
+        - error
+      properties:
+        id:
+          type: integer
+          description: Request identifier matching the request
+        result:
+          type: object
+          description: Margin balances by currency
+          additionalProperties:
+            type: object
+            properties:
+              balance:
+                type: string
+                description: "Total amount on [collateral balance](/glossary#balance-collateral)"
+              borrow:
+                type: string
+                description: "Borrowed amount"
+              available_without_borrow:
+                type: string
+                description: "Available amount to transfer from collateral balance without borrowing"
+              available_with_borrow:
+                type: string
+                description: "Available amount to transfer from collateral balance with borrowing"
+        error:
+          type: "null"
+          description: Error object (null on success)
+
+    BalanceMarginSubscribe:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+          description: Unique request identifier
+        method:
+          const: balanceMargin_subscribe
+          description: Method name for margin balance subscription
+        params:
+          type: array
+          items:
+            type: string
+            description: "Asset [ticker](/glossary#ticker). Example: BTC"
+          description: "Array of asset tickers to subscribe to"
+
+    SubscriptionResponse:
+      type: object
+      required:
+        - id
+        - result
+        - error
+      properties:
+        id:
+          type: integer
+          description: Request identifier matching the request
+        result:
+          type: object
+          required:
+            - status
+          properties:
+            status:
+              type: string
+              enum: [success]
+              description: Subscription status
+        error:
+          type: "null"
+          description: Error object (null on success)
+
+    BalanceMarginUpdate:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: "null"
+          description: Update events have null id
+        method:
+          const: balanceMargin_update
+          description: Method name for margin balance updates
+        params:
+          type: array
+          items:
+            type: object
+            description: Margin balance update object (uses abbreviated keys)
+            properties:
+              a:
+                type: string
+                description: "Asset [ticker](/glossary#ticker)"
+              B:
+                type: string
+                description: "Total amount on [collateral balance](/glossary#balance-collateral)"
+              b:
+                type: string
+                description: "Borrowed amount"
+              av:
+                type: string
+                description: "Available amount to transfer from collateral balance without borrowing"
+              ab:
+                type: string
+                description: "Available amount to transfer from collateral balance with borrowing"
+          description: Array containing margin balance updates with abbreviated field names
+
+    UnsubscribeRequest:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+          description: Unique request identifier
+        method:
+          type: string
+          description: Unsubscribe method name
+        params:
+          type: array
+          items: {}
+          maxItems: 0
+          description: Empty array for unsubscribe

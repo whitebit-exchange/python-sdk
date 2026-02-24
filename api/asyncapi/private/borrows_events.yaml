@@ -1,0 +1,272 @@
+asyncapi: 3.0.0
+info:
+  title: WhiteBit Borrows Events
+  version: 1.0.0
+  description: |
+    Subscribe to borrows events (margin call and liquidation events).
+    This endpoint does NOT support query operations - only subscribe/update/unsubscribe.
+    
+    ## Event Types
+    
+    | Event Type | Description     |
+    | ---------- | --------------- |
+    | 1          | Margin call     |
+    | 2          | Liquidation     |
+
+servers:
+  production:
+    host: api.whitebit.com
+    protocol: wss
+    description: WhiteBIT Global Server
+  eu:
+    host: api.whitebit.eu
+    protocol: wss
+    description: WhiteBIT EU Server
+
+channels:
+  /ws:
+    address: /ws
+    description: Borrows events operations
+    messages:
+      borrowsEventsSubscribe:
+        $ref: '#/components/messages/borrowsEventsSubscribe'
+      borrowsEventsSubscribeResponse:
+        $ref: '#/components/messages/borrowsEventsSubscribeResponse'
+      borrowsEventsUpdate:
+        $ref: '#/components/messages/borrowsEventsUpdate'
+      borrowsEventsUnsubscribe:
+        $ref: '#/components/messages/borrowsEventsUnsubscribe'
+      borrowsEventsUnsubscribeResponse:
+        $ref: '#/components/messages/borrowsEventsUnsubscribeResponse'
+
+operations:
+  sendBorrowsEventsSubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/borrowsEventsSubscribe'
+
+  receiveBorrowsEventsSubscribeResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/borrowsEventsSubscribeResponse'
+
+  receiveBorrowsEventsUpdates:
+    action: send
+    description: Receive real-time borrows events (margin call and liquidation)
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/borrowsEventsUpdate'
+
+  sendBorrowsEventsUnsubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/borrowsEventsUnsubscribe'
+
+  receiveBorrowsEventsUnsubscribeResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/borrowsEventsUnsubscribeResponse'
+
+components:
+  messages:
+    borrowsEventsSubscribe:
+      name: BorrowsEventsSubscribe
+      title: Subscribe to Borrows Events
+      summary: Subscribe to borrows events (margin call and liquidation)
+      payload:
+        $ref: '#/components/schemas/BorrowsEventsSubscribe'
+      examples:
+        - name: subscribeToEvents
+          summary: |
+            Subscribe to borrows events:
+            - params: Empty array (subscribes to all borrow events - margin call and liquidation)
+          payload:
+            method: borrowsAccountMargin_subscribe
+            params: []
+            id: 1
+
+    borrowsEventsSubscribeResponse:
+      name: BorrowsEventsSubscribeResponse
+      title: Subscribe Response
+      summary: Subscription confirmation
+      payload:
+        $ref: '#/components/schemas/SubscriptionResponse'
+      examples:
+        - name: subscriptionSuccess
+          summary: Subscription successful
+          payload:
+            error: null
+            result:
+              status: success
+            id: 1
+
+    borrowsEventsUpdate:
+      name: BorrowsEventsUpdate
+      title: Borrows Events Update
+      summary: "Real-time borrows events. Event type: 1=Margin call, 2=Liquidation"
+      payload:
+        $ref: '#/components/schemas/BorrowsEventsUpdate'
+      examples:
+        - name: marginCallEvent
+          summary: |
+            Borrow event with parameters:
+            - params[0]: Event type (1=Margin call, 2=Liquidation)
+            - params[1]: Borrow object with asset (borrowed asset), amount, unrealized_funding, liq_price, and timestamps
+          payload:
+            method: borrowsAccountMargin_update
+            params:
+              - 1
+              - asset: "USDT"
+                ctime: 1737731478.6904421
+                mtime: 1737731478.6904421
+                amount: "-3895.7476176"
+                unrealized_funding: "0.00267248"
+                liq_price: "NaN"
+            id: null
+
+    borrowsEventsUnsubscribe:
+      name: BorrowsEventsUnsubscribe
+      title: Unsubscribe from Borrows Events
+      summary: Stop receiving borrows events
+      payload:
+        $ref: '#/components/schemas/UnsubscribeRequest'
+      examples:
+        - name: unsubscribe
+          summary: Unsubscribe from borrows events
+          payload:
+            method: borrowsAccountMargin_unsubscribe
+            params: []
+            id: 1
+
+    borrowsEventsUnsubscribeResponse:
+      name: BorrowsEventsUnsubscribeResponse
+      title: Unsubscribe Response
+      summary: Unsubscription confirmation
+      payload:
+        $ref: '#/components/schemas/SubscriptionResponse'
+      examples:
+        - name: unsubscribeSuccess
+          summary: Unsubscription successful
+          payload:
+            error: null
+            result:
+              status: success
+            id: 1
+
+  schemas:
+    BorrowsEventsSubscribe:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+          description: Unique request identifier
+        method:
+          const: borrowsAccountMargin_subscribe
+          description: Method name for borrows events subscription
+        params:
+          type: array
+          items: {}
+          maxItems: 0
+          description: Empty array
+
+    SubscriptionResponse:
+      type: object
+      required:
+        - id
+        - result
+        - error
+      properties:
+        id:
+          type: integer
+          description: Request identifier matching the request
+        result:
+          type: object
+          required:
+            - status
+          properties:
+            status:
+              type: string
+              enum: [success]
+              description: Subscription status
+        error:
+          type: "null"
+          description: Error object (null on success)
+
+    BorrowsEventsUpdate:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: "null"
+          description: Update events have null id
+        method:
+          const: borrowsAccountMargin_update
+          description: Method name for borrows events updates
+        params:
+          type: array
+          description: |
+            Event tuple:
+            - [0] Event type (1=Margin call, 2=Liquidation)
+            - [1] Borrow object with all borrow details
+          minItems: 2
+          maxItems: 2
+          items:
+            - type: integer
+              enum: [1, 2]
+              description: "Event type: 1=Margin call, 2=Liquidation"
+            - type: object
+              description: "Borrow object (same structure as Borrows endpoint)"
+              properties:
+                asset:
+                  type: string
+                  description: "Borrowed asset"
+                ctime:
+                  type: number
+                  description: "Borrow created date in Unix time"
+                mtime:
+                  type: number
+                  description: "Last update time in Unix time"
+                amount:
+                  type: string
+                  description: "Borrow amount"
+                unrealized_funding:
+                  type: string
+                  description: "Funding to be paid on next borrow stage change"
+                liq_price:
+                  type: string
+                  description: "Borrow liquidation price"
+
+    UnsubscribeRequest:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+          description: Unique request identifier
+        method:
+          type: string
+          description: Unsubscribe method name
+        params:
+          type: array
+          items: {}
+          maxItems: 0
+          description: Empty array for unsubscribe

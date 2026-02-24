@@ -1,0 +1,304 @@
+asyncapi: 3.0.0
+info:
+  title: WhiteBit Positions
+  version: 1.0.0
+  description: |
+    Subscribe to positions updates. This endpoint does NOT support query operations - only subscribe/update/unsubscribe.
+
+servers:
+  production:
+    host: api.whitebit.com
+    protocol: wss
+    description: WhiteBIT Global Server
+  eu:
+    host: api.whitebit.eu
+    protocol: wss
+    description: WhiteBIT EU Server
+
+channels:
+  /ws:
+    address: /ws
+    description: Positions operations
+    messages:
+      positionsSubscribe:
+        $ref: '#/components/messages/positionsSubscribe'
+      positionsSubscribeResponse:
+        $ref: '#/components/messages/positionsSubscribeResponse'
+      positionsUpdate:
+        $ref: '#/components/messages/positionsUpdate'
+      positionsUnsubscribe:
+        $ref: '#/components/messages/positionsUnsubscribe'
+      positionsUnsubscribeResponse:
+        $ref: '#/components/messages/positionsUnsubscribeResponse'
+
+operations:
+  sendPositionsSubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/positionsSubscribe'
+
+  receivePositionsSubscribeResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/positionsSubscribeResponse'
+
+  receivePositionsUpdates:
+    action: send
+    description: "Receive real-time positions updates (Update interval: 1 sec)"
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/positionsUpdate'
+
+  sendPositionsUnsubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/positionsUnsubscribe'
+
+  receivePositionsUnsubscribeResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/components/messages/positionsUnsubscribeResponse'
+
+components:
+  messages:
+    positionsSubscribe:
+      name: PositionsSubscribe
+      title: Subscribe to Positions
+      summary: "Subscribe to positions updates (Update interval: 1 sec)"
+      payload:
+        $ref: '#/components/schemas/PositionsSubscribe'
+      examples:
+        - name: subscribeToPositions
+          summary: |
+            Subscribe to positions updates:
+            - params: Empty array (subscribes to all positions)
+          payload:
+            id: 16
+            method: positionsMargin_subscribe
+            params: []
+
+    positionsSubscribeResponse:
+      name: PositionsSubscribeResponse
+      title: Subscribe Response
+      summary: Subscription confirmation
+      payload:
+        $ref: '#/components/schemas/SubscriptionResponse'
+      examples:
+        - name: subscriptionSuccess
+          summary: Subscription successful
+          payload:
+            id: 16
+            result:
+              status: success
+            error: null
+
+    positionsUpdate:
+      name: PositionsUpdate
+      title: Positions Update
+      summary: Real-time positions update
+      payload:
+        $ref: '#/components/schemas/PositionsUpdate'
+      examples:
+        - name: positionUpdate
+          summary: |
+            Position update event containing:
+            - params: Object with total count and records array
+            - Each position record includes: market, amount, pnl, liq_price, position_side (LONG/SHORT/BOTH), and more
+          payload:
+            method: positionsMargin_update
+            params:
+              total: 1
+              records:
+                - id: 2
+                  market: "BTC_USDT"
+                  ctime: 1704067200
+                  mtime: 1704067200
+                  amount: "-0.01"
+                  amount_in_money: "118.762"
+                  base_price: "60000"
+                  pnl: "-0.47"
+                  liq_price: "65000"
+                  liq_stage: null
+                  unrealized_funding: "0"
+                  funding: "0"
+                  margin: "23.8"
+                  free_margin: "999932.92"
+                  realized_pnl: "0"
+                  position_side: "LONG"
+            id: null
+
+    positionsUnsubscribe:
+      name: PositionsUnsubscribe
+      title: Unsubscribe from Positions
+      summary: Stop receiving positions updates
+      payload:
+        $ref: '#/components/schemas/UnsubscribeRequest'
+      examples:
+        - name: unsubscribe
+          summary: Unsubscribe from positions
+          payload:
+            id: 17
+            method: positionsMargin_unsubscribe
+            params: []
+
+    positionsUnsubscribeResponse:
+      name: PositionsUnsubscribeResponse
+      title: Unsubscribe Response
+      summary: Unsubscription confirmation
+      payload:
+        $ref: '#/components/schemas/SubscriptionResponse'
+      examples:
+        - name: unsubscribeSuccess
+          summary: Unsubscription successful
+          payload:
+            id: 17
+            result:
+              status: success
+            error: null
+
+  schemas:
+    PositionsSubscribe:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+          description: Unique request identifier
+        method:
+          const: positionsMargin_subscribe
+          description: Method name for positions subscription
+        params:
+          type: array
+          items: {}
+          maxItems: 0
+          description: Empty array for positions subscription
+
+    SubscriptionResponse:
+      type: object
+      required:
+        - id
+        - result
+        - error
+      properties:
+        id:
+          type: integer
+          description: Request identifier matching the request
+        result:
+          type: object
+          required:
+            - status
+          properties:
+            status:
+              type: string
+              enum: [success]
+              description: Subscription status
+        error:
+          type: "null"
+          description: Error object (null on success)
+
+    PositionsUpdate:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: "null"
+          description: Update events have null id
+        method:
+          const: positionsMargin_update
+          description: Method name for positions updates
+        params:
+          type: object
+          properties:
+            total:
+              type: integer
+              description: "Positions count"
+            records:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: "Position ID"
+                  market:
+                    type: string
+                    description: "[Market](/glossary#market) name"
+                  ctime:
+                    type: number
+                    description: "Date of position opening in Unix time"
+                  mtime:
+                    type: number
+                    description: "Date of position modifying (this is date of current event) in Unix time"
+                  amount:
+                    type: string
+                    description: "Position amount"
+                  amount_in_money:
+                    type: string
+                    description: "Position amount in [money](/glossary#money)"
+                  base_price:
+                    type: string
+                    description: "Base price of position"
+                  pnl:
+                    type: string
+                    description: "Unrealized PnL in **money**"
+                  liq_price:
+                    type: string
+                    description: "Liquidation price according to current state of position"
+                  liq_stage:
+                    type: string
+                    nullable: true
+                    enum: [null, "margin_call"]
+                    description: "Liquidation state. Possible values: null, margin_call"
+                  unrealized_funding:
+                    type: string
+                    description: "Funding that will be paid on next position stage change (order, liquidation, etc)"
+                  funding:
+                    type: string
+                    description: "Funding that has already been disbursed"
+                  margin:
+                    type: string
+                    description: "Own funds amount in open position in **money**"
+                  free_margin:
+                    type: string
+                    description: "Free funds for trading"
+                  realized_pnl:
+                    type: string
+                    description: "Realized PnL in **money**"
+                  position_side:
+                    type: string
+                    enum: ["LONG", "SHORT", "BOTH"]
+                    description: "Position side - LONG or SHORT or BOTH"
+
+    UnsubscribeRequest:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+          description: Unique request identifier
+        method:
+          type: string
+          description: Unsubscribe method name
+        params:
+          type: array
+          items: {}
+          maxItems: 0
+          description: Empty array for unsubscribe

@@ -1,0 +1,488 @@
+asyncapi: 3.0.0
+info:
+  title: WhiteBit Orders Executed
+  version: 1.0.0
+  description: |
+    Get and subscribe to executed orders updates.
+    
+    **Important**: [Market](/glossary#market) should exist. The maximum limit is 100.
+    
+    ## Filter Options
+    
+    | Filter | Executed orders  |
+    | ------ | ---------------- |
+    | 0      | Limit and Market |
+    | 1      | Limit            |
+    | 2      | Market           |
+
+servers:
+  production:
+    host: api.whitebit.com
+    protocol: wss
+    description: WhiteBIT Global Server
+  eu:
+    host: api.whitebit.eu
+    protocol: wss
+    description: WhiteBIT EU Server
+
+channels:
+  /ws:
+    address: /ws
+    description: Executed orders operations
+    messages:
+      ordersExecutedRequest:
+        $ref: '#/components/messages/ordersExecutedRequest'
+      ordersExecutedResponse:
+        $ref: '#/components/messages/ordersExecutedResponse'
+      ordersExecutedSubscribe:
+        $ref: '#/components/messages/ordersExecutedSubscribe'
+      ordersExecutedSubscribeResponse:
+        $ref: '#/components/messages/ordersExecutedSubscribeResponse'
+      ordersExecutedUpdate:
+        $ref: '#/components/messages/ordersExecutedUpdate'
+      ordersExecutedUnsubscribe:
+        $ref: '#/components/messages/ordersExecutedUnsubscribe'
+      ordersExecutedUnsubscribeResponse:
+        $ref: '#/components/messages/ordersExecutedUnsubscribeResponse'
+
+operations:
+  sendOrdersExecutedRequest:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/ordersExecutedRequest'
+
+  receiveOrdersExecutedResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/ordersExecutedResponse'
+
+  sendOrdersExecutedSubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/ordersExecutedSubscribe'
+
+  receiveOrdersExecutedSubscribeResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/ordersExecutedSubscribeResponse'
+
+  receiveOrdersExecutedUpdates:
+    action: send
+    description: "Receive real-time executed orders updates (Update interval: real-time)"
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/ordersExecutedUpdate'
+
+  sendOrdersExecutedUnsubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/ordersExecutedUnsubscribe'
+
+  receiveOrdersExecutedUnsubscribeResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/ordersExecutedUnsubscribeResponse'
+
+components:
+  messages:
+    ordersExecutedRequest:
+      name: OrdersExecutedRequest
+      title: Orders Executed Query
+      summary: Get executed orders
+      payload:
+        $ref: '#/components/schemas/OrdersExecutedRequest'
+      examples:
+        - name: queryExecutedOrders
+          summary: |
+            Query executed orders with parameters:
+            - params[0]: Filter object with market (BTC_USDT) and order_types array
+            - params[1]: Offset for pagination (0)
+            - params[2]: Limit, maximum 100 (30)
+          payload:
+            id: 11
+            method: ordersExecuted_request
+            params:
+              - market: "BTC_USDT"
+                order_types: [1, 2]
+              - 0
+              - 30
+
+    ordersExecutedResponse:
+      name: OrdersExecutedResponse
+      title: Orders Executed Response
+      summary: List of executed orders
+      payload:
+        $ref: '#/components/schemas/OrdersExecutedResponse'
+      examples:
+        - name: executedOrdersResponse
+          summary: Executed orders response
+          payload:
+            id: 11
+            result:
+              limit: 100
+              offset: 0
+              records:
+                - id: 1212266594338
+                  ctime: 1738230617.8867061
+                  ftime: 1738230617.8867061
+                  market: "BTC_USDT"
+                  source: "web"
+                  type: 2
+                  side: 1
+                  post_only: false
+                  ioc: false
+                  price: "0"
+                  amount: "1"
+                  deal_stock: "1"
+                  deal_money: "105366.06693468"
+                  deal_fee: "10.536606693468"
+                  client_order_id: ""
+                  status: "FILLED"
+                  fee_asset: "USDT"
+                  rpi: false
+            error: null
+
+    ordersExecutedSubscribe:
+      name: OrdersExecutedSubscribe
+      title: Subscribe to Executed Orders
+      summary: "Subscribe to executed orders updates (Update interval: real-time). Filter: 0=Limit and Market, 1=Limit, 2=Market"
+      payload:
+        $ref: '#/components/schemas/OrdersExecutedSubscribe'
+      examples:
+        - name: subscribeToExecuted
+          summary: |
+            Subscribe to executed orders with parameters:
+            - params[0]: Array of market names (BTC_USDT, ETH_BTC)
+            - params[1]: Filter - 0=Limit and Market, 1=Limit only, 2=Market only
+          payload:
+            id: 12
+            method: ordersExecuted_subscribe
+            params:
+              - - "BTC_USDT"
+                - "ETH_BTC"
+              - 0
+
+    ordersExecutedSubscribeResponse:
+      name: OrdersExecutedSubscribeResponse
+      title: Subscribe Response
+      summary: Subscription confirmation
+      payload:
+        $ref: '#/components/schemas/SubscriptionResponse'
+      examples:
+        - name: subscriptionSuccess
+          summary: Subscription successful
+          payload:
+            id: 12
+            result:
+              status: success
+            error: null
+
+    ordersExecutedUpdate:
+      name: OrdersExecutedUpdate
+      title: Orders Executed Update
+      summary: Real-time executed orders update
+      payload:
+        $ref: '#/components/schemas/OrdersExecutedUpdate'
+      examples:
+        - name: executedOrderUpdate
+          summary: |
+            Executed order update event:
+            - params[0]: Executed order object with all order details
+          payload:
+            id: null
+            method: ordersExecuted_update
+            params:
+              - id: 1212907216814
+                market: "ETH_BTC"
+                type: 1
+                side: 2
+                post_only: false
+                ioc: false
+                ctime: 1738251046.7203979
+                mtime: 1738251048.4428461
+                price: "0.030832"
+                amount: "1"
+                left: "0"
+                deal_stock: "1"
+                deal_money: "0.030832"
+                deal_fee: "0.001"
+                client_order_id: ""
+                stp: "no"
+                status: "FILLED"
+                position_side: "LONG"
+                rpi: true
+
+    ordersExecutedUnsubscribe:
+      name: OrdersExecutedUnsubscribe
+      title: Unsubscribe from Executed Orders
+      summary: Stop receiving executed orders updates
+      payload:
+        $ref: '#/components/schemas/UnsubscribeRequest'
+      examples:
+        - name: unsubscribe
+          summary: Unsubscribe from executed orders
+          payload:
+            id: 13
+            method: ordersExecuted_unsubscribe
+            params: []
+
+    ordersExecutedUnsubscribeResponse:
+      name: OrdersExecutedUnsubscribeResponse
+      title: Unsubscribe Response
+      summary: Unsubscription confirmation
+      payload:
+        $ref: '#/components/schemas/SubscriptionResponse'
+      examples:
+        - name: unsubscribeSuccess
+          summary: Unsubscription successful
+          payload:
+            id: 13
+            result:
+              status: success
+            error: null
+
+  schemas:
+    OrdersExecutedRequest:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+          description: Unique request identifier
+        method:
+          const: ordersExecuted_request
+          description: Method name for executed orders query
+        params:
+          type: array
+          description: |
+            Query parameters tuple:
+            - [0] Filter object with market and order_types
+            - [1] Offset
+            - [2] Limit (max 100)
+          minItems: 3
+          maxItems: 3
+          items:
+            - type: object
+              description: "Filter object"
+              properties:
+                market:
+                  type: string
+                  description: "[Market](/glossary#market) name. Example: BTC_USDT"
+                order_types:
+                  type: array
+                  items:
+                    type: integer
+                  description: "Order types filter. See order types table in overview"
+            - type: integer
+              description: "Offset for pagination"
+            - type: integer
+              description: "Limit (maximum 100)"
+
+    OrdersExecutedResponse:
+      type: object
+      required:
+        - id
+        - result
+        - error
+      properties:
+        id:
+          type: integer
+          description: Request identifier matching the request
+        result:
+          type: object
+          properties:
+            limit:
+              type: integer
+              description: "Limit from request"
+            offset:
+              type: integer
+              description: "Offset from request"
+            records:
+              type: array
+              items:
+                $ref: '#/components/schemas/ExecutedOrderObject'
+        error:
+          type: "null"
+          description: Error object (null on success)
+
+    OrdersExecutedSubscribe:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+          description: Unique request identifier
+        method:
+          const: ordersExecuted_subscribe
+          description: Method name for executed orders subscription
+        params:
+          type: array
+          description: |
+            Subscription parameters tuple:
+            - [0] Array of market names
+            - [1] Filter (0=Limit and Market, 1=Limit, 2=Market)
+          minItems: 2
+          maxItems: 2
+          items:
+            - type: array
+              description: "Array of markets to subscribe to"
+              items:
+                type: string
+                description: "[Market](/glossary#market) name. Example: BTC_USDT"
+            - type: integer
+              enum: [0, 1, 2]
+              description: "Filter: 0=Limit and Market, 1=Limit only, 2=Market only"
+
+    SubscriptionResponse:
+      type: object
+      required:
+        - id
+        - result
+        - error
+      properties:
+        id:
+          type: integer
+          description: Request identifier matching the request
+        result:
+          type: object
+          required:
+            - status
+          properties:
+            status:
+              type: string
+              enum: [success]
+              description: Subscription status
+        error:
+          type: "null"
+          description: Error object (null on success)
+
+    OrdersExecutedUpdate:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: "null"
+          description: Update events have null id
+        method:
+          const: ordersExecuted_update
+          description: Method name for executed orders updates
+        params:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExecutedOrderObject'
+          description: "Array containing executed order object"
+
+    ExecutedOrderObject:
+      type: object
+      description: Executed order object
+      properties:
+        id:
+          type: integer
+          description: "Order ID"
+        ctime:
+          type: number
+          description: "Created at in Unix time"
+        ftime:
+          type: number
+          description: "Finished at in Unix time"
+        mtime:
+          type: number
+          description: "Modified at in Unix time"
+        market:
+          type: string
+          description: "[Market](/glossary#market)"
+        source:
+          type: string
+          description: "Source (e.g., web, api)"
+        type:
+          type: integer
+          description: "Order type. See order types table in overview"
+        side:
+          type: integer
+          enum: [1, 2]
+          description: "Side: 1=sell, 2=buy/bid"
+        post_only:
+          type: boolean
+          description: "Post only flag"
+        ioc:
+          type: boolean
+          description: "IOC flag"
+        price:
+          type: string
+          description: "Order price"
+        amount:
+          type: string
+          description: "[Stock](/glossary#stock) amount"
+        left:
+          type: string
+          description: "Stock amount that left to be executed"
+        deal_stock:
+          type: string
+          description: "Stock amount that executed"
+        deal_money:
+          type: string
+          description: "[Money](/glossary#money) amount that executed"
+        deal_fee:
+          type: string
+          description: "Charged fee amount in money"
+        client_order_id:
+          type: string
+          description: "Custom client order id"
+        stp:
+          type: string
+          enum: ["no", "co", "cn", "cb"]
+          description: "STP flag: no=No Prevention, co=Cancel Oldest, cn=Cancel Newest, cb=Cancel Both"
+        status:
+          type: string
+          description: "Order status (e.g., FILLED, CANCELED)"
+        position_side:
+          type: string
+          enum: ["LONG", "SHORT", "BOTH"]
+          description: "Position side - LONG or SHORT or BOTH"
+        rpi:
+          type: boolean
+          description: "RPI order flag"
+        fee_asset:
+          type: string
+          description: "Fee asset type"
+
+    UnsubscribeRequest:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+          description: Unique request identifier
+        method:
+          type: string
+          description: Unsubscribe method name
+        params:
+          type: array
+          items: {}
+          maxItems: 0
+          description: Empty array for unsubscribe

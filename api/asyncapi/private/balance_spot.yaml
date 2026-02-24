@@ -1,0 +1,348 @@
+asyncapi: 3.0.0
+info:
+  title: WhiteBit Spot Balance
+  version: 1.0.0
+  description: |
+    Get and subscribe to [spot balance](/glossary#balance-spotbalance-trade) updates.
+
+servers:
+  production:
+    host: api.whitebit.com
+    protocol: wss
+    description: WhiteBIT Global Server
+  eu:
+    host: api.whitebit.eu
+    protocol: wss
+    description: WhiteBIT EU Server
+
+channels:
+  /ws:
+    address: /ws
+    description: Spot balance operations
+    messages:
+      balanceSpotRequest:
+        $ref: '#/components/messages/balanceSpotRequest'
+      balanceSpotResponse:
+        $ref: '#/components/messages/balanceSpotResponse'
+      balanceSpotSubscribe:
+        $ref: '#/components/messages/balanceSpotSubscribe'
+      balanceSpotSubscribeResponse:
+        $ref: '#/components/messages/balanceSpotSubscribeResponse'
+      balanceSpotUpdate:
+        $ref: '#/components/messages/balanceSpotUpdate'
+      balanceSpotUnsubscribe:
+        $ref: '#/components/messages/balanceSpotUnsubscribe'
+      balanceSpotUnsubscribeResponse:
+        $ref: '#/components/messages/balanceSpotUnsubscribeResponse'
+
+operations:
+  sendBalanceSpotRequest:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/balanceSpotRequest'
+
+  receiveBalanceSpotResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/balanceSpotResponse'
+
+  sendBalanceSpotSubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/balanceSpotSubscribe'
+
+  receiveBalanceSpotSubscribeResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/balanceSpotSubscribeResponse'
+
+  receiveBalanceSpotUpdates:
+    action: send
+    description: "Receive real-time spot balance updates (Update interval: 1 sec)"
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/components/messages/balanceSpotUpdate'
+
+  sendBalanceSpotUnsubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/balanceSpotUnsubscribe'
+
+  receiveBalanceSpotUnsubscribeResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/balanceSpotUnsubscribeResponse'
+
+components:
+  messages:
+    balanceSpotRequest:
+      name: BalanceSpotRequest
+      title: Balance Spot Query
+      summary: Get current spot wallet balance
+      payload:
+        $ref: '#/components/schemas/BalanceSpotRequest'
+      examples:
+        - name: querySpecificAssets
+          summary: |
+            Query spot balance for specific assets:
+            - params: Array of asset tickers (ETH, BTC)
+            Pass empty array to query all balances
+          payload:
+            id: 2
+            method: balanceSpot_request
+            params:
+              - "ETH"
+              - "BTC"
+
+    balanceSpotResponse:
+      name: BalanceSpotResponse
+      title: Balance Spot Response
+      summary: Current spot wallet balances
+      payload:
+        $ref: '#/components/schemas/BalanceSpotResponse'
+      examples:
+        - name: balanceResponse
+          summary: Balance response
+          payload:
+            id: 2
+            result:
+              ETH:
+                available: "0"
+                freeze: "0"
+              BTC:
+                available: "0"
+                freeze: "0"
+            error: null
+
+    balanceSpotSubscribe:
+      name: BalanceSpotSubscribe
+      title: Subscribe to Spot Balance
+      summary: "Subscribe to spot balance updates (Update interval: 1 sec)"
+      payload:
+        $ref: '#/components/schemas/BalanceSpotSubscribe'
+      examples:
+        - name: subscribeToAssets
+          summary: |
+            Subscribe to spot balance updates:
+            - params: Array of asset tickers (USDT, ETH)
+          payload:
+            id: 3
+            method: balanceSpot_subscribe
+            params:
+              - "USDT"
+              - "ETH"
+
+    balanceSpotSubscribeResponse:
+      name: BalanceSpotSubscribeResponse
+      title: Subscribe Response
+      summary: Subscription confirmation
+      payload:
+        $ref: '#/components/schemas/SubscriptionResponse'
+      examples:
+        - name: subscriptionSuccess
+          summary: Subscription successful
+          payload:
+            id: 3
+            result:
+              status: success
+            error: null
+
+    balanceSpotUpdate:
+      name: BalanceSpotUpdate
+      title: Balance Spot Update
+      summary: Real-time spot balance update
+      payload:
+        $ref: '#/components/schemas/BalanceSpotUpdate'
+      examples:
+        - name: balanceUpdate
+          summary: |
+            Real-time spot balance update:
+            - params[0]: Object with asset keys (USDT, etc.)
+            - Each asset has: available (for trade) and freeze (in active orders) amounts
+          payload:
+            id: null
+            method: balanceSpot_update
+            params:
+              - USDT:
+                  available: "100.1885"
+                  freeze: "0"
+
+    balanceSpotUnsubscribe:
+      name: BalanceSpotUnsubscribe
+      title: Unsubscribe from Balance Spot
+      summary: Stop receiving balance updates
+      payload:
+        $ref: '#/components/schemas/UnsubscribeRequest'
+      examples:
+        - name: unsubscribe
+          summary: Unsubscribe from balance updates
+          payload:
+            id: 4
+            method: balanceSpot_unsubscribe
+            params: []
+
+    balanceSpotUnsubscribeResponse:
+      name: BalanceSpotUnsubscribeResponse
+      title: Unsubscribe Response
+      summary: Unsubscription confirmation
+      payload:
+        $ref: '#/components/schemas/SubscriptionResponse'
+      examples:
+        - name: unsubscribeSuccess
+          summary: Unsubscription successful
+          payload:
+            id: 4
+            result:
+              status: success
+            error: null
+
+  schemas:
+    BalanceSpotRequest:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+          description: Unique request identifier
+        method:
+          const: balanceSpot_request
+          description: Method name for balance query
+        params:
+          type: array
+          items:
+            type: string
+            description: "Asset [ticker](/glossary#ticker). Example: BTC"
+          description: "Array of asset tickers to query. Empty array returns all balances."
+
+    BalanceSpotResponse:
+      type: object
+      required:
+        - id
+        - result
+        - error
+      properties:
+        id:
+          type: integer
+          description: Request identifier matching the request
+        result:
+          type: object
+          description: Wallet balances by currency
+          additionalProperties:
+            type: object
+            properties:
+              available:
+                type: string
+                description: "Amount available for trade"
+              freeze:
+                type: string
+                description: "Amount in active [orders](/glossary#orders)"
+        error:
+          type: "null"
+          description: Error object (null on success)
+
+    BalanceSpotSubscribe:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+          description: Unique request identifier
+        method:
+          const: balanceSpot_subscribe
+          description: Method name for balance subscription
+        params:
+          type: array
+          items:
+            type: string
+            description: "Asset [ticker](/glossary#ticker). Example: USDT"
+          description: "Array of asset tickers to subscribe to"
+
+    SubscriptionResponse:
+      type: object
+      required:
+        - id
+        - result
+        - error
+      properties:
+        id:
+          type: integer
+          description: Request identifier matching the request
+        result:
+          type: object
+          required:
+            - status
+          properties:
+            status:
+              type: string
+              enum: [success]
+              description: Subscription status
+        error:
+          type: "null"
+          description: Error object (null on success)
+
+    BalanceSpotUpdate:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: "null"
+          description: Update events have null id
+        method:
+          const: balanceSpot_update
+          description: Method name for balance updates
+        params:
+          type: array
+          items:
+            type: object
+            description: Balance update object with asset keys
+            additionalProperties:
+              type: object
+              properties:
+                available:
+                  type: string
+                  description: "Amount available for trade"
+                freeze:
+                  type: string
+                  description: "Amount in active [orders](/glossary#orders)"
+          description: Array containing balance updates for subscribed assets
+
+    UnsubscribeRequest:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+          description: Unique request identifier
+        method:
+          type: string
+          description: Unsubscribe method name
+        params:
+          type: array
+          items: {}
+          maxItems: 0
+          description: Empty array for unsubscribe

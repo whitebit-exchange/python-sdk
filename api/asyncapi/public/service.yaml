@@ -1,0 +1,188 @@
+asyncapi: 3.0.0
+info:
+  title: WhiteBit Service Operations
+  version: 1.0.0
+  description: Service operations including health checks (ping) and server time
+
+servers:
+  production:
+    host: api.whitebit.com
+    protocol: wss
+    description: WhiteBIT Global Server
+  eu:
+    host: api.whitebit.eu
+    protocol: wss
+    description: WhiteBIT EU Server
+
+channels:
+  /ws:
+    address: /ws
+    description: |
+      Service operations for connection health checks and server time.
+      
+      <Note>
+      Use ping to maintain connection - server closes connection after 60 seconds of inactivity.
+      </Note>
+    messages:
+      pingRequest:
+        $ref: '#/components/messages/pingRequest'
+      pingResponse:
+        $ref: '#/components/messages/pingResponse'
+      timeRequest:
+        $ref: '#/components/messages/timeRequest'
+      timeResponse:
+        $ref: '#/components/messages/timeResponse'
+
+operations:
+  sendPing:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/pingRequest'
+
+  receivePingResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/pingResponse'
+
+  sendTimeRequest:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/timeRequest'
+
+  receiveTimeResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/timeResponse'
+
+components:
+  messages:
+    pingRequest:
+      name: PingRequest
+      title: Ping Request
+      summary: Verify connection is active
+      payload:
+        $ref: '#/components/schemas/PingRequest'
+      examples:
+        - name: ping
+          summary: Simple ping
+          payload:
+            id: 0
+            method: ping
+            params: []
+
+    pingResponse:
+      name: PingResponse
+      title: Ping Response
+      summary: Server pong response
+      payload:
+        $ref: '#/components/schemas/PingResponse'
+      examples:
+        - name: pongResponse
+          summary: Pong response
+          payload:
+            id: 0
+            result: pong
+            error: null
+
+    timeRequest:
+      name: TimeRequest
+      title: Server Time Request
+      summary: Get current server time
+      payload:
+        $ref: '#/components/schemas/TimeRequest'
+      examples:
+        - name: timeRequest
+          summary: Request current time
+          payload:
+            id: 1
+            method: time
+            params: []
+
+    timeResponse:
+      name: TimeResponse
+      title: Server Time Response
+      summary: Current server time in Unix timestamp
+      payload:
+        $ref: '#/components/schemas/TimeResponse'
+      examples:
+        - name: timeResponse
+          summary: Server time response
+          payload:
+            id: 1
+            result: 1493285895
+            error: null
+
+  schemas:
+    BaseRequest:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+          description: Unique request identifier
+
+    BaseResponse:
+      type: object
+      required:
+        - id
+        - result
+        - error
+      properties:
+        id:
+          type: integer
+          description: Request identifier matching the request
+        error:
+          type: "null"
+
+    PingRequest:
+      allOf:
+        - $ref: '#/components/schemas/BaseRequest'
+        - type: object
+          properties:
+            method:
+              const: ping
+            params:
+              type: array
+              items: {}
+              maxItems: 0
+
+    PingResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            result:
+              type: string
+              enum: [pong]
+
+    TimeRequest:
+      allOf:
+        - $ref: '#/components/schemas/BaseRequest'
+        - type: object
+          properties:
+            method:
+              const: time
+            params:
+              type: array
+              items: {}
+              maxItems: 0
+
+    TimeResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            result:
+              type: integer
+              description: Unix timestamp

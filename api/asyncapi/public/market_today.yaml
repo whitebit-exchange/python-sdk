@@ -1,0 +1,331 @@
+asyncapi: 3.0.0
+info:
+  title: WhiteBit Market Today Statistics
+  version: 1.0.0
+  description: Market statistics for the current day in UTC timezone. Includes open, high, low prices and volume data since midnight UTC.
+
+servers:
+  production:
+    host: api.whitebit.com
+    protocol: wss
+    description: WhiteBIT Global Server
+  eu:
+    host: api.whitebit.eu
+    protocol: wss
+    description: WhiteBIT EU Server
+
+channels:
+  /ws:
+    address: /ws
+    description: |
+      Market statistics for current day UTC.
+
+      **Update Interval**: 1 second (for subscriptions)
+
+      <Note>
+      Statistics reset daily at UTC midnight.
+      </Note>
+      
+    messages:
+      marketTodayRequest:
+        $ref: '#/components/messages/marketTodayRequest'
+      marketTodayResponse:
+        $ref: '#/components/messages/marketTodayResponse'
+      marketTodaySubscribe:
+        $ref: '#/components/messages/marketTodaySubscribe'
+      marketTodaySubscribeResponse:
+        $ref: '#/components/messages/marketTodaySubscribeResponse'
+      marketTodayUpdate:
+        $ref: '#/components/messages/marketTodayUpdate'
+      marketTodayUnsubscribe:
+        $ref: '#/components/messages/marketTodayUnsubscribe'
+
+operations:
+  sendMarketTodayRequest:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/marketTodayRequest'
+
+  receiveMarketTodayResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/marketTodayResponse'
+
+  sendMarketTodaySubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/marketTodaySubscribe'
+
+  receiveMarketTodaySubscribeResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/marketTodaySubscribeResponse'
+
+  receiveMarketTodayUpdates:
+    action: send
+    description: Receive periodic market today statistics updates every 1 second
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/marketTodayUpdate'
+
+  sendMarketTodayUnsubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/marketTodayUnsubscribe'
+
+components:
+  messages:
+    marketTodayRequest:
+      name: MarketTodayRequest
+      title: Market Today Query
+      summary: Get market statistics for current day UTC
+      payload:
+        $ref: '#/components/schemas/MarketTodayRequest'
+      examples:
+        - name: marketTodayQuery
+          summary: |
+            Query today's market statistics:
+            - params[0]: Market name (ETH_BTC)
+            Note: Only one market per request
+          payload:
+            id: 14
+            method: marketToday_query
+            params:
+              - ETH_BTC
+
+    marketTodayResponse:
+      name: MarketTodayResponse
+      title: Market Today Response
+      summary: Market statistics for current day UTC
+      payload:
+        $ref: '#/components/schemas/MarketTodayResponse'
+      examples:
+        - name: marketTodayData
+          summary: |
+            Today's market statistics response (resets at UTC midnight):
+            - last: Last price (0.020981)
+            - open: Open price at UTC midnight (0.02035)
+            - high: Highest price today (0.020988)
+            - low: Lowest price today (0.020281)
+            - volume: Volume in stock (135220.218)
+            - deal: Volume in money (2776.587022649)
+          payload:
+            id: 14
+            result:
+              last: "0.020981"
+              open: "0.02035"
+              high: "0.020988"
+              low: "0.020281"
+              volume: "135220.218"
+              deal: "2776.587022649"
+            error: null
+
+    marketTodaySubscribe:
+      name: MarketTodaySubscribe
+      title: Subscribe to Market Today
+      summary: Subscribe to current day market statistics
+      payload:
+        $ref: '#/components/schemas/MarketTodaySubscribe'
+      examples:
+        - name: subscribeMarketToday
+          summary: |
+            Subscribe to today's market statistics:
+            - params: Array of market names (ETH_BTC, BTC_USDT)
+            Statistics reset daily at UTC midnight
+          payload:
+            id: 15
+            method: marketToday_subscribe
+            params:
+              - ETH_BTC
+              - BTC_USDT
+
+    marketTodaySubscribeResponse:
+      name: MarketTodaySubscribeResponse
+      title: Subscribe Response
+      summary: Subscription confirmation
+      payload:
+        $ref: '#/components/schemas/SubscriptionResponse'
+
+    marketTodayUpdate:
+      name: MarketTodayUpdate
+      title: Market Today Update
+      summary: Periodic market today statistics update (every 1 second)
+      payload:
+        $ref: '#/components/schemas/MarketTodayUpdate'
+      examples:
+        - name: marketTodayUpdate
+          summary: |
+            Today's market statistics update event:
+            - params[0]: Market name (ETH_BTC)
+            - params[1]: MarketTodayStatistics object (same structure as query response)
+          payload:
+            id: null
+            method: marketToday_update
+            params:
+              - ETH_BTC
+              - last: "0.020964"
+                open: "0.020349"
+                high: "0.020997"
+                low: "0.020281"
+                volume: "135574.476"
+                deal: "2784.413999488"
+
+    marketTodayUnsubscribe:
+      name: MarketTodayUnsubscribe
+      title: Unsubscribe from Market Today
+      summary: Stop receiving market today updates
+      payload:
+        $ref: '#/components/schemas/UnsubscribeRequest'
+
+  schemas:
+    MarketTodayStatistics:
+      type: object
+      required:
+        - last
+        - open
+        - high
+        - low
+        - volume
+        - deal
+      properties:
+        last:
+          type: string
+          description: Last price
+        open:
+          type: string
+          description: "Open price at today's start (UTC midnight)"
+        high:
+          type: string
+          description: Highest price today
+        low:
+          type: string
+          description: Lowest price today
+        volume:
+          type: string
+          description: "Volume in [stock](/glossary#stock) currency"
+        deal:
+          type: string
+          description: "Volume in [money](/glossary#money) currency"
+
+    MarketTodayRequest:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+          description: Unique request identifier
+        method:
+          const: marketToday_query
+        params:
+          type: array
+          minItems: 1
+          maxItems: 1
+          items:
+            - type: string
+              description: "[Market](/glossary#market) name. Only one market per request."
+
+    MarketTodayResponse:
+      type: object
+      required:
+        - id
+        - result
+        - error
+      properties:
+        id:
+          type: integer
+        result:
+          $ref: '#/components/schemas/MarketTodayStatistics'
+        error:
+          type: "null"
+
+    MarketTodaySubscribe:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+        method:
+          const: marketToday_subscribe
+        params:
+          type: array
+          items:
+            type: string
+            description: "[Market](/glossary#market) names"
+
+    SubscriptionResponse:
+      type: object
+      required:
+        - id
+        - result
+        - error
+      properties:
+        id:
+          type: integer
+        result:
+          type: object
+          required:
+            - status
+          properties:
+            status:
+              type: string
+              enum: [success]
+        error:
+          type: "null"
+
+    MarketTodayUpdate:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: "null"
+        method:
+          const: marketToday_update
+        params:
+          type: array
+          description: |
+            Update event parameters:
+            - [0] Market name
+            - [1] MarketTodayStatistics object
+          minItems: 2
+          maxItems: 2
+          items:
+            - type: string
+              description: Market name
+            - $ref: '#/components/schemas/MarketTodayStatistics'
+
+    UnsubscribeRequest:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+        method:
+          type: string
+          enum: [marketToday_unsubscribe]
+        params:
+          type: array
+          items: {}
+          maxItems: 0

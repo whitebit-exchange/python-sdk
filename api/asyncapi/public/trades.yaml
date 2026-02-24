@@ -1,0 +1,357 @@
+asyncapi: 3.0.0
+info:
+  title: WhiteBit Market Trades
+  version: 1.0.0
+  description: Real-time market trade data. Supports both historical trade queries and real-time trade subscriptions for specific markets or all markets.
+
+servers:
+  production:
+    host: api.whitebit.com
+    protocol: wss
+    description: WhiteBIT Global Server
+  eu:
+    host: api.whitebit.eu
+    protocol: wss
+    description: WhiteBIT EU Server
+
+channels:
+  /ws:
+    address: /ws
+    description: |
+      Market trade operations.
+
+      **Update Interval**: Real-time
+
+      <Warning>
+      For each WebSocket connection, you can subscribe to either specific markets or all markets. **Every new subscription replaces the existing one.**
+      </Warning>
+
+      <Note>
+      To subscribe to all markets, send the request with an empty `params` array.
+      </Note>
+    messages:
+      tradesRequest:
+        $ref: '#/components/messages/tradesRequest'
+      tradesResponse:
+        $ref: '#/components/messages/tradesResponse'
+      tradesSubscribe:
+        $ref: '#/components/messages/tradesSubscribe'
+      tradesSubscribeResponse:
+        $ref: '#/components/messages/tradesSubscribeResponse'
+      tradesUpdate:
+        $ref: '#/components/messages/tradesUpdate'
+      tradesUnsubscribe:
+        $ref: '#/components/messages/tradesUnsubscribe'
+
+operations:
+  sendTradesRequest:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/tradesRequest'
+
+  receiveTradesResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/tradesResponse'
+
+  sendTradesSubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/tradesSubscribe'
+
+  receiveTradesSubscribeResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/tradesSubscribeResponse'
+
+  receiveTradesUpdates:
+    action: send
+    description: Receive real-time trade updates
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/tradesUpdate'
+
+  sendTradesUnsubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/tradesUnsubscribe'
+
+components:
+  messages:
+    tradesRequest:
+      name: TradesRequest
+      title: Trades Query
+      summary: Get recent trades for a market
+      payload:
+        $ref: '#/components/schemas/TradesRequest'
+      examples:
+        - name: tradesQuery
+          summary: |
+            Query recent trades with parameters:
+            - params[0]: Market name (ETH_BTC)
+            - params[1]: Limit (100, number of trades to return)
+            - params[2]: Largest trade ID to request from (41358445)
+          payload:
+            id: 8
+            method: trades_request
+            params:
+              - ETH_BTC
+              - 100
+              - 41358445
+
+    tradesResponse:
+      name: TradesResponse
+      title: Trades Response
+      summary: Array of recent trades
+      payload:
+        $ref: '#/components/schemas/TradesResponse'
+      examples:
+        - name: tradesData
+          summary: |
+            Array of recent trades where each trade contains:
+            - id: Trade ID (41358530)
+            - time: Unix timestamp with milliseconds (1580905394.70332)
+            - price: Trade price (0.020857)
+            - amount: Trade amount (5.511)
+            - type: Trade type (buy/sell)
+          payload:
+            id: 8
+            result:
+              - id: 41358530
+                time: 1580905394.70332
+                price: "0.020857"
+                amount: "5.511"
+                type: sell
+            error: null
+
+    tradesSubscribe:
+      name: TradesSubscribe
+      title: Subscribe to Trades
+      summary: Subscribe to real-time trade updates
+      payload:
+        $ref: '#/components/schemas/TradesSubscribe'
+      examples:
+        - name: subscribeSpecificMarkets
+          summary: |
+            Subscribe to specific markets:
+            - params: Array of market names (ETH_BTC, BTC_USDT)
+            Note: Every new subscription replaces the existing one
+          payload:
+            id: 9
+            method: trades_subscribe
+            params:
+              - ETH_BTC
+              - BTC_USDT
+        - name: subscribeAllMarkets
+          summary: |
+            Subscribe to all markets:
+            - params: Empty array [] subscribes to all markets
+          payload:
+            id: 9
+            method: trades_subscribe
+            params: []
+
+    tradesSubscribeResponse:
+      name: TradesSubscribeResponse
+      title: Subscribe Response
+      summary: Subscription confirmation
+      payload:
+        $ref: '#/components/schemas/SubscriptionResponse'
+
+    tradesUpdate:
+      name: TradesUpdate
+      title: Trades Update
+      summary: Real-time trade updates
+      payload:
+        $ref: '#/components/schemas/TradesUpdate'
+      examples:
+        - name: tradeUpdate
+          summary: |
+            Trade update event with parameters:
+            - params[0]: Market name (ETH_BTC)
+            - params[1]: Array of trade objects
+            Trade fields: id, time (Unix ms), price, amount, type (buy/sell), rpi (Retail Price Improvement flag)
+          payload:
+            id: null
+            method: trades_update
+            params:
+              - ETH_BTC
+              - - id: 41358530
+                  time: 1580905394.70332
+                  price: "0.020857"
+                  amount: "5.511"
+                  type: sell
+
+    tradesUnsubscribe:
+      name: TradesUnsubscribe
+      title: Unsubscribe from Trades
+      summary: Stop receiving trade updates
+      payload:
+        $ref: '#/components/schemas/UnsubscribeRequest'
+
+  schemas:
+    Trade:
+      type: object
+      required:
+        - id
+        - time
+        - price
+        - amount
+        - type
+      properties:
+        id:
+          type: integer
+          description: Trade ID
+        time:
+          type: number
+          description: Trade time (Unix timestamp with milliseconds)
+        price:
+          type: string
+          description: Trade price
+        amount:
+          type: string
+          description: Trade amount
+        type:
+          type: string
+          enum: [buy, sell]
+          description: Trade type (buy/sell)
+        rpi:
+          type: boolean
+          description: "Indicates whether the trade involved a Retail Price Improvement (RPI) order"
+
+    TradesRequest:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+          description: Unique request identifier
+        method:
+          const: trades_request
+        params:
+          type: array
+          description: |
+            Query parameters:
+            - [0] Market name
+            - [1] Limit (number of trades to return)
+            - [2] Largest trade ID to request from
+          minItems: 3
+          maxItems: 3
+          items:
+            - type: string
+              description: "[Market](/glossary#market) name"
+            - type: integer
+              description: Limit (number of trades to return)
+            - type: integer
+              description: Largest trade ID to request from
+
+    TradesResponse:
+      type: object
+      required:
+        - id
+        - result
+        - error
+      properties:
+        id:
+          type: integer
+        result:
+          type: array
+          items:
+            $ref: '#/components/schemas/Trade'
+        error:
+          type: "null"
+
+    TradesSubscribe:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+        method:
+          const: trades_subscribe
+        params:
+          type: array
+          description: Market names (empty array to subscribe to all markets)
+          items:
+            type: string
+
+    SubscriptionResponse:
+      type: object
+      required:
+        - id
+        - result
+        - error
+      properties:
+        id:
+          type: integer
+        result:
+          type: object
+          required:
+            - status
+          properties:
+            status:
+              type: string
+              enum: [success]
+        error:
+          type: "null"
+
+    TradesUpdate:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: "null"
+        method:
+          const: trades_update
+        params:
+          type: array
+          description: |
+            Update event parameters:
+            - [0] Market name
+            - [1] Array of Trade objects
+          minItems: 2
+          maxItems: 2
+          items:
+            - type: string
+              description: "[Market](/glossary#market) name"
+            - type: array
+              description: Array of trades
+              items:
+                $ref: '#/components/schemas/Trade'
+
+    UnsubscribeRequest:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+        method:
+          type: string
+          enum: [trades_unsubscribe]
+        params:
+          type: array
+          items: {}
+          maxItems: 0

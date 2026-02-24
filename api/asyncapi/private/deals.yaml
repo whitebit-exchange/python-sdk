@@ -1,0 +1,465 @@
+asyncapi: 3.0.0
+info:
+  title: WhiteBit Deals
+  version: 1.0.0
+  description: |
+    Get and subscribe to deals/trades updates.
+    
+    **Important**: [Market](/glossary#market) should exist. The maximum limit is 100.
+    
+    **Note**: Update events use ARRAY format, not object format.
+
+servers:
+  production:
+    host: api.whitebit.com
+    protocol: wss
+    description: WhiteBIT Global Server
+  eu:
+    host: api.whitebit.eu
+    protocol: wss
+    description: WhiteBIT EU Server
+
+channels:
+  /ws:
+    address: /ws
+    description: Deals operations
+    messages:
+      dealsRequest:
+        $ref: '#/components/messages/dealsRequest'
+      dealsResponse:
+        $ref: '#/components/messages/dealsResponse'
+      dealsSubscribe:
+        $ref: '#/components/messages/dealsSubscribe'
+      dealsSubscribeResponse:
+        $ref: '#/components/messages/dealsSubscribeResponse'
+      dealsUpdate:
+        $ref: '#/components/messages/dealsUpdate'
+      dealsUnsubscribe:
+        $ref: '#/components/messages/dealsUnsubscribe'
+      dealsUnsubscribeResponse:
+        $ref: '#/components/messages/dealsUnsubscribeResponse'
+
+operations:
+  sendDealsRequest:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/dealsRequest'
+
+  receiveDealsResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/dealsResponse'
+
+  sendDealsSubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/dealsSubscribe'
+
+  receiveDealsSubscribeResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/dealsSubscribeResponse'
+
+  receiveDealsUpdates:
+    action: send
+    description: "Receive real-time deals updates (Update interval: real-time)"
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/dealsUpdate'
+
+  sendDealsUnsubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/dealsUnsubscribe'
+
+  receiveDealsUnsubscribeResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/dealsUnsubscribeResponse'
+
+components:
+  messages:
+    dealsRequest:
+      name: DealsRequest
+      title: Deals Query
+      summary: Get user deals/trades
+      payload:
+        $ref: '#/components/schemas/DealsRequest'
+      examples:
+        - name: queryDeals
+          summary: |
+            Query user deals with parameters:
+            - params[0]: Market name (BTC_USDT)
+            - params[1]: Offset for pagination (0)
+            - params[2]: Limit, maximum 100 (30)
+          payload:
+            id: 14
+            method: deals_request
+            params:
+              - "BTC_USDT"
+              - 0
+              - 30
+
+    dealsResponse:
+      name: DealsResponse
+      title: Deals Response
+      summary: List of user deals
+      payload:
+        $ref: '#/components/schemas/DealsResponse'
+      examples:
+        - name: dealsResponse
+          summary: Deals response
+          payload:
+            id: 14
+            result:
+              limit: 100
+              offset: 0
+              records:
+                - time: 1738230617.8867061
+                  id: 13663227034
+                  side: 1
+                  role: 2
+                  price: "105361.32"
+                  amount: "0.160998"
+                  deal: "16962.96179736"
+                  fee: "1.696296179736"
+                  order_id: 1212266594338
+                  deal_order_id: 1212266160846
+                  market: "BTC_USDT"
+                  client_order_id: ""
+                  fee_asset: "USDT"
+            error: null
+
+    dealsSubscribe:
+      name: DealsSubscribe
+      title: Subscribe to Deals
+      summary: "Subscribe to deals updates (Update interval: real-time)"
+      payload:
+        $ref: '#/components/schemas/DealsSubscribe'
+      examples:
+        - name: subscribeToDeals
+          summary: |
+            Subscribe to deals updates:
+            - params[0]: Array of market names (BTC_USDT, ETH_BTC)
+          payload:
+            id: 15
+            method: deals_subscribe
+            params:
+              - - "BTC_USDT"
+                - "ETH_BTC"
+
+    dealsSubscribeResponse:
+      name: DealsSubscribeResponse
+      title: Subscribe Response
+      summary: Subscription confirmation
+      payload:
+        $ref: '#/components/schemas/SubscriptionResponse'
+      examples:
+        - name: subscriptionSuccess
+          summary: Subscription successful
+          payload:
+            id: 15
+            result:
+              status: success
+            error: null
+
+    dealsUpdate:
+      name: DealsUpdate
+      title: Deals Update
+      summary: Real-time deals update (uses array format)
+      payload:
+        $ref: '#/components/schemas/DealsUpdate'
+      examples:
+        - name: dealUpdate
+          summary: |
+            Deal update event with 11-element array format:
+            - params[0]: Deal ID (13674578673)
+            - params[1]: Deal time Unix timestamp (1738251095.345432)
+            - params[2]: Market name (ETH_BTC)
+            - params[3]: Order ID (1212909726406)
+            - params[4]: Deal price (0.03084)
+            - params[5]: Stock amount (0.2625)
+            - params[6]: Deal fee (0.0002625)
+            - params[7]: Custom client order ID (may be empty string)
+            - params[8]: Side - 1=sell, 2=buy
+            - params[9]: Role - 1=maker, 2=taker
+            - params[10]: Fee asset type (ETH)
+          payload:
+            id: null
+            method: deals_update
+            params:
+              - 13674578673
+              - 1738251095.345432
+              - "ETH_BTC"
+              - 1212909726406
+              - "0.03084"
+              - "0.2625"
+              - "0.0002625"
+              - ""
+              - 2
+              - 2
+              - "ETH"
+
+    dealsUnsubscribe:
+      name: DealsUnsubscribe
+      title: Unsubscribe from Deals
+      summary: Stop receiving deals updates
+      payload:
+        $ref: '#/components/schemas/UnsubscribeRequest'
+      examples:
+        - name: unsubscribe
+          summary: Unsubscribe from deals
+          payload:
+            id: 16
+            method: deals_unsubscribe
+            params: []
+
+    dealsUnsubscribeResponse:
+      name: DealsUnsubscribeResponse
+      title: Unsubscribe Response
+      summary: Unsubscription confirmation
+      payload:
+        $ref: '#/components/schemas/SubscriptionResponse'
+      examples:
+        - name: unsubscribeSuccess
+          summary: Unsubscription successful
+          payload:
+            id: 16
+            result:
+              status: success
+            error: null
+
+  schemas:
+    DealsRequest:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+          description: Unique request identifier
+        method:
+          const: deals_request
+          description: Method name for deals query
+        params:
+          type: array
+          description: |
+            Query parameters tuple:
+            - [0] Market name
+            - [1] Offset
+            - [2] Limit (max 100)
+          minItems: 3
+          maxItems: 3
+          items:
+            - type: string
+              description: "[Market](/glossary#market) name. Example: BTC_USDT"
+            - type: integer
+              description: "Offset for pagination"
+            - type: integer
+              description: "Limit (maximum 100)"
+
+    DealsResponse:
+      type: object
+      required:
+        - id
+        - result
+        - error
+      properties:
+        id:
+          type: integer
+          description: Request identifier matching the request
+        result:
+          type: object
+          properties:
+            limit:
+              type: integer
+              description: "Limit from request"
+            offset:
+              type: integer
+              description: "Offset from request"
+            records:
+              type: array
+              items:
+                type: object
+                properties:
+                  time:
+                    type: number
+                    description: "Deal time in Unix time"
+                  id:
+                    type: integer
+                    description: "Deal ID"
+                  side:
+                    type: integer
+                    enum: [1, 2]
+                    description: "Side: 1=sell, 2=buy/bid"
+                  role:
+                    type: integer
+                    enum: [1, 2]
+                    description: "Your role: 1=[maker](/glossary#maker), 2=taker"
+                  price:
+                    type: string
+                    description: "Deal price"
+                  amount:
+                    type: string
+                    description: "[Stock](/glossary#stock) amount"
+                  deal:
+                    type: string
+                    description: "[Money](/glossary#money) amount"
+                  fee:
+                    type: string
+                    description: "Deal fee expressed in asset in fee_asset"
+                  order_id:
+                    type: integer
+                    description: "Order ID"
+                  deal_order_id:
+                    type: integer
+                    description: "Counterparty Order ID"
+                  market:
+                    type: string
+                    description: "[Market](/glossary#market)"
+                  client_order_id:
+                    type: string
+                    description: "Client Order ID"
+                  fee_asset:
+                    type: string
+                    description: "Fee asset type"
+        error:
+          type: "null"
+          description: Error object (null on success)
+
+    DealsSubscribe:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+          description: Unique request identifier
+        method:
+          const: deals_subscribe
+          description: Method name for deals subscription
+        params:
+          type: array
+          minItems: 1
+          maxItems: 1
+          items:
+            type: array
+            items:
+              type: string
+              description: "[Market](/glossary#market). Example: BTC_USDT"
+          description: "Array containing array of markets"
+
+    SubscriptionResponse:
+      type: object
+      required:
+        - id
+        - result
+        - error
+      properties:
+        id:
+          type: integer
+          description: Request identifier matching the request
+        result:
+          type: object
+          required:
+            - status
+          properties:
+            status:
+              type: string
+              enum: [success]
+              description: Subscription status
+        error:
+          type: "null"
+          description: Error object (null on success)
+
+    DealsUpdate:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: "null"
+          description: Update events have null id
+        method:
+          const: deals_update
+          description: Method name for deals updates
+        params:
+          type: array
+          description: |
+            Update event tuple (11 elements):
+            - [0] Deal ID
+            - [1] Deal time (Unix timestamp)
+            - [2] Market
+            - [3] Order ID
+            - [4] Price
+            - [5] Stock amount
+            - [6] Deal fee
+            - [7] Client order ID
+            - [8] Side (1=sell, 2=buy)
+            - [9] Role (1=maker, 2=taker)
+            - [10] Fee asset
+          minItems: 11
+          maxItems: 11
+          items:
+            - type: integer
+              description: "Deal ID"
+            - type: number
+              description: "Deal time in Unix time"
+            - type: string
+              description: "[Market](/glossary#market) name. Example: ETH_BTC"
+            - type: integer
+              description: "Order ID"
+            - type: string
+              description: "Deal price"
+            - type: string
+              description: "[Stock](/glossary#stock) amount"
+            - type: string
+              description: "Deal fee expressed in asset from fee_asset"
+            - type: string
+              description: "Client Order ID (may be empty string)"
+            - type: integer
+              enum: [1, 2]
+              description: "Side: 1=sell, 2=buy/bid"
+            - type: integer
+              enum: [1, 2]
+              description: "Your role: 1=[maker](/glossary#maker), 2=taker"
+            - type: string
+              description: "Fee asset type"
+
+    UnsubscribeRequest:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+          description: Unique request identifier
+        method:
+          type: string
+          description: Unsubscribe method name
+        params:
+          type: array
+          items: {}
+          maxItems: 0
+          description: Empty array for unsubscribe

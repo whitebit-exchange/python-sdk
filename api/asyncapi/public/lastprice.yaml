@@ -1,0 +1,296 @@
+asyncapi: 3.0.0
+info:
+  title: WhiteBit Last Price
+  version: 1.0.0
+  description: Real-time last price information for trading pairs. Supports both one-time queries and subscription-based updates.
+
+servers:
+  production:
+    host: api.whitebit.com
+    protocol: wss
+    description: WhiteBIT Global Server
+  eu:
+    host: api.whitebit.eu
+    protocol: wss
+    description: WhiteBIT EU Server
+
+channels:
+  /ws:
+    address: /ws
+    description: |
+      Last price operations for trading pairs.
+
+      **Update Interval**: 1 second (for subscriptions)
+    messages:
+      lastpriceRequest:
+        $ref: '#/components/messages/lastpriceRequest'
+      lastpriceResponse:
+        $ref: '#/components/messages/lastpriceResponse'
+      lastpriceSubscribe:
+        $ref: '#/components/messages/lastpriceSubscribe'
+      lastpriceSubscribeResponse:
+        $ref: '#/components/messages/lastpriceSubscribeResponse'
+      lastpriceUpdate:
+        $ref: '#/components/messages/lastpriceUpdate'
+      lastpriceUnsubscribe:
+        $ref: '#/components/messages/lastpriceUnsubscribe'
+
+operations:
+  sendLastpriceRequest:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/lastpriceRequest'
+
+  receiveLastpriceResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/lastpriceResponse'
+
+  sendLastpriceSubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/lastpriceSubscribe'
+
+  receiveLastpriceSubscribeResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/lastpriceSubscribeResponse'
+
+  receiveLastpriceUpdates:
+    action: send
+    description: Receive periodic last price updates every 1 second
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/lastpriceUpdate'
+
+  sendLastpriceUnsubscribe:
+    action: receive
+    channel:
+      $ref: '#/channels/~1ws'
+    messages:
+      - $ref: '#/channels/~1ws/messages/lastpriceUnsubscribe'
+
+components:
+  messages:
+    lastpriceRequest:
+      name: LastpriceRequest
+      title: Last Price Query
+      summary: Get the latest price for a specific market
+      payload:
+        $ref: '#/components/schemas/LastpriceRequest'
+      examples:
+        - name: lastpriceQuery
+          summary: |
+            Query last price for a market:
+            - params[0]: Market name (ETH_BTC)
+          payload:
+            id: 5
+            method: lastprice_request
+            params:
+              - ETH_BTC
+
+    lastpriceResponse:
+      name: LastpriceResponse
+      title: Last Price Response
+      summary: Current price for the requested market
+      payload:
+        $ref: '#/components/schemas/LastpriceResponse'
+      examples:
+        - name: priceData
+          summary: Last price response
+          payload:
+            id: 5
+            result: "0.020553"
+            error: null
+
+    lastpriceSubscribe:
+      name: LastpriceSubscribe
+      title: Subscribe to Last Prices
+      summary: Subscribe to price updates for multiple markets
+      payload:
+        $ref: '#/components/schemas/LastpriceSubscribe'
+      examples:
+        - name: subscribeLastprice
+          summary: |
+            Subscribe to last price updates:
+            - params: Array of market names (ETH_BTC, BTC_USDT)
+          payload:
+            id: 6
+            method: lastprice_subscribe
+            params:
+              - ETH_BTC
+              - BTC_USDT
+
+    lastpriceSubscribeResponse:
+      name: LastpriceSubscribeResponse
+      title: Subscribe Response
+      summary: Subscription confirmation
+      payload:
+        $ref: '#/components/schemas/SubscriptionResponse'
+      examples:
+        - name: subscribeSuccess
+          summary: Subscription successful
+          payload:
+            id: 6
+            result:
+              status: success
+            error: null
+
+    lastpriceUpdate:
+      name: LastpriceUpdate
+      title: Last Price Update
+      summary: Periodic last price update (every 1 second)
+      payload:
+        $ref: '#/components/schemas/LastpriceUpdate'
+      examples:
+        - name: priceUpdate
+          summary: |
+            Last price update event with parameters:
+            - params[0]: Market name (ETH_BTC)
+            - params[1]: Last price (0.020683)
+          payload:
+            id: null
+            method: lastprice_update
+            params:
+              - ETH_BTC
+              - "0.020683"
+
+    lastpriceUnsubscribe:
+      name: LastpriceUnsubscribe
+      title: Unsubscribe from Last Prices
+      summary: Stop receiving last price updates
+      payload:
+        $ref: '#/components/schemas/UnsubscribeRequest'
+      examples:
+        - name: unsubscribeLastprice
+          summary: Unsubscribe from price updates
+          payload:
+            id: 7
+            method: lastprice_unsubscribe
+            params: []
+
+  schemas:
+    LastpriceRequest:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+          description: Unique request identifier
+        method:
+          const: lastprice_request
+        params:
+          type: array
+          minItems: 1
+          maxItems: 1
+          items:
+            - type: string
+              description: "[Market](/glossary#market) name (e.g., ETH_BTC)"
+
+    LastpriceResponse:
+      type: object
+      required:
+        - id
+        - result
+        - error
+      properties:
+        id:
+          type: integer
+        result:
+          type: string
+          description: Last price
+        error:
+          type: "null"
+
+    LastpriceSubscribe:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+          description: Unique request identifier
+        method:
+          const: lastprice_subscribe
+        params:
+          type: array
+          items:
+            type: string
+            description: "[Market](/glossary#market) names"
+
+    SubscriptionResponse:
+      type: object
+      required:
+        - id
+        - result
+        - error
+      properties:
+        id:
+          type: integer
+        result:
+          type: object
+          required:
+            - status
+          properties:
+            status:
+              type: string
+              enum: [success]
+        error:
+          type: "null"
+
+    LastpriceUpdate:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: "null"
+        method:
+          const: lastprice_update
+        params:
+          type: array
+          description: |
+            Update event parameters:
+            - [0] Market name
+            - [1] Last price
+          minItems: 2
+          maxItems: 2
+          items:
+            - type: string
+              description: "[Market](/glossary#market) name"
+            - type: string
+              description: Last price
+
+    UnsubscribeRequest:
+      type: object
+      required:
+        - id
+        - method
+        - params
+      properties:
+        id:
+          type: integer
+          description: Unique request identifier
+        method:
+          type: string
+          enum: [lastprice_unsubscribe]
+        params:
+          type: array
+          items: {}
+          maxItems: 0
