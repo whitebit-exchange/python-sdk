@@ -1,97 +1,95 @@
 # Contributing to WhiteBit Python SDK
 
-Thank you for your interest in contributing! This document explains how to report bugs, suggest features, and submit code changes.
+Thank you for your interest in contributing!
 
 ---
 
-## Table of Contents
+## Important: Auto-generated Core
 
-- [Reporting Bugs](#reporting-bugs)
-- [Suggesting Features](#suggesting-features)
-- [Development Setup](#development-setup)
-- [Running Tests](#running-tests)
-- [Submitting a Pull Request](#submitting-a-pull-request)
-- [Code Style](#code-style)
+The core SDK (`src/whitebit/`) is **automatically generated** from the WhiteBit API definition using [Fern](https://buildwithfern.com). This means:
+
+- **Do not open PRs that modify files inside `src/whitebit/`** — changes will be overwritten on the next generation run.
+- To request a new endpoint or fix an incorrect API definition, open an issue instead (see [Reporting Bugs](#reporting-bugs) and [Requesting Features](#requesting-features)).
+
+---
+
+## What you CAN contribute
+
+| Area | How |
+|---|---|
+| **Bug reports** | Open an issue with reproduction steps |
+| **Feature requests** | Open an issue describing the use case |
+| **Examples** | Add or improve files in `examples/` |
+| **Tests** | Add test cases in `tests/` |
+| **Use cases & guides** | Real-world usage patterns, strategies, bots |
+| **Documentation** | Fixes and improvements to `README.md` |
 
 ---
 
 ## Reporting Bugs
 
-Before opening an issue, please search existing issues to avoid duplicates.
+Before opening an issue, search existing ones to avoid duplicates.
 
-When reporting a bug, include:
+Include:
 
 - Python version (`python --version`)
-- SDK version (`pip show python-whitebit-sdk`)
+- SDK version (`pip show whitebit-python-sdk`)
 - Minimal code snippet that reproduces the problem
 - Full error traceback
 - Expected vs actual behaviour
 
 ---
 
-## Suggesting Features
+## Requesting Features
 
 Open an issue with the label **enhancement** and describe:
 
 - The use case you are trying to solve
-- The API endpoint involved (link to the [WhiteBit API docs](https://whitebit-exchange.github.io/api-docs/) if applicable)
+- The API endpoint involved (link to the [WhiteBit API docs](https://docs.whitebit.com/) if applicable)
 - Any alternative approaches you considered
 
 ---
 
-## Development Setup
+## Contributing Examples and Tests
 
-1. **Fork** the repository and clone your fork:
+Examples and tests are the best place to contribute code directly.
 
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/python-sdk.git
-   cd python-sdk
-   ```
+**Examples** live in `examples/` — feel free to add:
+- New usage patterns for existing clients
+- Real-world trading strategies or bots
+- Integration patterns (e.g. asyncio, frameworks)
 
-2. Create a virtual environment and install dependencies:
-
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate      # Windows: .venv\Scripts\activate
-   pip install -r requirements.txt
-   pip install -e .
-   ```
-
-3. Create a feature branch:
-
-   ```bash
-   git checkout -b feature/my-feature
-   ```
-
----
-
-## Running Tests
+**Tests** live in `tests/test.py`. All tests use the `responses` library to mock HTTP calls — no real API credentials are needed.
 
 ```bash
+# Setup
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+pip install -e .
+
+# Run tests
 python -m pytest tests/ -v
 ```
 
-All tests use the `responses` library to mock HTTP calls — no real API credentials are required.
-
-When adding a new endpoint or fixing a bug, add or update the corresponding test in `tests/test.py`.
+When adding a test:
+1. Mock the HTTP call with `@responses.activate`
+2. Cover both a success case and an error/missing-credentials case
+3. Assert the request URL, method, body, and response
 
 ---
 
 ## Submitting a Pull Request
 
-1. Make sure all existing tests pass before submitting.
-2. Add tests for any new functionality.
-3. Keep commits focused — one logical change per commit.
-4. Write a clear PR description explaining **what** changed and **why**.
-5. Reference any related issue in the PR description (e.g. `Closes #42`).
-
-Once submitted, your PR will be reviewed. Feedback may be requested before merging.
+1. Fork the repo and create a branch: `git checkout -b feature/my-feature`
+2. Make sure all existing tests pass
+3. Keep commits focused — one logical change per commit
+4. Reference any related issue in the PR description (e.g. `Closes #42`)
 
 ---
 
 ## Code Style
 
-- Follow [PEP 8](https://peps.python.org/pep-0008/).
-- Use type hints where possible.
-- Keep method signatures consistent with existing clients (see `whitebit/trade/` for reference).
-- Do not commit API keys, secrets, or any credentials.
+- Follow [PEP 8](https://peps.python.org/pep-0008/)
+- Use type hints where possible
+- Do not commit API keys, secrets, or any credentials

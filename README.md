@@ -69,6 +69,8 @@ Get your API key from your [WhiteBit account settings](https://whitebit.com/sett
 
 ---
 
+> **Note:** The SDK client (`WhitebitApi` / `AsyncWhitebitApi`) is auto-generated from the WhiteBit API definition using [Fern](https://buildwithfern.com). To report issues or request new endpoints, open an issue — see [Contributing](CONTRIBUTING.md).
+
 ## Clients
 
 The SDK exposes two top-level clients — `WhitebitApi` (sync) and `AsyncWhitebitApi` (async). Both share the same sub-client structure:
