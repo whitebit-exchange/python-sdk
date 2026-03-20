@@ -4,7 +4,7 @@
 [![PyPI version](https://badge.fury.io/py/whitebit-python-sdk.svg)](https://badge.fury.io/py/whitebit-python-sdk)
 [![Python Version](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/downloads/)
 
-An unofficial Python SDK for the [WhiteBit](https://www.whitebit.com) cryptocurrency exchange API.
+An official Python SDK for the [WhiteBit](https://www.whitebit.com) cryptocurrency exchange API.
 
 > Please read the [WhiteBit API documentation](https://docs.whitebit.com/) before using this SDK.
 
