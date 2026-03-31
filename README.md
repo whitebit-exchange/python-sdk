@@ -1,123 +1,115 @@
-## A Python SDK for [whitebit](https://www.whitebit.com)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+<h1 align="center">WhiteBit Python SDK</h1>
 
-Please read [whitebit API document](https://whitebit-exchange.github.io/api-docs/) before continuing.
+<p align="center">
+  <strong>Official Python SDK for the WhiteBit API — trade, query, and manage your crypto portfolio programmatically.</strong>
+</p>
 
-## API List
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-≥ 3.9-3776AB?style=flat-square&logo=python" alt="Python ≥ 3.9" />
+  <img src="https://img.shields.io/badge/license-Apache_2.0-green?style=flat-square" alt="Apache 2.0 license" />
+</p>
 
-- [Private API](https://whitebit-exchange.github.io/api-docs/private/http-trade-v4/)
-- [Public API](https://whitebit-exchange.github.io/api-docs/public/http-v4/)
-- [Private WS](https://whitebit-exchange.github.io/api-docs/private/websocket/)
-- [Public WS](https://whitebit-exchange.github.io/api-docs/public/websocket/)
+---
 
-v4 is the preferred one to use
+## Prerequisites
 
-## Disclaimer
-“You acknowledge that the software is provided “as is”. Author makes no representations or warranties with respect to
-the software whether express or implied, including but not limited to, implied warranties of merchantability and fitness
-for a particular purpose. author makes no representation or warranty that: (i) the use and distribution of the software
-will be uninterrupted or error free, and (ii) any use and distribution of the software is free from infringement of any
-third party intellectual property rights. It shall be your sole responsibility to make such determination before the use
-of software. Author disclaims any liability in case any such use and distribution infringe any third party’s
-intellectual property rights. Author hereby disclaims any warranty and liability whatsoever for any development created
-by or for you with respect to your customers. You acknowledge that you have relied on no warranties and that no
-warranties are made by author or granted by law whenever it is permitted by law.”
+| Requirement | Details |
+|-------------|---------|
+| **Python ≥ 3.9** | Required runtime |
+| **WhiteBit account** | Sign up at [whitebit.com](https://whitebit.com) |
+| **WhiteBit API key** | Profile → API keys → Create key (Read and/or Trade permissions) |
 
-## REST API
+---
 
-### Setup
-
-#### Install the Python module:
+## Installation
 
 ```bash
-python3 -m pip install python-whitebit-sdk
+pip install whitebit-python-sdk
 ```
 
-Init client for API services. Get APIKey/SecretKey from your whitebit account.
+---
+
+## Quick Start
+
+### 1. Get your API credentials
+
+1. Log in to [whitebit.com](https://whitebit.com) → **Profile → API keys**
+2. Create a new key — choose **Read** and/or **Trade** permissions as needed
+3. Copy your **API Key** and **Token**
+
+> Public endpoints (market data, tickers, order book) work without credentials. Private endpoints (account, trading) require both.
+
+### 2. Initialize the client
 
 ```python
-from whitebit import MainAccountClient
+from whitebit import WhitebitApi
 
-account = MainAccountClient(api_key="", api_secret=""))
+client = WhitebitApi(
+    txc_apikey="YOUR_API_KEY",
+    token="YOUR_TOKEN",
+)
 ```
 
-Following are some simple examples.
+---
 
-See the **examples** folder for full references.
-
-#### Create Spot Limit Order
+## Usage Examples
 
 ```python
-# Create order/spot client
-order = OrderClient(api_key="",
-                    api_secret="")
+# Market data (no credentials required)
+tickers = client.public_api_v4.get_market_activity()
+depth   = client.public_api_v4.get_orderbook(market="BTC_USDT")
 
-# Call SDK function put_limit
-print(order.put_limit("BTC_USDT", "sell", "0.1", "40000", True))
+# Account
+balance = client.account_endpoints.get_trading_balance()
+
+# Spot trading
+order   = client.spot_trading.create_limit_order(
+    market="BTC_USDT", side="buy", amount="0.01", price="95000"
+)
+client.spot_trading.cancel_order(market="BTC_USDT", order_id=order.order_id)
+
+# Main account — transfer & withdraw
+client.transfer.transfer(from_="main", to="spot", ticker="USDT", amount="100")
+client.withdraw.create_withdraw(ticker="USDT", amount="500", address="0x...")
 ```
 
-## Websocket API
+---
 
-### Setup
+## Available Modules
 
-Init bot class and "on_message" method for work with ws responses. Get APIKey/SecretKey from your whitebit account.
+| Module | Description |
+|--------|-------------|
+| `public_api_v4` | Tickers, order book, trade history, klines, assets |
+| `spot_trading` | Limit, market, stop-limit, stop-market, bulk orders |
+| `collateral_trading` | Collateral orders, OCO, positions |
+| `account_endpoints` | Trading balance, open orders, order history |
+| `main_account` | Main balances, deposit addresses, fee info |
+| `transfer` | Transfer between main and trade accounts |
+| `withdraw` | Withdrawal requests |
+| `codes` | WhiteBit codes — create, apply, history |
+| `crypto_lending_fixed` | Fixed lending plans |
+| `crypto_lending_flex` | Flex lending plans |
+| `fees` | Trading fees |
+| `sub_account` | Sub-account management |
+| `mining_pool` | Hashrate and rewards |
 
-```python
-class Bot(WhitebitWsClient):
-    def __init__(self):
-        super().__init__(key="", secret="")
+---
 
-    async def on_message(self, event) -> None:
-        logging.info(event)
-        
-```
+## Resources
 
-Following are some simple examples.
+| | |
+|---|---|
+| [WhiteBIT API Documentation](https://docs.whitebit.com) | Official API reference |
+| [API Platform Overview](https://docs.whitebit.com/private/http-trade-v4/) | REST, WebSocket, authentication, rate limits |
+| [Use with AI](https://github.com/whitebit-exchange/whitebit-mcp) | Use API docs with Claude, Cursor, VS Code via MCP |
+| [GitHub Repository](https://github.com/whitebit-exchange/python-sdk) | Source code |
+| [Releases](https://github.com/whitebit-exchange/python-sdk/releases) | Binaries and changelog |
+| [Contributing](CONTRIBUTING.md) | Development setup and contribution guide |
+| [Report an Issue](https://github.com/whitebit-exchange/python-sdk/issues) | Bug reports and feature requests |
+| [WhiteBIT Exchange](https://whitebit.com) | The exchange |
 
-See the **examples** folder for full references.
+---
 
-#### Subscribe on deals topic
+## License
 
-```python
-class Bot(WhitebitWsClient):
-    '''Can be used to create a custom trading strategy/bot'''
-
-    def __init__(self):
-        super().__init__(key="", secret="")
-
-    async def on_message(self, event) -> None:
-        '''receives the websocket events'''
-        if 'result' in event:
-            result = event['result']
-            match result:
-                case 'pong': return
-            logging.info(event['result'])
-            return
-        else:
-            method = event['method']
-            match method:
-                case WhitebitWsClient.DEALS_UPDATE:
-                    logging.info(event['params'])
-            return
-
-
-async def main() -> None:
-    bot = Bot()
-    await bot.get_deals("BTC_USDT", 0, 100)
-    await bot.subscribe_deals(["BTC_USDT"])
-    while not bot.exception_occur:
-        await asyncio.sleep(100)
-    return
-
-
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        pass
-    finally:
-        loop.close()
-```
+[Apache 2.0](LICENSE.md)
