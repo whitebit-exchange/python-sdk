@@ -1,123 +1,169 @@
-## A Python SDK for [whitebit](https://www.whitebit.com)
+# WhiteBit Python SDK
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PyPI version](https://badge.fury.io/py/whitebit-python-sdk.svg)](https://badge.fury.io/py/whitebit-python-sdk)
+[![Python Version](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/downloads/)
 
-Please read [whitebit API document](https://whitebit-exchange.github.io/api-docs/) before continuing.
+An official Python SDK for the [WhiteBit](https://www.whitebit.com) cryptocurrency exchange API.
 
-## API List
+> Please read the [WhiteBit API documentation](https://docs.whitebit.com/) before using this SDK.
 
-- [Private API](https://whitebit-exchange.github.io/api-docs/private/http-trade-v4/)
-- [Public API](https://whitebit-exchange.github.io/api-docs/public/http-v4/)
-- [Private WS](https://whitebit-exchange.github.io/api-docs/private/websocket/)
-- [Public WS](https://whitebit-exchange.github.io/api-docs/public/websocket/)
+---
 
-v4 is the preferred one to use
-
-## Disclaimer
-“You acknowledge that the software is provided “as is”. Author makes no representations or warranties with respect to
-the software whether express or implied, including but not limited to, implied warranties of merchantability and fitness
-for a particular purpose. author makes no representation or warranty that: (i) the use and distribution of the software
-will be uninterrupted or error free, and (ii) any use and distribution of the software is free from infringement of any
-third party intellectual property rights. It shall be your sole responsibility to make such determination before the use
-of software. Author disclaims any liability in case any such use and distribution infringe any third party’s
-intellectual property rights. Author hereby disclaims any warranty and liability whatsoever for any development created
-by or for you with respect to your customers. You acknowledge that you have relied on no warranties and that no
-warranties are made by author or granted by law whenever it is permitted by law.”
-
-## REST API
-
-### Setup
-
-#### Install the Python module:
+## Installation
 
 ```bash
-python3 -m pip install python-whitebit-sdk
+pip install whitebit-python-sdk
 ```
 
-Init client for API services. Get APIKey/SecretKey from your whitebit account.
+Python 3.9 or higher is required.
+
+---
+
+## Quick Start
+
+### Sync client
 
 ```python
-from whitebit import MainAccountClient
+from whitebit import WhitebitApi
 
-account = MainAccountClient(api_key="", api_secret=""))
+client = WhitebitApi(txc_apikey="YOUR_API_KEY", token="YOUR_TOKEN")
+
+# Market data (public)
+print(client.public_api_v4.get_tickers())
+
+# Spot trading
+print(client.spot_trading.get_trade_account_balance(ticker="BTC"))
+print(client.spot_trading.create_limit_order(market="BTC_USDT", side="buy", amount="0.001", price="30000"))
+
+# Collateral
+print(client.collateral_trading.get_open_positions(market="BTC_USDT"))
 ```
 
-Following are some simple examples.
-
-See the **examples** folder for full references.
-
-#### Create Spot Limit Order
+### Async client
 
 ```python
-# Create order/spot client
-order = OrderClient(api_key="",
-                    api_secret="")
+import asyncio
+from whitebit import AsyncWhitebitApi
 
-# Call SDK function put_limit
-print(order.put_limit("BTC_USDT", "sell", "0.1", "40000", True))
+async def main():
+    client = AsyncWhitebitApi(txc_apikey="YOUR_API_KEY", token="YOUR_TOKEN")
+
+    # Market data (public)
+    tickers = await client.public_api_v4.get_tickers()
+    print(tickers)
+
+    # Spot trading
+    balance = await client.spot_trading.get_trade_account_balance(ticker="BTC")
+    print(balance)
+
+    order = await client.spot_trading.create_limit_order(
+        market="BTC_USDT", side="buy", amount="0.001", price="30000"
+    )
+    print(order)
+
+asyncio.run(main())
 ```
 
-## Websocket API
+Get your API key from your [WhiteBit account settings](https://whitebit.com/settings/api).
 
-### Setup
+---
 
-Init bot class and "on_message" method for work with ws responses. Get APIKey/SecretKey from your whitebit account.
+> **Note:** The SDK client (`WhitebitApi` / `AsyncWhitebitApi`) is auto-generated from the WhiteBit API definition using [Fern](https://buildwithfern.com). To report issues or request new endpoints, open an issue — see [Contributing](CONTRIBUTING.md).
 
-```python
-class Bot(WhitebitWsClient):
-    def __init__(self):
-        super().__init__(key="", secret="")
+## Clients
 
-    async def on_message(self, event) -> None:
-        logging.info(event)
-        
+The SDK exposes two top-level clients — `WhitebitApi` (sync) and `AsyncWhitebitApi` (async). Both share the same sub-client structure:
+
+| Sub-client | Auth | Description |
+|---|---|---|
+| `client.public_api_v4` | No | Tickers, order books, klines, assets, trades |
+| `client.spot_trading` | Yes | Place/cancel spot orders, balance, order history |
+| `client.collateral_trading` | Yes | Margin/futures orders, positions, OCO |
+| `client.main_account` | Yes | Main balance, deposit/withdraw history |
+| `client.deposit` | Yes | Deposit addresses, fiat deposit URLs |
+| `client.withdraw` | Yes | Withdrawals |
+| `client.transfer` | Yes | Transfer between balances |
+| `client.codes` | Yes | Transfer codes (create, apply, history) |
+| `client.fees` | Yes | Fee information |
+| `client.market_fee` | Yes | Market-specific fees |
+| `client.jwt` | Yes | WebSocket JWT token |
+| `client.authentication` | Yes | OAuth2 token management |
+| `client.sub_account` | Yes | Sub-account management |
+| `client.sub_account_api_keys` | Yes | Sub-account API key management |
+| `client.crypto_lending_fixed` | Yes | Fixed crypto lending |
+| `client.crypto_lending_flex` | Yes | Flex crypto lending |
+| `client.credit_line` | Yes | Credit line |
+| `client.mining_pool` | Yes | Mining pool stats and management |
+
+---
+
+## Examples
+
+Full working examples are in the [`examples/`](examples/) directory:
+
+### [trade_examples.py](examples/trade_examples.py)
+
+Covers `TradeMarketClient`, `TradeAccountClient`, and `TradeOrderClient`:
+- Get tickers, order books, klines, assets
+- Get spot balance, order history, unexecuted orders
+- Place limit, market, stop-limit, stop-market orders
+- Bulk limit orders, kill switch
+
+### [main_examples.py](examples/main_examples.py)
+
+Covers `MainAccountClient`:
+- Main account balance and fee info
+- Transaction history
+- Create and apply transfer codes
+
+### [collateral_examples.py](examples/collateral_examples.py)
+
+Covers `CollateralMarketClient`, `CollateralAccountClient`, `CollateralOrderClient`:
+- Futures/collateral market info
+- Margin balance, open positions, leverage
+- Place and cancel collateral/OCO orders
+
+### [ws_example.py](examples/ws_example.py)
+
+Covers `WhitebitWsClient`:
+- Extend the client and implement `on_message` for real-time events
+- Subscribe to deals, prices, order book depth, balance, pending orders
+
+---
+
+## WebSocket Topics
+
+| Method | Description |
+|---|---|
+| `subscribe_kline` / `get_kline` | Candlestick (OHLCV) data |
+| `subscribe_last_price` / `get_last_price` | Last price updates |
+| `subscribe_market_depth` / `get_market_depth` | Order book depth |
+| `subscribe_market_stat` / `get_market_stat` | 24h market statistics |
+| `subscribe_market_trades` / `get_market_trades` | Public trades stream |
+| `subscribe_deals` / `get_deals` | Deals stream |
+| `subscribe_spot_balance` / `get_spot_balance` | Spot account balance |
+| `subscribe_margin_balance` / `get_margin_balance` | Margin account balance |
+| `subscribe_pending_orders` / `get_pending_orders` | Open orders updates |
+| `subscribe_orders_executed` / `get_orders_executed` | Executed orders |
+
+---
+
+## Running Tests
+
+```bash
+pip install -r requirements.txt
+python -m pytest tests/ -v
 ```
 
-Following are some simple examples.
+---
 
-See the **examples** folder for full references.
+## Contributing
 
-#### Subscribe on deals topic
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on reporting bugs, requesting features, and submitting pull requests.
 
-```python
-class Bot(WhitebitWsClient):
-    '''Can be used to create a custom trading strategy/bot'''
+---
 
-    def __init__(self):
-        super().__init__(key="", secret="")
+## Disclaimer
 
-    async def on_message(self, event) -> None:
-        '''receives the websocket events'''
-        if 'result' in event:
-            result = event['result']
-            match result:
-                case 'pong': return
-            logging.info(event['result'])
-            return
-        else:
-            method = event['method']
-            match method:
-                case WhitebitWsClient.DEALS_UPDATE:
-                    logging.info(event['params'])
-            return
-
-
-async def main() -> None:
-    bot = Bot()
-    await bot.get_deals("BTC_USDT", 0, 100)
-    await bot.subscribe_deals(["BTC_USDT"])
-    while not bot.exception_occur:
-        await asyncio.sleep(100)
-    return
-
-
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        pass
-    finally:
-        loop.close()
-```
+The software is provided "as is" without warranty of any kind. Use at your own risk.

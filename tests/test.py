@@ -116,13 +116,126 @@ class MyTestCase(unittest.TestCase):
         assert str(responses.calls[0].response.json()) == str(response)
 
 
-def main():
-    MyTestCase.test_trade_private_query_without_api_key()
-    MyTestCase.test_trade_account_positive()
-    MyTestCase.test_trade_account_negative()
-    MyTestCase.test_trade_order_positive()
-    MyTestCase.test_trade_order_negative()
+class MainAccountTestCase(unittest.TestCase):
+    @responses.activate
+    def test_main_account_no_api_key(self):
+        client = MainAccountClient()
+        with self.assertRaises(ValueError):
+            client.get_balance("BTC")
+
+    @responses.activate
+    def test_main_account_balance_positive(self):
+        expected_response = {"BTC": {"main_balance": "2.5"}}
+        responses.add(
+            responses.POST,
+            'https://whitebit.com/api/v4/main-account/balance',
+            json=expected_response,
+            status=200,
+        )
+
+        client = MainAccountClient("key", "secret")
+        response = client.get_balance("BTC")
+
+        req = json.loads(responses.calls[0].request.body)
+        assert req["ticker"] == "BTC"
+        assert req["request"] == "/api/v4/main-account/balance"
+        assert response == expected_response
+
+    @responses.activate
+    def test_main_account_balance_negative(self):
+        responses.add(
+            responses.POST,
+            'https://whitebit.com/api/v4/main-account/balance',
+            json={'error': 'unauthorized'},
+            status=401,
+        )
+
+        client = MainAccountClient("bad_key", "bad_secret")
+        with self.assertRaises(Exception):
+            client.get_balance("BTC")
+
+    @responses.activate
+    def test_main_account_get_fee(self):
+        expected_response = {"BTC": {"deposit": "0", "withdraw": "0.0004"}}
+        responses.add(
+            responses.POST,
+            'https://whitebit.com/api/v4/main-account/fee',
+            json=expected_response,
+            status=200,
+        )
+
+        client = MainAccountClient("key", "secret")
+        response = client.get_fee()
+
+        assert response == expected_response
+        assert responses.calls[0].request.method == "POST"
+
+
+class CollateralOrderTestCase(unittest.TestCase):
+    @responses.activate
+    def test_collateral_no_api_key(self):
+        client = CollateralOrderClient()
+        with self.assertRaises(ValueError):
+            client.cancel_order("BTC_USDT", 1)
+
+    @responses.activate
+    def test_collateral_limit_order_positive(self):
+        expected_response = {
+            "orderId": 99,
+            "market": "BTC_USDT",
+            "side": "buy",
+            "type": "collateral limit",
+            "amount": "0.001",
+            "price": "30000",
+        }
+        responses.add(
+            responses.POST,
+            'https://whitebit.com/api/v4/order/collateral/limit',
+            json=expected_response,
+            status=200,
+        )
+
+        client = CollateralOrderClient("key", "secret")
+        response = client.put_limit("BTC_USDT", "buy", "0.001", "30000")
+
+        req = json.loads(responses.calls[0].request.body)
+        assert req["market"] == "BTC_USDT"
+        assert req["side"] == "buy"
+        assert req["amount"] == "0.001"
+        assert req["price"] == "30000"
+        assert response == expected_response
+
+    @responses.activate
+    def test_collateral_cancel_order_positive(self):
+        expected_response = {"orderId": 99, "market": "BTC_USDT"}
+        responses.add(
+            responses.POST,
+            'https://whitebit.com/api/v4/order/cancel',
+            json=expected_response,
+            status=200,
+        )
+
+        client = CollateralOrderClient("key", "secret")
+        response = client.cancel_order("BTC_USDT", 99)
+
+        req = json.loads(responses.calls[0].request.body)
+        assert req["market"] == "BTC_USDT"
+        assert req["orderId"] == 99
+        assert response == expected_response
+
+    @responses.activate
+    def test_collateral_cancel_order_negative(self):
+        responses.add(
+            responses.POST,
+            'https://whitebit.com/api/v4/order/cancel',
+            json={'error': 'order not found'},
+            status=404,
+        )
+
+        client = CollateralOrderClient("key", "secret")
+        with self.assertRaises(Exception):
+            client.cancel_order("BTC_USDT", 0)
 
 
 if __name__ == '__main__':
-    main()
+    unittest.main()
