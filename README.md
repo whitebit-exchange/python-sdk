@@ -41,13 +41,32 @@ pip install whitebit-python-sdk
 
 ### 2. Initialize the client
 
+**Public endpoints only** (market data, tickers, order book):
+
 ```python
 from whitebit import WhitebitApi
 
+client = WhitebitApi(txc_apikey="", token="")
+```
+
+**Private endpoints** (account, trading — requires HMAC signing):
+
+```python
+import httpx
+from whitebit import WhitebitApi
+from whitebit.hmac_transport import HmacTransport
+
 client = WhitebitApi(
     txc_apikey="YOUR_API_KEY",
-    token="YOUR_TOKEN",
+    token="",
+    httpx_client=httpx.Client(
+        transport=HmacTransport(api_secret="YOUR_API_SECRET"),
+    ),
 )
+```
+
+> **Note:** WhiteBit private endpoints use HMAC-SHA512 signing (`X-TXC-PAYLOAD` + `X-TXC-SIGNATURE`).
+> `HmacTransport` handles this automatically — no manual signing needed.
 ```
 
 ---
