@@ -37,6 +37,16 @@ class RawWhitebitApi:
         """
         The endpoint creates a quote for converting one currency to another. Quote lifetime is 10 seconds, then quote will be expired.
 
+        The minimum convert size is derived from the resulting proceeds, not a fixed per-pair floor: a request is rejected as too small when `rate × amount` rounds to zero in the target currency. Account balance is pre-checked at estimate time and re-checked at confirm time, because balance can change within the 10-second quote window. There is an absolute server-side maximum on the conversion amount.
+
+        <Note>
+        The endpoint can be used to obtain a pre-execution price estimate for a market order. Call the endpoint with the desired amount before placing a market order to see the approximate execution price.
+        </Note>
+
+        <Note>
+        Error `message` values may be returned as translation keys (for example `validation.required`) rather than finalized English strings. Treat the `code` and the field name under `errors` as the stable contract.
+        </Note>
+
         <Warning>
         Rate limit: 10000 requests/10 sec.
         </Warning>
@@ -53,7 +63,7 @@ class RawWhitebitApi:
             Convert amount direction, defines in which currency corresponding "amount" field is populated. Use "to" in case amount is in "to" currency, use "from" if amount is in "from" currency
 
         amount : str
-            Amount to convert or receive.
+            Amount to convert or receive. The value is silently truncated to 8 decimal places before evaluation; excess decimals do not raise an error.
 
         nonce : typing.Optional[int]
             Nonce for request
@@ -134,6 +144,16 @@ class RawWhitebitApi:
     ) -> HttpResponse[ConvertConfirmResponse]:
         """
         The endpoint confirms an estimated quote.
+
+        An expired quote returns code `20` (`api.converter.quoteExpired`), which is distinct from a quote that could not be found (code `0`). Balance is re-checked at confirm time and can fail with code `37` even when the estimate succeeded, because balance may change within the 10-second quote window.
+
+        <Note>
+        A re-confirmed (already used) quote and a quote that never existed both return code `0` with the `quoteId` field key `frontendServerSide.converter.quoteInvalid`. The response alone does not distinguish "already used" from "never existed".
+        </Note>
+
+        <Note>
+        Error `message` values may be returned as translation keys (for example `api.converter.quoteExpired`) rather than finalized English strings. Treat the `code` and the field name under `errors` as the stable contract.
+        </Note>
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
@@ -218,19 +238,26 @@ class RawWhitebitApi:
         from_: typing.Optional[str] = OMIT,
         to: typing.Optional[str] = OMIT,
         quote_id: typing.Optional[str] = OMIT,
-        limit: typing.Optional[str] = OMIT,
-        offset: typing.Optional[str] = OMIT,
+        limit: typing.Optional[int] = OMIT,
+        offset: typing.Optional[int] = OMIT,
         nonce: typing.Optional[int] = OMIT,
         request: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[ConvertHistoryResponse]:
         """
-        The endpoint returns convert history.
+        The endpoint returns convert history, sorted by `id` descending (newest first).
+
+        The `from`–`to` window is capped at 30 days per request, even though data is retained for 6 months. A wider range is rejected with code `30` (`api.validation.dateTime.maxRange`).
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
         </Warning>
-        **Note:** The endpoint can retrieve data not older than 6 months from current month. For older data, use the Report on the History page.
+
+        <Note>
+        Error `message` values may be returned as translation keys (for example `api.validation.dateTime.maxRange`) rather than finalized English strings. Treat the `code` and the field name under `errors` as the stable contract.
+        </Note>
+
+        **Note:** The endpoint can retrieve data not older than 6 months from the current month. For older data, use the Report on the History page.
 
         Parameters
         ----------
@@ -241,19 +268,19 @@ class RawWhitebitApi:
             To currency. Example: USDT
 
         from_ : typing.Optional[str]
-            From time filter. Example: 1699260637. Default: now()
+            From time filter (Unix seconds). Must be no more than 30 days before `to` and no older than 6 months. Example: 1699260637. Default: now()
 
         to : typing.Optional[str]
-            To time filter. Example: 1699260637. Default: now() +
+            To time filter (Unix seconds). Must be no more than 30 days after `from`. Example: 1699260637. Default: now()
 
         quote_id : typing.Optional[str]
             Quote Id. Example: 4050
 
-        limit : typing.Optional[str]
-            How many records to receive. Default: 100
+        limit : typing.Optional[int]
+            How many records to receive. Allowed range: 1–100. Default: 100
 
-        offset : typing.Optional[str]
-            Amount to convert or receive. Default 0
+        offset : typing.Optional[int]
+            Number of records to skip for pagination. Minimum: 0. Default: 0
 
         nonce : typing.Optional[int]
             Nonce for request
@@ -346,6 +373,16 @@ class AsyncRawWhitebitApi:
         """
         The endpoint creates a quote for converting one currency to another. Quote lifetime is 10 seconds, then quote will be expired.
 
+        The minimum convert size is derived from the resulting proceeds, not a fixed per-pair floor: a request is rejected as too small when `rate × amount` rounds to zero in the target currency. Account balance is pre-checked at estimate time and re-checked at confirm time, because balance can change within the 10-second quote window. There is an absolute server-side maximum on the conversion amount.
+
+        <Note>
+        The endpoint can be used to obtain a pre-execution price estimate for a market order. Call the endpoint with the desired amount before placing a market order to see the approximate execution price.
+        </Note>
+
+        <Note>
+        Error `message` values may be returned as translation keys (for example `validation.required`) rather than finalized English strings. Treat the `code` and the field name under `errors` as the stable contract.
+        </Note>
+
         <Warning>
         Rate limit: 10000 requests/10 sec.
         </Warning>
@@ -362,7 +399,7 @@ class AsyncRawWhitebitApi:
             Convert amount direction, defines in which currency corresponding "amount" field is populated. Use "to" in case amount is in "to" currency, use "from" if amount is in "from" currency
 
         amount : str
-            Amount to convert or receive.
+            Amount to convert or receive. The value is silently truncated to 8 decimal places before evaluation; excess decimals do not raise an error.
 
         nonce : typing.Optional[int]
             Nonce for request
@@ -443,6 +480,16 @@ class AsyncRawWhitebitApi:
     ) -> AsyncHttpResponse[ConvertConfirmResponse]:
         """
         The endpoint confirms an estimated quote.
+
+        An expired quote returns code `20` (`api.converter.quoteExpired`), which is distinct from a quote that could not be found (code `0`). Balance is re-checked at confirm time and can fail with code `37` even when the estimate succeeded, because balance may change within the 10-second quote window.
+
+        <Note>
+        A re-confirmed (already used) quote and a quote that never existed both return code `0` with the `quoteId` field key `frontendServerSide.converter.quoteInvalid`. The response alone does not distinguish "already used" from "never existed".
+        </Note>
+
+        <Note>
+        Error `message` values may be returned as translation keys (for example `api.converter.quoteExpired`) rather than finalized English strings. Treat the `code` and the field name under `errors` as the stable contract.
+        </Note>
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
@@ -527,19 +574,26 @@ class AsyncRawWhitebitApi:
         from_: typing.Optional[str] = OMIT,
         to: typing.Optional[str] = OMIT,
         quote_id: typing.Optional[str] = OMIT,
-        limit: typing.Optional[str] = OMIT,
-        offset: typing.Optional[str] = OMIT,
+        limit: typing.Optional[int] = OMIT,
+        offset: typing.Optional[int] = OMIT,
         nonce: typing.Optional[int] = OMIT,
         request: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[ConvertHistoryResponse]:
         """
-        The endpoint returns convert history.
+        The endpoint returns convert history, sorted by `id` descending (newest first).
+
+        The `from`–`to` window is capped at 30 days per request, even though data is retained for 6 months. A wider range is rejected with code `30` (`api.validation.dateTime.maxRange`).
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
         </Warning>
-        **Note:** The endpoint can retrieve data not older than 6 months from current month. For older data, use the Report on the History page.
+
+        <Note>
+        Error `message` values may be returned as translation keys (for example `api.validation.dateTime.maxRange`) rather than finalized English strings. Treat the `code` and the field name under `errors` as the stable contract.
+        </Note>
+
+        **Note:** The endpoint can retrieve data not older than 6 months from the current month. For older data, use the Report on the History page.
 
         Parameters
         ----------
@@ -550,19 +604,19 @@ class AsyncRawWhitebitApi:
             To currency. Example: USDT
 
         from_ : typing.Optional[str]
-            From time filter. Example: 1699260637. Default: now()
+            From time filter (Unix seconds). Must be no more than 30 days before `to` and no older than 6 months. Example: 1699260637. Default: now()
 
         to : typing.Optional[str]
-            To time filter. Example: 1699260637. Default: now() +
+            To time filter (Unix seconds). Must be no more than 30 days after `from`. Example: 1699260637. Default: now()
 
         quote_id : typing.Optional[str]
             Quote Id. Example: 4050
 
-        limit : typing.Optional[str]
-            How many records to receive. Default: 100
+        limit : typing.Optional[int]
+            How many records to receive. Allowed range: 1–100. Default: 100
 
-        offset : typing.Optional[str]
-            Amount to convert or receive. Default 0
+        offset : typing.Optional[int]
+            Number of records to skip for pagination. Minimum: 0. Default: 0
 
         nonce : typing.Optional[int]
             Nonce for request

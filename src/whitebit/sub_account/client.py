@@ -9,9 +9,11 @@ from .raw_client import AsyncRawSubAccountClient, RawSubAccountClient
 from .types.create_sub_account_request_permissions import CreateSubAccountRequestPermissions
 from .types.edit_sub_account_request_permissions import EditSubAccountRequestPermissions
 from .types.get_sub_account_balances_response_value_item import GetSubAccountBalancesResponseValueItem
+from .types.get_sub_account_kyc_url_response import GetSubAccountKycUrlResponse
 from .types.get_sub_account_transfer_history_request_direction import GetSubAccountTransferHistoryRequestDirection
 from .types.get_sub_account_transfer_history_response import GetSubAccountTransferHistoryResponse
 from .types.list_sub_accounts_response import ListSubAccountsResponse
+from .types.list_unconfirmed_sub_account_withdrawals_response import ListUnconfirmedSubAccountWithdrawalsResponse
 from .types.sub_account_transfer_request_direction import SubAccountTransferRequestDirection
 from .types.sub_account_transfer_response import SubAccountTransferResponse
 
@@ -52,6 +54,15 @@ class SubAccountClient:
         - When `shareKyc` is `true`: `email` is **optional**
         </Note>
 
+        <Note>
+        Crypto deposits are disabled by default. Once deposits are enabled for the account, the
+        capability applies to the account and its sub-accounts; enablement is not available via
+        API. To request it, contact your assigned Account Manager or email institutional@whitebit.com.
+        Once enabled, a sub-account generates deposit addresses through the standard
+        [deposit-address endpoint](/api-reference/account-wallet/get-cryptocurrency-deposit-address)
+        using its own API key with deposit permission.
+        </Note>
+
         <Warning>
         Rate limit: 1000 requests/10 sec.
         </Warning>
@@ -85,7 +96,7 @@ class SubAccountClient:
         --------
         from whitebit import WhitebitApi
         from whitebit.sub_account import CreateSubAccountRequestPermissions
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.sub_account.create_sub_account(alias='trading_bot', permissions=CreateSubAccountRequestPermissions(spot_enabled=True, collateral_enabled=False, ), )
         """
         _response = self._raw_client.create_sub_account(
@@ -123,7 +134,7 @@ class SubAccountClient:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.sub_account.delete_sub_account(id='8e667b4a-0b71-4988-8af5-9474dbfaeb51', )
         """
         _response = self._raw_client.delete_sub_account(id=id, request_options=request_options)
@@ -170,7 +181,7 @@ class SubAccountClient:
         --------
         from whitebit import WhitebitApi
         from whitebit.sub_account import EditSubAccountRequestPermissions
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.sub_account.edit_sub_account(id='8e667b4a-0b71-4988-8af5-9474dbfaeb51', alias='training', permissions=EditSubAccountRequestPermissions(spot_enabled=True, collateral_enabled=False, ), )
         """
         _response = self._raw_client.edit_sub_account(
@@ -217,7 +228,7 @@ class SubAccountClient:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.sub_account.list_sub_accounts()
         """
         _response = self._raw_client.list_sub_accounts(
@@ -270,7 +281,7 @@ class SubAccountClient:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.sub_account.transfer(id='8e667b4a-0b71-4988-8af5-9474dbfaeb51', direction="main_to_sub", amount='0.5', ticker='ETH', )
         """
         _response = self._raw_client.transfer(
@@ -308,7 +319,7 @@ class SubAccountClient:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.sub_account.block_sub_account(id='8e667b4a-0b71-4988-8af5-9474dbfaeb51', )
         """
         _response = self._raw_client.block_sub_account(id=id, request_options=request_options)
@@ -344,7 +355,7 @@ class SubAccountClient:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.sub_account.unblock_sub_account(id='8e667b4a-0b71-4988-8af5-9474dbfaeb51', )
         """
         _response = self._raw_client.unblock_sub_account(id=id, request_options=request_options)
@@ -383,7 +394,7 @@ class SubAccountClient:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.sub_account.get_sub_account_balances(id='8e667b4a-0b71-4988-8af5-9474dbfaeb51', ticker='USDC', )
         """
         _response = self._raw_client.get_sub_account_balances(id=id, ticker=ticker, request_options=request_options)
@@ -409,6 +420,14 @@ class SubAccountClient:
         The API does not cache the response.
         </Note>
 
+        <Note>
+        Results are sorted by transaction id descending (newest transfer first). The response is a plain array with no `total`, `has_more`, or cursor — a returned count below `limit` marks the last page (an empty array means no further records).
+        </Note>
+
+        <Note>
+        **No date filtering:** the endpoint does not accept `startDate` / `endDate` parameters, and pagination is capped at `offset + limit ≤ 10000` (`limit` ≤ 100). The required `id` parameter already scopes results to a single sub-account; for a complete history export beyond the cap, use the Report on the History page.
+        </Note>
+
         Parameters
         ----------
         id : str
@@ -432,12 +451,151 @@ class SubAccountClient:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.sub_account.get_sub_account_transfer_history(id='8e667b4a-0b71-4988-8af5-9474dbfaeb51', )
         """
         _response = self._raw_client.get_sub_account_transfer_history(
             id=id, direction=direction, limit=limit, offset=offset, request_options=request_options
         )
+        return _response.data
+
+    def list_unconfirmed_sub_account_withdrawals(
+        self,
+        *,
+        limit: typing.Optional[int] = OMIT,
+        offset: typing.Optional[int] = OMIT,
+        sub_account_id: typing.Optional[str] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> ListUnconfirmedSubAccountWithdrawalsResponse:
+        """
+        The endpoint returns a paginated list of withdrawal transactions in `unconfirmed_by_main_account` status,
+        created by [sub-accounts](/glossary#sub-account) of the authenticated main account and awaiting main account confirmation.
+        Results are ordered by creation time, newest first.
+
+        <Note>
+        The sub-account withdrawal endpoints are not available by default. To request access, contact institutional@whitebit.com.
+        A `404 Not Found` response indicates the endpoint is not enabled for the account.
+        </Note>
+
+        <Note>
+        The sub-account feature must be enabled for the region.
+        </Note>
+
+        Parameters
+        ----------
+        limit : typing.Optional[int]
+            Number of records to return.
+
+        offset : typing.Optional[int]
+            Number of records to skip.
+
+        sub_account_id : typing.Optional[str]
+            Filter by specific sub-account external ID. If omitted, returns withdrawals from all sub-accounts.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        ListUnconfirmedSubAccountWithdrawalsResponse
+            Successful response
+
+        Examples
+        --------
+        from whitebit import WhitebitApi
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
+        client.sub_account.list_unconfirmed_sub_account_withdrawals(limit=100, offset=0, )
+        """
+        _response = self._raw_client.list_unconfirmed_sub_account_withdrawals(
+            limit=limit, offset=offset, sub_account_id=sub_account_id, request_options=request_options
+        )
+        return _response.data
+
+    def confirm_sub_account_withdrawal(
+        self, *, id: str, request_options: typing.Optional[RequestOptions] = None
+    ) -> typing.Dict[str, typing.Optional[typing.Any]]:
+        """
+        The endpoint confirms a single withdrawal transaction created by a [sub-account](/glossary#sub-account)
+        of the authenticated main account. Confirmation is the main account action that approves a withdrawal
+        held in `unconfirmed_by_main_account` status and releases it for processing.
+
+        Identify the target transaction by its external id, obtained from
+        [List Unconfirmed Sub-Account Withdrawals](/api-reference/sub-accounts/list-unconfirmed-sub-account-withdrawals).
+        Confirmation is the only main account action on an unconfirmed withdrawal; a withdrawal left unconfirmed
+        expires after a retention period. A successful call returns an empty object.
+
+        <Note>
+        The sub-account withdrawal endpoints are not available by default. To request access, contact institutional@whitebit.com.
+        A `404 Not Found` response indicates the endpoint is not enabled for the account.
+        </Note>
+
+        <Note>
+        The sub-account feature must be enabled for the region.
+        </Note>
+
+        Parameters
+        ----------
+        id : str
+            External id of the withdrawal transaction to confirm.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Optional[typing.Any]]
+            Successful response — the withdrawal is confirmed
+
+        Examples
+        --------
+        from whitebit import WhitebitApi
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
+        client.sub_account.confirm_sub_account_withdrawal(id='f47ac10b-58cc-4372-a567-0e02b2c3d479', )
+        """
+        _response = self._raw_client.confirm_sub_account_withdrawal(id=id, request_options=request_options)
+        return _response.data
+
+    def get_sub_account_kyc_url(
+        self, *, id: str, request_options: typing.Optional[RequestOptions] = None
+    ) -> GetSubAccountKycUrlResponse:
+        """
+        The endpoint generates a temporary KYC verification link for a [sub-account](/glossary#sub-account).
+
+        <Note>
+        The sub-account must meet all of the following conditions before a KYC URL can be generated:
+        - The sub-account must be activated (have an associated user).
+        - The sub-account must be active (not locked or blocked).
+        - The sub-account must not have shared KYC enabled.
+        </Note>
+
+        <Warning>
+        Rate limit: 1000 requests/10 sec.
+        </Warning>
+
+        <Note>
+        The API does not cache the response.
+        </Note>
+
+        Parameters
+        ----------
+        id : str
+            Sub-account external ID. Must belong to the authenticated main account.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        GetSubAccountKycUrlResponse
+            KYC URL generated successfully
+
+        Examples
+        --------
+        from whitebit import WhitebitApi
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
+        client.sub_account.get_sub_account_kyc_url(id='8e667b4a-0b71-4988-8af5-9474dbfaeb51', )
+        """
+        _response = self._raw_client.get_sub_account_kyc_url(id=id, request_options=request_options)
         return _response.data
 
 
@@ -474,6 +632,15 @@ class AsyncSubAccountClient:
         - When `shareKyc` is `true`: `email` is **optional**
         </Note>
 
+        <Note>
+        Crypto deposits are disabled by default. Once deposits are enabled for the account, the
+        capability applies to the account and its sub-accounts; enablement is not available via
+        API. To request it, contact your assigned Account Manager or email institutional@whitebit.com.
+        Once enabled, a sub-account generates deposit addresses through the standard
+        [deposit-address endpoint](/api-reference/account-wallet/get-cryptocurrency-deposit-address)
+        using its own API key with deposit permission.
+        </Note>
+
         <Warning>
         Rate limit: 1000 requests/10 sec.
         </Warning>
@@ -508,7 +675,7 @@ class AsyncSubAccountClient:
         from whitebit import AsyncWhitebitApi
         from whitebit.sub_account import CreateSubAccountRequestPermissions
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.sub_account.create_sub_account(alias='trading_bot', permissions=CreateSubAccountRequestPermissions(spot_enabled=True, collateral_enabled=False, ), )
         asyncio.run(main())
@@ -549,7 +716,7 @@ class AsyncSubAccountClient:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.sub_account.delete_sub_account(id='8e667b4a-0b71-4988-8af5-9474dbfaeb51', )
         asyncio.run(main())
@@ -599,7 +766,7 @@ class AsyncSubAccountClient:
         from whitebit import AsyncWhitebitApi
         from whitebit.sub_account import EditSubAccountRequestPermissions
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.sub_account.edit_sub_account(id='8e667b4a-0b71-4988-8af5-9474dbfaeb51', alias='training', permissions=EditSubAccountRequestPermissions(spot_enabled=True, collateral_enabled=False, ), )
         asyncio.run(main())
@@ -649,7 +816,7 @@ class AsyncSubAccountClient:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.sub_account.list_sub_accounts()
         asyncio.run(main())
@@ -705,7 +872,7 @@ class AsyncSubAccountClient:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.sub_account.transfer(id='8e667b4a-0b71-4988-8af5-9474dbfaeb51', direction="main_to_sub", amount='0.5', ticker='ETH', )
         asyncio.run(main())
@@ -746,7 +913,7 @@ class AsyncSubAccountClient:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.sub_account.block_sub_account(id='8e667b4a-0b71-4988-8af5-9474dbfaeb51', )
         asyncio.run(main())
@@ -785,7 +952,7 @@ class AsyncSubAccountClient:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.sub_account.unblock_sub_account(id='8e667b4a-0b71-4988-8af5-9474dbfaeb51', )
         asyncio.run(main())
@@ -827,7 +994,7 @@ class AsyncSubAccountClient:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.sub_account.get_sub_account_balances(id='8e667b4a-0b71-4988-8af5-9474dbfaeb51', ticker='USDC', )
         asyncio.run(main())
@@ -857,6 +1024,14 @@ class AsyncSubAccountClient:
         The API does not cache the response.
         </Note>
 
+        <Note>
+        Results are sorted by transaction id descending (newest transfer first). The response is a plain array with no `total`, `has_more`, or cursor — a returned count below `limit` marks the last page (an empty array means no further records).
+        </Note>
+
+        <Note>
+        **No date filtering:** the endpoint does not accept `startDate` / `endDate` parameters, and pagination is capped at `offset + limit ≤ 10000` (`limit` ≤ 100). The required `id` parameter already scopes results to a single sub-account; for a complete history export beyond the cap, use the Report on the History page.
+        </Note>
+
         Parameters
         ----------
         id : str
@@ -881,7 +1056,7 @@ class AsyncSubAccountClient:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.sub_account.get_sub_account_transfer_history(id='8e667b4a-0b71-4988-8af5-9474dbfaeb51', )
         asyncio.run(main())
@@ -889,4 +1064,152 @@ class AsyncSubAccountClient:
         _response = await self._raw_client.get_sub_account_transfer_history(
             id=id, direction=direction, limit=limit, offset=offset, request_options=request_options
         )
+        return _response.data
+
+    async def list_unconfirmed_sub_account_withdrawals(
+        self,
+        *,
+        limit: typing.Optional[int] = OMIT,
+        offset: typing.Optional[int] = OMIT,
+        sub_account_id: typing.Optional[str] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> ListUnconfirmedSubAccountWithdrawalsResponse:
+        """
+        The endpoint returns a paginated list of withdrawal transactions in `unconfirmed_by_main_account` status,
+        created by [sub-accounts](/glossary#sub-account) of the authenticated main account and awaiting main account confirmation.
+        Results are ordered by creation time, newest first.
+
+        <Note>
+        The sub-account withdrawal endpoints are not available by default. To request access, contact institutional@whitebit.com.
+        A `404 Not Found` response indicates the endpoint is not enabled for the account.
+        </Note>
+
+        <Note>
+        The sub-account feature must be enabled for the region.
+        </Note>
+
+        Parameters
+        ----------
+        limit : typing.Optional[int]
+            Number of records to return.
+
+        offset : typing.Optional[int]
+            Number of records to skip.
+
+        sub_account_id : typing.Optional[str]
+            Filter by specific sub-account external ID. If omitted, returns withdrawals from all sub-accounts.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        ListUnconfirmedSubAccountWithdrawalsResponse
+            Successful response
+
+        Examples
+        --------
+        from whitebit import AsyncWhitebitApi
+        import asyncio
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
+        async def main() -> None:
+            await client.sub_account.list_unconfirmed_sub_account_withdrawals(limit=100, offset=0, )
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.list_unconfirmed_sub_account_withdrawals(
+            limit=limit, offset=offset, sub_account_id=sub_account_id, request_options=request_options
+        )
+        return _response.data
+
+    async def confirm_sub_account_withdrawal(
+        self, *, id: str, request_options: typing.Optional[RequestOptions] = None
+    ) -> typing.Dict[str, typing.Optional[typing.Any]]:
+        """
+        The endpoint confirms a single withdrawal transaction created by a [sub-account](/glossary#sub-account)
+        of the authenticated main account. Confirmation is the main account action that approves a withdrawal
+        held in `unconfirmed_by_main_account` status and releases it for processing.
+
+        Identify the target transaction by its external id, obtained from
+        [List Unconfirmed Sub-Account Withdrawals](/api-reference/sub-accounts/list-unconfirmed-sub-account-withdrawals).
+        Confirmation is the only main account action on an unconfirmed withdrawal; a withdrawal left unconfirmed
+        expires after a retention period. A successful call returns an empty object.
+
+        <Note>
+        The sub-account withdrawal endpoints are not available by default. To request access, contact institutional@whitebit.com.
+        A `404 Not Found` response indicates the endpoint is not enabled for the account.
+        </Note>
+
+        <Note>
+        The sub-account feature must be enabled for the region.
+        </Note>
+
+        Parameters
+        ----------
+        id : str
+            External id of the withdrawal transaction to confirm.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.Dict[str, typing.Optional[typing.Any]]
+            Successful response — the withdrawal is confirmed
+
+        Examples
+        --------
+        from whitebit import AsyncWhitebitApi
+        import asyncio
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
+        async def main() -> None:
+            await client.sub_account.confirm_sub_account_withdrawal(id='f47ac10b-58cc-4372-a567-0e02b2c3d479', )
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.confirm_sub_account_withdrawal(id=id, request_options=request_options)
+        return _response.data
+
+    async def get_sub_account_kyc_url(
+        self, *, id: str, request_options: typing.Optional[RequestOptions] = None
+    ) -> GetSubAccountKycUrlResponse:
+        """
+        The endpoint generates a temporary KYC verification link for a [sub-account](/glossary#sub-account).
+
+        <Note>
+        The sub-account must meet all of the following conditions before a KYC URL can be generated:
+        - The sub-account must be activated (have an associated user).
+        - The sub-account must be active (not locked or blocked).
+        - The sub-account must not have shared KYC enabled.
+        </Note>
+
+        <Warning>
+        Rate limit: 1000 requests/10 sec.
+        </Warning>
+
+        <Note>
+        The API does not cache the response.
+        </Note>
+
+        Parameters
+        ----------
+        id : str
+            Sub-account external ID. Must belong to the authenticated main account.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        GetSubAccountKycUrlResponse
+            KYC URL generated successfully
+
+        Examples
+        --------
+        from whitebit import AsyncWhitebitApi
+        import asyncio
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
+        async def main() -> None:
+            await client.sub_account.get_sub_account_kyc_url(id='8e667b4a-0b71-4988-8af5-9474dbfaeb51', )
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.get_sub_account_kyc_url(id=id, request_options=request_options)
         return _response.data

@@ -8,10 +8,29 @@ from .fee_details_flex import FeeDetailsFlex
 
 
 class FeeDetails(UniversalBaseModel):
-    min_amount: typing.Optional[str] = None
-    max_amount: typing.Optional[str] = None
-    fixed: typing.Optional[str] = None
-    flex: typing.Optional[FeeDetailsFlex] = None
+    """
+    Fee amounts and transfer limits for a crypto asset
+    """
+
+    max_amount: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Maximum transaction amount for the operation and network. May be absent independently from other limit fields; absence typically indicates no upper limit applies.
+    """
+
+    min_amount: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Minimum transaction amount for the operation and network. May be absent independently from other limit fields.
+    """
+
+    fixed: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Fixed fee amount per transaction. `null` if no fixed fee applies.
+    """
+
+    flex: typing.Optional[FeeDetailsFlex] = pydantic.Field(default=None)
+    """
+    Percentage-based (flexible) fee. `null` if no flexible fee applies.
+    """
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

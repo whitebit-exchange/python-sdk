@@ -27,7 +27,7 @@ class CreditLineClient:
         return self._raw_client
 
     def get_credit_line_info(
-        self, *, request: str, nonce: str, request_options: typing.Optional[RequestOptions] = None
+        self, *, request: str, nonce: int, request_options: typing.Optional[RequestOptions] = None
     ) -> CreditLine:
         """
         The endpoint returns an active loan.
@@ -46,7 +46,7 @@ class CreditLineClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         request_options : typing.Optional[RequestOptions]
@@ -60,8 +60,8 @@ class CreditLineClient:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
-        client.credit_line.get_credit_line_info(request='{{request}}', nonce='{{nonce}}', )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
+        client.credit_line.get_credit_line_info(request='{{request}}', nonce=1594297865000, )
         """
         _response = self._raw_client.get_credit_line_info(request=request, nonce=nonce, request_options=request_options)
         return _response.data
@@ -83,7 +83,7 @@ class AsyncCreditLineClient:
         return self._raw_client
 
     async def get_credit_line_info(
-        self, *, request: str, nonce: str, request_options: typing.Optional[RequestOptions] = None
+        self, *, request: str, nonce: int, request_options: typing.Optional[RequestOptions] = None
     ) -> CreditLine:
         """
         The endpoint returns an active loan.
@@ -102,7 +102,7 @@ class AsyncCreditLineClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         request_options : typing.Optional[RequestOptions]
@@ -117,9 +117,9 @@ class AsyncCreditLineClient:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
-            await client.credit_line.get_credit_line_info(request='{{request}}', nonce='{{nonce}}', )
+            await client.credit_line.get_credit_line_info(request='{{request}}', nonce=1594297865000, )
         asyncio.run(main())
         """
         _response = await self._raw_client.get_credit_line_info(

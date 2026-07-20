@@ -4,6 +4,7 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .orders_pending_request_method import OrdersPendingRequestMethod
 
 
 class OrdersPendingRequest(UniversalBaseModel):
@@ -12,7 +13,7 @@ class OrdersPendingRequest(UniversalBaseModel):
     Unique request identifier
     """
 
-    method: typing.Literal["ordersPending_request"] = pydantic.Field(default="ordersPending_request")
+    method: OrdersPendingRequestMethod = pydantic.Field()
     """
     Method name. Fixed value: `ordersPending_request`.
     """

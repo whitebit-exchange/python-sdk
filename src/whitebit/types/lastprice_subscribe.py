@@ -4,6 +4,7 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .lastprice_subscribe_method import LastpriceSubscribeMethod
 
 
 class LastpriceSubscribe(UniversalBaseModel):
@@ -12,7 +13,7 @@ class LastpriceSubscribe(UniversalBaseModel):
     Unique request identifier
     """
 
-    method: typing.Literal["lastprice_subscribe"] = pydantic.Field(default="lastprice_subscribe")
+    method: LastpriceSubscribeMethod = pydantic.Field()
     """
     Method name. Fixed value: `lastprice_subscribe`.
     """

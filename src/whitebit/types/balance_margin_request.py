@@ -4,6 +4,7 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .balance_margin_request_method import BalanceMarginRequestMethod
 
 
 class BalanceMarginRequest(UniversalBaseModel):
@@ -12,7 +13,7 @@ class BalanceMarginRequest(UniversalBaseModel):
     Unique request identifier
     """
 
-    method: typing.Literal["balanceMargin_request"] = pydantic.Field(default="balanceMargin_request")
+    method: BalanceMarginRequestMethod = pydantic.Field()
     """
     Method name. Fixed value: `balanceMargin_request`.
     """

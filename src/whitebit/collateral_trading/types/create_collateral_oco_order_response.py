@@ -3,7 +3,9 @@
 import typing
 
 import pydantic
+import typing_extensions
 from ...core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from ...core.serialization import FieldMetadata
 from .create_collateral_oco_order_response_stop_loss import CreateCollateralOcoOrderResponseStopLoss
 from .create_collateral_oco_order_response_take_profit import CreateCollateralOcoOrderResponseTakeProfit
 
@@ -12,6 +14,13 @@ class CreateCollateralOcoOrderResponse(UniversalBaseModel):
     id: typing.Optional[int] = pydantic.Field(default=None)
     """
     OCO order identifier
+    """
+
+    reduce_only: typing_extensions.Annotated[typing.Optional[bool], FieldMetadata(alias="reduceOnly")] = pydantic.Field(
+        default=None
+    )
+    """
+    Reduce-only flag
     """
 
     stop_loss: typing.Optional[CreateCollateralOcoOrderResponseStopLoss] = pydantic.Field(default=None)

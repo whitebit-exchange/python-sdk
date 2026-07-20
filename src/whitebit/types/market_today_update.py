@@ -4,11 +4,12 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .market_today_update_method import MarketTodayUpdateMethod
 
 
 class MarketTodayUpdate(UniversalBaseModel):
     id: typing.Optional[typing.Optional[typing.Any]] = None
-    method: typing.Literal["marketToday_update"] = pydantic.Field(default="marketToday_update")
+    method: MarketTodayUpdateMethod = pydantic.Field()
     """
     Method name. Fixed value: `marketToday_update`.
     """

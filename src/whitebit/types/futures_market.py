@@ -4,6 +4,7 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .futures_market_product_type import FuturesMarketProductType
 
 
 class FuturesMarket(UniversalBaseModel):
@@ -57,14 +58,14 @@ class FuturesMarket(UniversalBaseModel):
     Rolling 24-hours lowest transaction price
     """
 
-    product_type: typing.Optional[str] = pydantic.Field(default=None)
+    product_type: typing.Optional[FuturesMarketProductType] = pydantic.Field(default=None)
     """
-    What product is this? Futures, Perpetual, Options?
+    Derivative product type for the market.
     """
 
     open_interest: typing.Optional[str] = pydantic.Field(default=None)
     """
-    The open interest in the last 24 hours in contracts
+    Current open interest in contracts (point-in-time snapshot, not a 24-hour delta or volume).
     """
 
     index_price: typing.Optional[str] = pydantic.Field(default=None)
@@ -84,22 +85,22 @@ class FuturesMarket(UniversalBaseModel):
 
     funding_rate: typing.Optional[str] = pydantic.Field(default=None)
     """
-    The current funding rate, which may fluctuate due to market conditions
+    Predicted funding rate for the next settlement interval. Fluctuates in real time until settlement occurs. See GET /api/v4/public/funding-history/{market} for historical funding rate records.
     """
 
     next_funding_rate_timestamp: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Timestamp of the next funding rate change
+    Unix timestamp in milliseconds of the next funding settlement. 13-digit value (millisecond precision).
     """
 
     brackets: typing.Optional[typing.Dict[str, int]] = pydantic.Field(default=None)
     """
-    Brackets
+    Leverage brackets defining position size limits. Object keys are leverage multipliers (e.g., "1", "2", "5", "10", "20", "50", "100"). Values are the maximum allowed open position size in USDT equivalent at the corresponding leverage level.
     """
 
     max_leverage: typing.Optional[int] = pydantic.Field(default=None)
     """
-    Max Leverage
+    Maximum leverage multiplier allowed for the market.
     """
 
     funding_interval_minutes: typing.Optional[int] = pydantic.Field(default=None)

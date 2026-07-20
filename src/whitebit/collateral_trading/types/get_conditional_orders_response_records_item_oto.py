@@ -17,6 +17,13 @@ class GetConditionalOrdersResponseRecordsItemOto(UniversalBaseModel):
     """
 
     id: typing.Optional[int] = None
+    reduce_only: typing_extensions.Annotated[typing.Optional[bool], FieldMetadata(alias="reduceOnly")] = pydantic.Field(
+        default=None
+    )
+    """
+    Reduce-only flag
+    """
+
     stop_loss_price: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="stopLossPrice")] = None
     take_profit_price: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="takeProfitPrice")] = None
     conditional_order: typing_extensions.Annotated[

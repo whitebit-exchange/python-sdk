@@ -31,7 +31,7 @@ class JwtClient:
         self,
         *,
         request: str,
-        nonce: str,
+        nonce: int,
         nonce_window: typing.Optional[bool] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> IssueJwtTokenResponse:
@@ -48,7 +48,7 @@ class JwtClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         nonce_window : typing.Optional[bool]
@@ -65,8 +65,8 @@ class JwtClient:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
-        client.jwt.issue_jwt_token(request='{{request}}', nonce_window=False, nonce='{{nonce}}', )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
+        client.jwt.issue_jwt_token(request='{{request}}', nonce_window=False, nonce=1594297865000, )
         """
         _response = self._raw_client.issue_jwt_token(
             request=request, nonce=nonce, nonce_window=nonce_window, request_options=request_options
@@ -74,11 +74,25 @@ class JwtClient:
         return _response.data
 
     def get_web_socket_token(
-        self, *, request: str, nonce: str, request_options: typing.Optional[RequestOptions] = None
+        self, *, request: str, nonce: int, request_options: typing.Optional[RequestOptions] = None
     ) -> GetWebSocketTokenResponse:
         """
         The V4 endpoint can be used to retrieve the WebSocket token for user.
         The token is required to authorize WebSocket connections for private API access.
+
+        <Accordion title="Errors">
+        ```json
+        {
+          "code": 30,
+          "message": "Validation failed",
+          "errors": {
+            "user": ["user not found"]
+          }
+        }
+        ```
+        </Accordion>
+
+        Beyond the error above, this endpoint can return only the [common authentication errors](/api-reference/authentication).
 
         <Warning>
         Rate limit: 10 requests/60 sec.
@@ -93,7 +107,7 @@ class JwtClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         request_options : typing.Optional[RequestOptions]
@@ -107,8 +121,8 @@ class JwtClient:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
-        client.jwt.get_web_socket_token(request='{{request}}', nonce='{{nonce}}', )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
+        client.jwt.get_web_socket_token(request='{{request}}', nonce=1594297865000, )
         """
         _response = self._raw_client.get_web_socket_token(request=request, nonce=nonce, request_options=request_options)
         return _response.data
@@ -133,7 +147,7 @@ class AsyncJwtClient:
         self,
         *,
         request: str,
-        nonce: str,
+        nonce: int,
         nonce_window: typing.Optional[bool] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> IssueJwtTokenResponse:
@@ -150,7 +164,7 @@ class AsyncJwtClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         nonce_window : typing.Optional[bool]
@@ -168,9 +182,9 @@ class AsyncJwtClient:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
-            await client.jwt.issue_jwt_token(request='{{request}}', nonce_window=False, nonce='{{nonce}}', )
+            await client.jwt.issue_jwt_token(request='{{request}}', nonce_window=False, nonce=1594297865000, )
         asyncio.run(main())
         """
         _response = await self._raw_client.issue_jwt_token(
@@ -179,11 +193,25 @@ class AsyncJwtClient:
         return _response.data
 
     async def get_web_socket_token(
-        self, *, request: str, nonce: str, request_options: typing.Optional[RequestOptions] = None
+        self, *, request: str, nonce: int, request_options: typing.Optional[RequestOptions] = None
     ) -> GetWebSocketTokenResponse:
         """
         The V4 endpoint can be used to retrieve the WebSocket token for user.
         The token is required to authorize WebSocket connections for private API access.
+
+        <Accordion title="Errors">
+        ```json
+        {
+          "code": 30,
+          "message": "Validation failed",
+          "errors": {
+            "user": ["user not found"]
+          }
+        }
+        ```
+        </Accordion>
+
+        Beyond the error above, this endpoint can return only the [common authentication errors](/api-reference/authentication).
 
         <Warning>
         Rate limit: 10 requests/60 sec.
@@ -198,7 +226,7 @@ class AsyncJwtClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         request_options : typing.Optional[RequestOptions]
@@ -213,9 +241,9 @@ class AsyncJwtClient:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
-            await client.jwt.get_web_socket_token(request='{{request}}', nonce='{{nonce}}', )
+            await client.jwt.get_web_socket_token(request='{{request}}', nonce=1594297865000, )
         asyncio.run(main())
         """
         _response = await self._raw_client.get_web_socket_token(

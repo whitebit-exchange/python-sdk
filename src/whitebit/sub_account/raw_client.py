@@ -10,14 +10,18 @@ from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
 from ..core.serialization import convert_and_respect_annotation_metadata
 from ..errors.bad_request_error import BadRequestError
+from ..errors.not_found_error import NotFoundError
+from ..errors.unauthorized_error import UnauthorizedError
 from ..errors.unprocessable_entity_error import UnprocessableEntityError
 from ..types.sub_account import SubAccount
 from .types.create_sub_account_request_permissions import CreateSubAccountRequestPermissions
 from .types.edit_sub_account_request_permissions import EditSubAccountRequestPermissions
 from .types.get_sub_account_balances_response_value_item import GetSubAccountBalancesResponseValueItem
+from .types.get_sub_account_kyc_url_response import GetSubAccountKycUrlResponse
 from .types.get_sub_account_transfer_history_request_direction import GetSubAccountTransferHistoryRequestDirection
 from .types.get_sub_account_transfer_history_response import GetSubAccountTransferHistoryResponse
 from .types.list_sub_accounts_response import ListSubAccountsResponse
+from .types.list_unconfirmed_sub_account_withdrawals_response import ListUnconfirmedSubAccountWithdrawalsResponse
 from .types.sub_account_transfer_request_direction import SubAccountTransferRequestDirection
 from .types.sub_account_transfer_response import SubAccountTransferResponse
 
@@ -45,6 +49,15 @@ class RawSubAccountClient:
         The `email` field requirement depends on the `shareKyc` parameter:
         - When `shareKyc` is `false` or not provided: `email` is **required**
         - When `shareKyc` is `true`: `email` is **optional**
+        </Note>
+
+        <Note>
+        Crypto deposits are disabled by default. Once deposits are enabled for the account, the
+        capability applies to the account and its sub-accounts; enablement is not available via
+        API. To request it, contact your assigned Account Manager or email institutional@whitebit.com.
+        Once enabled, a sub-account generates deposit addresses through the standard
+        [deposit-address endpoint](/api-reference/account-wallet/get-cryptocurrency-deposit-address)
+        using its own API key with deposit permission.
         </Note>
 
         <Warning>
@@ -649,6 +662,14 @@ class RawSubAccountClient:
         The API does not cache the response.
         </Note>
 
+        <Note>
+        Results are sorted by transaction id descending (newest transfer first). The response is a plain array with no `total`, `has_more`, or cursor — a returned count below `limit` marks the last page (an empty array means no further records).
+        </Note>
+
+        <Note>
+        **No date filtering:** the endpoint does not accept `startDate` / `endDate` parameters, and pagination is capped at `offset + limit ≤ 10000` (`limit` ≤ 100). The required `id` parameter already scopes results to a single sub-account; for a complete history export beyond the cap, use the Report on the History page.
+        </Note>
+
         Parameters
         ----------
         id : str
@@ -711,6 +732,312 @@ class RawSubAccountClient:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
+    def list_unconfirmed_sub_account_withdrawals(
+        self,
+        *,
+        limit: typing.Optional[int] = OMIT,
+        offset: typing.Optional[int] = OMIT,
+        sub_account_id: typing.Optional[str] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[ListUnconfirmedSubAccountWithdrawalsResponse]:
+        """
+        The endpoint returns a paginated list of withdrawal transactions in `unconfirmed_by_main_account` status,
+        created by [sub-accounts](/glossary#sub-account) of the authenticated main account and awaiting main account confirmation.
+        Results are ordered by creation time, newest first.
+
+        <Note>
+        The sub-account withdrawal endpoints are not available by default. To request access, contact institutional@whitebit.com.
+        A `404 Not Found` response indicates the endpoint is not enabled for the account.
+        </Note>
+
+        <Note>
+        The sub-account feature must be enabled for the region.
+        </Note>
+
+        Parameters
+        ----------
+        limit : typing.Optional[int]
+            Number of records to return.
+
+        offset : typing.Optional[int]
+            Number of records to skip.
+
+        sub_account_id : typing.Optional[str]
+            Filter by specific sub-account external ID. If omitted, returns withdrawals from all sub-accounts.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[ListUnconfirmedSubAccountWithdrawalsResponse]
+            Successful response
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "api/v4/sub-account/withdraw/unconfirmed-list",
+            base_url=self._client_wrapper.get_environment().base,
+            method="POST",
+            json={
+                "limit": limit,
+                "offset": offset,
+                "subAccountId": sub_account_id,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    ListUnconfirmedSubAccountWithdrawalsResponse,
+                    parse_obj_as(
+                        type_=ListUnconfirmedSubAccountWithdrawalsResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 401:
+                raise UnauthorizedError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 404:
+                raise NotFoundError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def confirm_sub_account_withdrawal(
+        self, *, id: str, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[typing.Dict[str, typing.Optional[typing.Any]]]:
+        """
+        The endpoint confirms a single withdrawal transaction created by a [sub-account](/glossary#sub-account)
+        of the authenticated main account. Confirmation is the main account action that approves a withdrawal
+        held in `unconfirmed_by_main_account` status and releases it for processing.
+
+        Identify the target transaction by its external id, obtained from
+        [List Unconfirmed Sub-Account Withdrawals](/api-reference/sub-accounts/list-unconfirmed-sub-account-withdrawals).
+        Confirmation is the only main account action on an unconfirmed withdrawal; a withdrawal left unconfirmed
+        expires after a retention period. A successful call returns an empty object.
+
+        <Note>
+        The sub-account withdrawal endpoints are not available by default. To request access, contact institutional@whitebit.com.
+        A `404 Not Found` response indicates the endpoint is not enabled for the account.
+        </Note>
+
+        <Note>
+        The sub-account feature must be enabled for the region.
+        </Note>
+
+        Parameters
+        ----------
+        id : str
+            External id of the withdrawal transaction to confirm.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[typing.Dict[str, typing.Optional[typing.Any]]]
+            Successful response — the withdrawal is confirmed
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "api/v4/sub-account/withdraw/confirm",
+            base_url=self._client_wrapper.get_environment().base,
+            method="POST",
+            json={
+                "id": id,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Optional[typing.Any]],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Optional[typing.Any]],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 400:
+                raise BadRequestError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 401:
+                raise UnauthorizedError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 404:
+                raise NotFoundError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    def get_sub_account_kyc_url(
+        self, *, id: str, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[GetSubAccountKycUrlResponse]:
+        """
+        The endpoint generates a temporary KYC verification link for a [sub-account](/glossary#sub-account).
+
+        <Note>
+        The sub-account must meet all of the following conditions before a KYC URL can be generated:
+        - The sub-account must be activated (have an associated user).
+        - The sub-account must be active (not locked or blocked).
+        - The sub-account must not have shared KYC enabled.
+        </Note>
+
+        <Warning>
+        Rate limit: 1000 requests/10 sec.
+        </Warning>
+
+        <Note>
+        The API does not cache the response.
+        </Note>
+
+        Parameters
+        ----------
+        id : str
+            Sub-account external ID. Must belong to the authenticated main account.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[GetSubAccountKycUrlResponse]
+            KYC URL generated successfully
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "api/v4/sub-account/kyc-url",
+            base_url=self._client_wrapper.get_environment().base,
+            method="POST",
+            json={
+                "id": id,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    GetSubAccountKycUrlResponse,
+                    parse_obj_as(
+                        type_=GetSubAccountKycUrlResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 400:
+                raise BadRequestError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 401:
+                raise UnauthorizedError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 404:
+                raise NotFoundError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
 
 class AsyncRawSubAccountClient:
     def __init__(self, *, client_wrapper: AsyncClientWrapper):
@@ -732,6 +1059,15 @@ class AsyncRawSubAccountClient:
         The `email` field requirement depends on the `shareKyc` parameter:
         - When `shareKyc` is `false` or not provided: `email` is **required**
         - When `shareKyc` is `true`: `email` is **optional**
+        </Note>
+
+        <Note>
+        Crypto deposits are disabled by default. Once deposits are enabled for the account, the
+        capability applies to the account and its sub-accounts; enablement is not available via
+        API. To request it, contact your assigned Account Manager or email institutional@whitebit.com.
+        Once enabled, a sub-account generates deposit addresses through the standard
+        [deposit-address endpoint](/api-reference/account-wallet/get-cryptocurrency-deposit-address)
+        using its own API key with deposit permission.
         </Note>
 
         <Warning>
@@ -1336,6 +1672,14 @@ class AsyncRawSubAccountClient:
         The API does not cache the response.
         </Note>
 
+        <Note>
+        Results are sorted by transaction id descending (newest transfer first). The response is a plain array with no `total`, `has_more`, or cursor — a returned count below `limit` marks the last page (an empty array means no further records).
+        </Note>
+
+        <Note>
+        **No date filtering:** the endpoint does not accept `startDate` / `endDate` parameters, and pagination is capped at `offset + limit ≤ 10000` (`limit` ≤ 100). The required `id` parameter already scopes results to a single sub-account; for a complete history export beyond the cap, use the Report on the History page.
+        </Note>
+
         Parameters
         ----------
         id : str
@@ -1384,6 +1728,312 @@ class AsyncRawSubAccountClient:
                 return AsyncHttpResponse(response=_response, data=_data)
             if _response.status_code == 422:
                 raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def list_unconfirmed_sub_account_withdrawals(
+        self,
+        *,
+        limit: typing.Optional[int] = OMIT,
+        offset: typing.Optional[int] = OMIT,
+        sub_account_id: typing.Optional[str] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[ListUnconfirmedSubAccountWithdrawalsResponse]:
+        """
+        The endpoint returns a paginated list of withdrawal transactions in `unconfirmed_by_main_account` status,
+        created by [sub-accounts](/glossary#sub-account) of the authenticated main account and awaiting main account confirmation.
+        Results are ordered by creation time, newest first.
+
+        <Note>
+        The sub-account withdrawal endpoints are not available by default. To request access, contact institutional@whitebit.com.
+        A `404 Not Found` response indicates the endpoint is not enabled for the account.
+        </Note>
+
+        <Note>
+        The sub-account feature must be enabled for the region.
+        </Note>
+
+        Parameters
+        ----------
+        limit : typing.Optional[int]
+            Number of records to return.
+
+        offset : typing.Optional[int]
+            Number of records to skip.
+
+        sub_account_id : typing.Optional[str]
+            Filter by specific sub-account external ID. If omitted, returns withdrawals from all sub-accounts.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[ListUnconfirmedSubAccountWithdrawalsResponse]
+            Successful response
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "api/v4/sub-account/withdraw/unconfirmed-list",
+            base_url=self._client_wrapper.get_environment().base,
+            method="POST",
+            json={
+                "limit": limit,
+                "offset": offset,
+                "subAccountId": sub_account_id,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    ListUnconfirmedSubAccountWithdrawalsResponse,
+                    parse_obj_as(
+                        type_=ListUnconfirmedSubAccountWithdrawalsResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 401:
+                raise UnauthorizedError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 404:
+                raise NotFoundError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def confirm_sub_account_withdrawal(
+        self, *, id: str, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[typing.Dict[str, typing.Optional[typing.Any]]]:
+        """
+        The endpoint confirms a single withdrawal transaction created by a [sub-account](/glossary#sub-account)
+        of the authenticated main account. Confirmation is the main account action that approves a withdrawal
+        held in `unconfirmed_by_main_account` status and releases it for processing.
+
+        Identify the target transaction by its external id, obtained from
+        [List Unconfirmed Sub-Account Withdrawals](/api-reference/sub-accounts/list-unconfirmed-sub-account-withdrawals).
+        Confirmation is the only main account action on an unconfirmed withdrawal; a withdrawal left unconfirmed
+        expires after a retention period. A successful call returns an empty object.
+
+        <Note>
+        The sub-account withdrawal endpoints are not available by default. To request access, contact institutional@whitebit.com.
+        A `404 Not Found` response indicates the endpoint is not enabled for the account.
+        </Note>
+
+        <Note>
+        The sub-account feature must be enabled for the region.
+        </Note>
+
+        Parameters
+        ----------
+        id : str
+            External id of the withdrawal transaction to confirm.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[typing.Dict[str, typing.Optional[typing.Any]]]
+            Successful response — the withdrawal is confirmed
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "api/v4/sub-account/withdraw/confirm",
+            base_url=self._client_wrapper.get_environment().base,
+            method="POST",
+            json={
+                "id": id,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.Dict[str, typing.Optional[typing.Any]],
+                    parse_obj_as(
+                        type_=typing.Dict[str, typing.Optional[typing.Any]],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 400:
+                raise BadRequestError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 401:
+                raise UnauthorizedError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 404:
+                raise NotFoundError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def get_sub_account_kyc_url(
+        self, *, id: str, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[GetSubAccountKycUrlResponse]:
+        """
+        The endpoint generates a temporary KYC verification link for a [sub-account](/glossary#sub-account).
+
+        <Note>
+        The sub-account must meet all of the following conditions before a KYC URL can be generated:
+        - The sub-account must be activated (have an associated user).
+        - The sub-account must be active (not locked or blocked).
+        - The sub-account must not have shared KYC enabled.
+        </Note>
+
+        <Warning>
+        Rate limit: 1000 requests/10 sec.
+        </Warning>
+
+        <Note>
+        The API does not cache the response.
+        </Note>
+
+        Parameters
+        ----------
+        id : str
+            Sub-account external ID. Must belong to the authenticated main account.
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[GetSubAccountKycUrlResponse]
+            KYC URL generated successfully
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "api/v4/sub-account/kyc-url",
+            base_url=self._client_wrapper.get_environment().base,
+            method="POST",
+            json={
+                "id": id,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    GetSubAccountKycUrlResponse,
+                    parse_obj_as(
+                        type_=GetSubAccountKycUrlResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 400:
+                raise BadRequestError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 401:
+                raise UnauthorizedError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 404:
+                raise NotFoundError(
                     headers=dict(_response.headers),
                     body=typing.cast(
                         typing.Optional[typing.Any],

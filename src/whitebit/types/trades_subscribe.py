@@ -4,11 +4,12 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .trades_subscribe_method import TradesSubscribeMethod
 
 
 class TradesSubscribe(UniversalBaseModel):
     id: int
-    method: typing.Literal["trades_subscribe"] = pydantic.Field(default="trades_subscribe")
+    method: TradesSubscribeMethod = pydantic.Field()
     """
     Method name. Fixed value: `trades_subscribe`.
     """

@@ -29,7 +29,7 @@ class RawCodesClient:
         ticker: str,
         amount: str,
         request: str,
-        nonce: str,
+        nonce: int,
         passphrase: typing.Optional[str] = OMIT,
         description: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
@@ -51,19 +51,19 @@ class RawCodesClient:
             Currency's [ticker](/glossary#ticker). Example: BTC
 
         amount : str
-            Amount to transfer. Max [precision](/glossary#precision) = 8, value must be greater than zero and less than or equal to the [main balance](/glossary#balance-main).
+            Amount to transfer. Up to 18 decimal places, value greater than zero and capped at 1e17 (10^17), and not exceeding the [main balance](/glossary#balance-main).
 
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         passphrase : typing.Optional[str]
             Passphrase for applying [WhiteBIT codes](/glossary#whitebit-codes). Passphrase must contain only latin letters, numbers and symbols (like !@#$%^, no whitespaces). Max: 25 symbols.
 
         description : typing.Optional[str]
-            Additional text description for [code](/glossary#whitebit-codes). Visible only for creator. Max: 75 symbols.
+            Additional text description for [code](/glossary#whitebit-codes). Visible only for creator. Max: 280 symbols.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -133,7 +133,7 @@ class RawCodesClient:
         *,
         code: str,
         request: str,
-        nonce: str,
+        nonce: int,
         passphrase: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[ApplyCodeResponse]:
@@ -148,6 +148,13 @@ class RawCodesClient:
         The API does not cache the response.
         </Note>
 
+        <Note>
+        To avoid leaking whether a code exists, most failure modes — invalid format, expired,
+        non-existent, or wrong passphrase — collapse to one generic rejection on field `code`.
+        Only two cases are distinguishable at the API surface: a code that has already been
+        applied, and a code created by the same account.
+        </Note>
+
         Parameters
         ----------
         code : str
@@ -156,7 +163,7 @@ class RawCodesClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         passphrase : typing.Optional[str]
@@ -227,7 +234,7 @@ class RawCodesClient:
         self,
         *,
         request: str,
-        nonce: str,
+        nonce: int,
         limit: typing.Optional[int] = OMIT,
         offset: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
@@ -243,12 +250,16 @@ class RawCodesClient:
         The API does not cache the response.
         </Note>
 
+        <Note>
+        Results are sorted by creation date, newest first. Pagination is capped at `offset + limit ≤ 10000`; for a complete history export beyond the cap, use the Report on the History page.
+        </Note>
+
         Parameters
         ----------
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         limit : typing.Optional[int]
@@ -322,7 +333,7 @@ class RawCodesClient:
         self,
         *,
         request: str,
-        nonce: str,
+        nonce: int,
         limit: typing.Optional[int] = OMIT,
         offset: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
@@ -338,12 +349,20 @@ class RawCodesClient:
         The API does not cache the response.
         </Note>
 
+        <Note>
+        Results are sorted by date, newest first.
+        </Note>
+
+        <Note>
+        **No date filtering:** the endpoint does not accept `startDate` / `endDate` parameters, and pagination is capped at `offset + limit ≤ 10000` (`limit` ≤ 100). For a complete history export beyond the cap, use the Report on the History page.
+        </Note>
+
         Parameters
         ----------
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         limit : typing.Optional[int]
@@ -424,7 +443,7 @@ class AsyncRawCodesClient:
         ticker: str,
         amount: str,
         request: str,
-        nonce: str,
+        nonce: int,
         passphrase: typing.Optional[str] = OMIT,
         description: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
@@ -446,19 +465,19 @@ class AsyncRawCodesClient:
             Currency's [ticker](/glossary#ticker). Example: BTC
 
         amount : str
-            Amount to transfer. Max [precision](/glossary#precision) = 8, value must be greater than zero and less than or equal to the [main balance](/glossary#balance-main).
+            Amount to transfer. Up to 18 decimal places, value greater than zero and capped at 1e17 (10^17), and not exceeding the [main balance](/glossary#balance-main).
 
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         passphrase : typing.Optional[str]
             Passphrase for applying [WhiteBIT codes](/glossary#whitebit-codes). Passphrase must contain only latin letters, numbers and symbols (like !@#$%^, no whitespaces). Max: 25 symbols.
 
         description : typing.Optional[str]
-            Additional text description for [code](/glossary#whitebit-codes). Visible only for creator. Max: 75 symbols.
+            Additional text description for [code](/glossary#whitebit-codes). Visible only for creator. Max: 280 symbols.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -528,7 +547,7 @@ class AsyncRawCodesClient:
         *,
         code: str,
         request: str,
-        nonce: str,
+        nonce: int,
         passphrase: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[ApplyCodeResponse]:
@@ -543,6 +562,13 @@ class AsyncRawCodesClient:
         The API does not cache the response.
         </Note>
 
+        <Note>
+        To avoid leaking whether a code exists, most failure modes — invalid format, expired,
+        non-existent, or wrong passphrase — collapse to one generic rejection on field `code`.
+        Only two cases are distinguishable at the API surface: a code that has already been
+        applied, and a code created by the same account.
+        </Note>
+
         Parameters
         ----------
         code : str
@@ -551,7 +577,7 @@ class AsyncRawCodesClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         passphrase : typing.Optional[str]
@@ -622,7 +648,7 @@ class AsyncRawCodesClient:
         self,
         *,
         request: str,
-        nonce: str,
+        nonce: int,
         limit: typing.Optional[int] = OMIT,
         offset: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
@@ -638,12 +664,16 @@ class AsyncRawCodesClient:
         The API does not cache the response.
         </Note>
 
+        <Note>
+        Results are sorted by creation date, newest first. Pagination is capped at `offset + limit ≤ 10000`; for a complete history export beyond the cap, use the Report on the History page.
+        </Note>
+
         Parameters
         ----------
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         limit : typing.Optional[int]
@@ -717,7 +747,7 @@ class AsyncRawCodesClient:
         self,
         *,
         request: str,
-        nonce: str,
+        nonce: int,
         limit: typing.Optional[int] = OMIT,
         offset: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
@@ -733,12 +763,20 @@ class AsyncRawCodesClient:
         The API does not cache the response.
         </Note>
 
+        <Note>
+        Results are sorted by date, newest first.
+        </Note>
+
+        <Note>
+        **No date filtering:** the endpoint does not accept `startDate` / `endDate` parameters, and pagination is capped at `offset + limit ≤ 10000` (`limit` ≤ 100). For a complete history export beyond the cap, use the Report on the History page.
+        </Note>
+
         Parameters
         ----------
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         limit : typing.Optional[int]

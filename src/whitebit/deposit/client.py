@@ -36,12 +36,18 @@ class DepositClient:
         *,
         ticker: str,
         request: str,
-        nonce: str,
+        nonce: int,
         network: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> GetDepositAddressResponse:
         """
         The endpoint retrieves a deposit address of the cryptocurrency.
+
+        <Note>
+        Sub-accounts use this endpoint with their own API key once deposits are enabled for the
+        account. Crypto deposits are disabled by default — to enable them, contact your assigned
+        Account Manager or email institutional@whitebit.com.
+        </Note>
 
         <Accordion title="Errors">
         ```json
@@ -91,7 +97,7 @@ class DepositClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         network : typing.Optional[str]
@@ -108,8 +114,8 @@ class DepositClient:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
-        client.deposit.get_deposit_address(ticker='BTC', request='{{request}}', nonce='{{nonce}}', )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
+        client.deposit.get_deposit_address(ticker='BTC', request='{{request}}', nonce=1594297865000, )
         """
         _response = self._raw_client.get_deposit_address(
             ticker=ticker, request=request, nonce=nonce, network=network, request_options=request_options
@@ -122,9 +128,9 @@ class DepositClient:
         ticker: str,
         provider: str,
         amount: str,
+        unique_id: str,
         request: str,
-        nonce: str,
-        unique_id: typing.Optional[str] = OMIT,
+        nonce: int,
         customer: typing.Optional[GetFiatDepositUrlRequestCustomer] = OMIT,
         success_link: typing.Optional[str] = OMIT,
         failure_link: typing.Optional[str] = OMIT,
@@ -227,8 +233,78 @@ class DepositClient:
           "code": 0,
           "message": "Validation failed",
           "errors": {
-            "successLink": ["Uri domain must have only https scheme"],
-            "failureLink": ["Uri domain must have only https scheme"]
+            "successLink": ["Your domain scheme incorrect. Use https only"],
+            "failureLink": ["Your domain scheme incorrect. Use https only"]
+          }
+        }
+        ```
+
+        ```json
+        {
+          "code": 0,
+          "message": "Validation failed",
+          "errors": {
+            "ticker": ["Currency is not depositable via API"]
+          }
+        }
+        ```
+
+        ```json
+        {
+          "code": 0,
+          "message": "Validation failed",
+          "errors": {
+            "user": ["User not verified"]
+          }
+        }
+        ```
+
+        ```json
+        {
+          "code": 0,
+          "message": "Validation failed",
+          "errors": {
+            "amount": ["Amount is too big for deposit"]
+          }
+        }
+        ```
+
+        ```json
+        {
+          "code": 0,
+          "message": "Validation failed",
+          "errors": {
+            "amount": ["Daily limit reached"]
+          }
+        }
+        ```
+
+        ```json
+        {
+          "code": 0,
+          "message": "Validation failed",
+          "errors": {
+            "amount": ["Expiration date cannot be used for this provider"]
+          }
+        }
+        ```
+
+        ```json
+        {
+          "code": 0,
+          "message": "Validation failed",
+          "errors": {
+            "customer.birthDate": ["You must be at least 18 years old"]
+          }
+        }
+        ```
+
+        ```json
+        {
+          "code": 0,
+          "message": "Validation failed",
+          "errors": {
+            "address": ["Invalid credit card number"]
           }
         }
         ```
@@ -257,14 +333,14 @@ class DepositClient:
         amount : str
             Deposit amount
 
+        unique_id : str
+            Unique transaction identifier on client's side. Any string up to 255 characters; not validated as a UUID.
+
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
-
-        unique_id : typing.Optional[str]
-            Unique transaction identifier on client's side
 
         customer : typing.Optional[GetFiatDepositUrlRequestCustomer]
             Customer information (required for USD/EUR with VISAMASTER [provider](/glossary#provider))
@@ -289,16 +365,16 @@ class DepositClient:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
-        client.deposit.get_fiat_deposit_url(ticker='UAH', provider='VISAMASTER', amount='100', unique_id='{{generateID}}', request='{{request}}', nonce='{{nonce}}', )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
+        client.deposit.get_fiat_deposit_url(ticker='UAH', provider='VISAMASTER', amount='100', unique_id='{{generateID}}', request='{{request}}', nonce=1594297865000, )
         """
         _response = self._raw_client.get_fiat_deposit_url(
             ticker=ticker,
             provider=provider,
             amount=amount,
+            unique_id=unique_id,
             request=request,
             nonce=nonce,
-            unique_id=unique_id,
             customer=customer,
             success_link=success_link,
             failure_link=failure_link,
@@ -340,7 +416,7 @@ class DepositClient:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.deposit.issue_card_token(card_number='4111111111111111', )
         """
         _response = self._raw_client.issue_card_token(card_number=card_number, request_options=request_options)
@@ -349,10 +425,10 @@ class DepositClient:
     def refund_deposit(
         self,
         *,
+        transaction_id: str,
         address: str,
         request: str,
-        nonce: str,
-        transaction_id: typing.Optional[str] = OMIT,
+        nonce: int,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> RefundDepositResponse:
         """
@@ -398,17 +474,17 @@ class DepositClient:
 
         Parameters
         ----------
+        transaction_id : str
+            Transaction UUID of the deposit. Obtain from the [deposit.canceled](/platform/webhook) webhook (`uniqueId` field) or from the deposit/withdraw history in the WhiteBIT interface.
+
         address : str
             Destination wallet address for the refund. The address must support the same network and asset as the original deposit. Cannot be a WhiteBIT address. Does not have to match the original deposit address.
 
         request : str
             Base64-encoded request body. See the [authentication guide](/private/http-auth) for signature generation details.
 
-        nonce : str
+        nonce : int
             A unique identifier for the request. Use a monotonically increasing value such as a Unix timestamp in milliseconds.
-
-        transaction_id : typing.Optional[str]
-            Transaction UUID of the deposit. Obtain from the [deposit.canceled](/platform/webhook) webhook (`uniqueId` field) or from the deposit/withdraw history in the WhiteBIT interface.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -421,14 +497,14 @@ class DepositClient:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
-        client.deposit.refund_deposit(transaction_id='54bffeb7-7a8f-43f8-bcd8-f14ec10fee85', address='0x1234567890abcdef1234567890abcdef12345678', request='{{request}}', nonce='{{nonce}}', )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
+        client.deposit.refund_deposit(transaction_id='54bffeb7-7a8f-43f8-bcd8-f14ec10fee85', address='0x1234567890abcdef1234567890abcdef12345678', request='{{request}}', nonce=1594297865000, )
         """
         _response = self._raw_client.refund_deposit(
+            transaction_id=transaction_id,
             address=address,
             request=request,
             nonce=nonce,
-            transaction_id=transaction_id,
             request_options=request_options,
         )
         return _response.data
@@ -438,13 +514,18 @@ class DepositClient:
         *,
         ticker: str,
         request: str,
-        nonce: str,
+        nonce: int,
         network: typing.Optional[str] = OMIT,
         type: typing.Optional[CreateNewAddressRequestType] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> CreateNewAddressResponse:
         """
         The endpoint creates a new address even when the last created address is not used. The endpoint is not available by default, contact support@whitebit.com to get permissions to use the endpoint.
+
+        <Note>
+        For sub-accounts, crypto deposits must also be enabled for the account (disabled by
+        default). To enable them, contact your assigned Account Manager or email institutional@whitebit.com.
+        </Note>
 
         **Address types:**
 
@@ -469,7 +550,7 @@ class DepositClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         network : typing.Optional[str]
@@ -489,8 +570,8 @@ class DepositClient:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
-        client.deposit.create_new_address(ticker='XLM', request='{{request}}', nonce='{{nonce}}', )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
+        client.deposit.create_new_address(ticker='XLM', request='{{request}}', nonce=1594297865000, )
         """
         _response = self._raw_client.create_new_address(
             ticker=ticker, request=request, nonce=nonce, network=network, type=type, request_options=request_options
@@ -518,12 +599,18 @@ class AsyncDepositClient:
         *,
         ticker: str,
         request: str,
-        nonce: str,
+        nonce: int,
         network: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> GetDepositAddressResponse:
         """
         The endpoint retrieves a deposit address of the cryptocurrency.
+
+        <Note>
+        Sub-accounts use this endpoint with their own API key once deposits are enabled for the
+        account. Crypto deposits are disabled by default — to enable them, contact your assigned
+        Account Manager or email institutional@whitebit.com.
+        </Note>
 
         <Accordion title="Errors">
         ```json
@@ -573,7 +660,7 @@ class AsyncDepositClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         network : typing.Optional[str]
@@ -591,9 +678,9 @@ class AsyncDepositClient:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
-            await client.deposit.get_deposit_address(ticker='BTC', request='{{request}}', nonce='{{nonce}}', )
+            await client.deposit.get_deposit_address(ticker='BTC', request='{{request}}', nonce=1594297865000, )
         asyncio.run(main())
         """
         _response = await self._raw_client.get_deposit_address(
@@ -607,9 +694,9 @@ class AsyncDepositClient:
         ticker: str,
         provider: str,
         amount: str,
+        unique_id: str,
         request: str,
-        nonce: str,
-        unique_id: typing.Optional[str] = OMIT,
+        nonce: int,
         customer: typing.Optional[GetFiatDepositUrlRequestCustomer] = OMIT,
         success_link: typing.Optional[str] = OMIT,
         failure_link: typing.Optional[str] = OMIT,
@@ -712,8 +799,78 @@ class AsyncDepositClient:
           "code": 0,
           "message": "Validation failed",
           "errors": {
-            "successLink": ["Uri domain must have only https scheme"],
-            "failureLink": ["Uri domain must have only https scheme"]
+            "successLink": ["Your domain scheme incorrect. Use https only"],
+            "failureLink": ["Your domain scheme incorrect. Use https only"]
+          }
+        }
+        ```
+
+        ```json
+        {
+          "code": 0,
+          "message": "Validation failed",
+          "errors": {
+            "ticker": ["Currency is not depositable via API"]
+          }
+        }
+        ```
+
+        ```json
+        {
+          "code": 0,
+          "message": "Validation failed",
+          "errors": {
+            "user": ["User not verified"]
+          }
+        }
+        ```
+
+        ```json
+        {
+          "code": 0,
+          "message": "Validation failed",
+          "errors": {
+            "amount": ["Amount is too big for deposit"]
+          }
+        }
+        ```
+
+        ```json
+        {
+          "code": 0,
+          "message": "Validation failed",
+          "errors": {
+            "amount": ["Daily limit reached"]
+          }
+        }
+        ```
+
+        ```json
+        {
+          "code": 0,
+          "message": "Validation failed",
+          "errors": {
+            "amount": ["Expiration date cannot be used for this provider"]
+          }
+        }
+        ```
+
+        ```json
+        {
+          "code": 0,
+          "message": "Validation failed",
+          "errors": {
+            "customer.birthDate": ["You must be at least 18 years old"]
+          }
+        }
+        ```
+
+        ```json
+        {
+          "code": 0,
+          "message": "Validation failed",
+          "errors": {
+            "address": ["Invalid credit card number"]
           }
         }
         ```
@@ -742,14 +899,14 @@ class AsyncDepositClient:
         amount : str
             Deposit amount
 
+        unique_id : str
+            Unique transaction identifier on client's side. Any string up to 255 characters; not validated as a UUID.
+
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
-
-        unique_id : typing.Optional[str]
-            Unique transaction identifier on client's side
 
         customer : typing.Optional[GetFiatDepositUrlRequestCustomer]
             Customer information (required for USD/EUR with VISAMASTER [provider](/glossary#provider))
@@ -775,18 +932,18 @@ class AsyncDepositClient:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
-            await client.deposit.get_fiat_deposit_url(ticker='UAH', provider='VISAMASTER', amount='100', unique_id='{{generateID}}', request='{{request}}', nonce='{{nonce}}', )
+            await client.deposit.get_fiat_deposit_url(ticker='UAH', provider='VISAMASTER', amount='100', unique_id='{{generateID}}', request='{{request}}', nonce=1594297865000, )
         asyncio.run(main())
         """
         _response = await self._raw_client.get_fiat_deposit_url(
             ticker=ticker,
             provider=provider,
             amount=amount,
+            unique_id=unique_id,
             request=request,
             nonce=nonce,
-            unique_id=unique_id,
             customer=customer,
             success_link=success_link,
             failure_link=failure_link,
@@ -831,7 +988,7 @@ class AsyncDepositClient:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.deposit.issue_card_token(card_number='4111111111111111', )
         asyncio.run(main())
@@ -842,10 +999,10 @@ class AsyncDepositClient:
     async def refund_deposit(
         self,
         *,
+        transaction_id: str,
         address: str,
         request: str,
-        nonce: str,
-        transaction_id: typing.Optional[str] = OMIT,
+        nonce: int,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> RefundDepositResponse:
         """
@@ -891,17 +1048,17 @@ class AsyncDepositClient:
 
         Parameters
         ----------
+        transaction_id : str
+            Transaction UUID of the deposit. Obtain from the [deposit.canceled](/platform/webhook) webhook (`uniqueId` field) or from the deposit/withdraw history in the WhiteBIT interface.
+
         address : str
             Destination wallet address for the refund. The address must support the same network and asset as the original deposit. Cannot be a WhiteBIT address. Does not have to match the original deposit address.
 
         request : str
             Base64-encoded request body. See the [authentication guide](/private/http-auth) for signature generation details.
 
-        nonce : str
+        nonce : int
             A unique identifier for the request. Use a monotonically increasing value such as a Unix timestamp in milliseconds.
-
-        transaction_id : typing.Optional[str]
-            Transaction UUID of the deposit. Obtain from the [deposit.canceled](/platform/webhook) webhook (`uniqueId` field) or from the deposit/withdraw history in the WhiteBIT interface.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -915,16 +1072,16 @@ class AsyncDepositClient:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
-            await client.deposit.refund_deposit(transaction_id='54bffeb7-7a8f-43f8-bcd8-f14ec10fee85', address='0x1234567890abcdef1234567890abcdef12345678', request='{{request}}', nonce='{{nonce}}', )
+            await client.deposit.refund_deposit(transaction_id='54bffeb7-7a8f-43f8-bcd8-f14ec10fee85', address='0x1234567890abcdef1234567890abcdef12345678', request='{{request}}', nonce=1594297865000, )
         asyncio.run(main())
         """
         _response = await self._raw_client.refund_deposit(
+            transaction_id=transaction_id,
             address=address,
             request=request,
             nonce=nonce,
-            transaction_id=transaction_id,
             request_options=request_options,
         )
         return _response.data
@@ -934,13 +1091,18 @@ class AsyncDepositClient:
         *,
         ticker: str,
         request: str,
-        nonce: str,
+        nonce: int,
         network: typing.Optional[str] = OMIT,
         type: typing.Optional[CreateNewAddressRequestType] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> CreateNewAddressResponse:
         """
         The endpoint creates a new address even when the last created address is not used. The endpoint is not available by default, contact support@whitebit.com to get permissions to use the endpoint.
+
+        <Note>
+        For sub-accounts, crypto deposits must also be enabled for the account (disabled by
+        default). To enable them, contact your assigned Account Manager or email institutional@whitebit.com.
+        </Note>
 
         **Address types:**
 
@@ -965,7 +1127,7 @@ class AsyncDepositClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         network : typing.Optional[str]
@@ -986,9 +1148,9 @@ class AsyncDepositClient:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
-            await client.deposit.create_new_address(ticker='XLM', request='{{request}}', nonce='{{nonce}}', )
+            await client.deposit.create_new_address(ticker='XLM', request='{{request}}', nonce=1594297865000, )
         asyncio.run(main())
         """
         _response = await self._raw_client.create_new_address(

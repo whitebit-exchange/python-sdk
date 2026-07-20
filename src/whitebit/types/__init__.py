@@ -2,6 +2,7 @@
 
 # isort: skip_file
 
+from .active_order_status import ActiveOrderStatus
 from .asset import Asset
 from .asset_limits import AssetLimits
 from .asset_limits_deposit_value import AssetLimitsDepositValue
@@ -10,42 +11,62 @@ from .asset_memo import AssetMemo
 from .asset_networks import AssetNetworks
 from .asset_providers import AssetProviders
 from .authorize_request import AuthorizeRequest
+from .authorize_request_method import AuthorizeRequestMethod
 from .authorize_response import AuthorizeResponse
 from .authorize_response_result import AuthorizeResponseResult
+from .authorize_response_result_status import AuthorizeResponseResultStatus
 from .bad_request_error_body import BadRequestErrorBody
-from .bad_request_error_body_data import BadRequestErrorBodyData
 from .balance_margin_request import BalanceMarginRequest
+from .balance_margin_request_method import BalanceMarginRequestMethod
 from .balance_margin_response import BalanceMarginResponse
 from .balance_margin_response_result_value import BalanceMarginResponseResultValue
 from .balance_margin_subscribe import BalanceMarginSubscribe
+from .balance_margin_subscribe_method import BalanceMarginSubscribeMethod
 from .balance_margin_update import BalanceMarginUpdate
+from .balance_margin_update_method import BalanceMarginUpdateMethod
 from .balance_margin_update_params_item import BalanceMarginUpdateParamsItem
 from .balance_spot_request import BalanceSpotRequest
+from .balance_spot_request_method import BalanceSpotRequestMethod
 from .balance_spot_response import BalanceSpotResponse
 from .balance_spot_response_result_value import BalanceSpotResponseResultValue
 from .balance_spot_subscribe import BalanceSpotSubscribe
+from .balance_spot_subscribe_method import BalanceSpotSubscribeMethod
 from .balance_spot_update import BalanceSpotUpdate
+from .balance_spot_update_method import BalanceSpotUpdateMethod
 from .balance_spot_update_params_item_value import BalanceSpotUpdateParamsItemValue
 from .base_request import BaseRequest
 from .base_response import BaseResponse
 from .book_ticker_subscribe import BookTickerSubscribe
+from .book_ticker_subscribe_method import BookTickerSubscribeMethod
 from .book_ticker_update import BookTickerUpdate
 from .book_ticker_update_data import BookTickerUpdateData
+from .book_ticker_update_method import BookTickerUpdateMethod
 from .borrows_events_subscribe import BorrowsEventsSubscribe
+from .borrows_events_subscribe_method import BorrowsEventsSubscribeMethod
 from .borrows_events_update import BorrowsEventsUpdate
+from .borrows_events_update_method import BorrowsEventsUpdateMethod
 from .borrows_subscribe import BorrowsSubscribe
+from .borrows_subscribe_method import BorrowsSubscribeMethod
 from .borrows_update import BorrowsUpdate
+from .borrows_update_method import BorrowsUpdateMethod
 from .borrows_update_params import BorrowsUpdateParams
 from .borrows_update_params_records_item import BorrowsUpdateParamsRecordsItem
+from .bulk_cancel_order_item import BulkCancelOrderItem
+from .bulk_cancel_order_response import BulkCancelOrderResponse
+from .bulk_cancel_order_response_item import BulkCancelOrderResponseItem
+from .bulk_cancel_order_result import BulkCancelOrderResult
 from .bulk_limit_order_response import BulkLimitOrderResponse
 from .bulk_limit_order_response_item import BulkLimitOrderResponseItem
 from .bulk_order_item import BulkOrderItem
 from .bulk_order_item_side import BulkOrderItemSide
 from .candle import Candle
 from .candles_request import CandlesRequest
+from .candles_request_method import CandlesRequestMethod
 from .candles_response import CandlesResponse
 from .candles_subscribe import CandlesSubscribe
+from .candles_subscribe_method import CandlesSubscribeMethod
 from .candles_update import CandlesUpdate
+from .candles_update_method import CandlesUpdateMethod
 from .code_history import CodeHistory
 from .code_info import CodeInfo
 from .convert_confirm_response import ConvertConfirmResponse
@@ -56,83 +77,105 @@ from .convert_history_response_records_item import ConvertHistoryResponseRecords
 from .convert_history_response_records_item_path_item import ConvertHistoryResponseRecordsItemPathItem
 from .credit_line import CreditLine
 from .deals_request import DealsRequest
+from .deals_request_method import DealsRequestMethod
 from .deals_response import DealsResponse
 from .deals_response_result import DealsResponseResult
 from .deals_response_result_records_item import DealsResponseResultRecordsItem
 from .deals_subscribe import DealsSubscribe
+from .deals_subscribe_method import DealsSubscribeMethod
 from .deals_update import DealsUpdate
+from .deals_update_method import DealsUpdateMethod
 from .depth_level import DepthLevel
 from .depth_request import DepthRequest
+from .depth_request_method import DepthRequestMethod
 from .depth_response import DepthResponse
 from .depth_subscribe import DepthSubscribe
+from .depth_subscribe_method import DepthSubscribeMethod
 from .depth_update import DepthUpdate
 from .depth_update_data import DepthUpdateData
+from .depth_update_method import DepthUpdateMethod
 from .error import Error
 from .error_inner import ErrorInner
 from .error_response import ErrorResponse
 from .error_v4 import ErrorV4
+from .executed_deal import ExecutedDeal
+from .executed_deal_side import ExecutedDealSide
 from .executed_order_object import ExecutedOrderObject
 from .executed_order_object_position_side import ExecutedOrderObjectPositionSide
 from .executed_order_object_stp import ExecutedOrderObjectStp
 from .fee_details import FeeDetails
 from .fee_details_flex import FeeDetailsFlex
 from .fee_info import FeeInfo
-from .fee_info_deposit import FeeInfoDeposit
-from .fee_info_withdraw import FeeInfoWithdraw
-from .fixed_plan import FixedPlan
-from .flex_investment import FlexInvestment
-from .flex_investment_history import FlexInvestmentHistory
-from .flex_plan import FlexPlan
 from .futures_market import FuturesMarket
-from .interest_payment import InterestPayment
-from .investment import Investment
+from .futures_market_product_type import FuturesMarketProductType
 from .lastprice_request import LastpriceRequest
+from .lastprice_request_method import LastpriceRequestMethod
 from .lastprice_response import LastpriceResponse
 from .lastprice_subscribe import LastpriceSubscribe
+from .lastprice_subscribe_method import LastpriceSubscribeMethod
 from .lastprice_update import LastpriceUpdate
+from .lastprice_update_method import LastpriceUpdateMethod
+from .main_account_fee_info import MainAccountFeeInfo
+from .main_account_fee_info_deposit import MainAccountFeeInfoDeposit
+from .main_account_fee_info_withdraw import MainAccountFeeInfoWithdraw
 from .margin_positions_events_subscribe import MarginPositionsEventsSubscribe
+from .margin_positions_events_subscribe_method import MarginPositionsEventsSubscribeMethod
 from .margin_positions_events_update import MarginPositionsEventsUpdate
-from .market_order_request import MarketOrderRequest
-from .market_order_request_side import MarketOrderRequestSide
-from .market_order_request_stp import MarketOrderRequestStp
+from .margin_positions_events_update_method import MarginPositionsEventsUpdateMethod
 from .market_request import MarketRequest
+from .market_request_method import MarketRequestMethod
 from .market_response import MarketResponse
 from .market_statistics import MarketStatistics
 from .market_subscribe import MarketSubscribe
+from .market_subscribe_method import MarketSubscribeMethod
 from .market_today_request import MarketTodayRequest
+from .market_today_request_method import MarketTodayRequestMethod
 from .market_today_response import MarketTodayResponse
 from .market_today_statistics import MarketTodayStatistics
 from .market_today_subscribe import MarketTodaySubscribe
+from .market_today_subscribe_method import MarketTodaySubscribeMethod
 from .market_today_update import MarketTodayUpdate
+from .market_today_update_method import MarketTodayUpdateMethod
 from .market_update import MarketUpdate
-from .mining_reward import MiningReward
+from .market_update_method import MarketUpdateMethod
 from .not_found_error_body import NotFoundErrorBody
 from .order_book import OrderBook
 from .order_object import OrderObject
 from .order_object_position_side import OrderObjectPositionSide
 from .order_object_stp import OrderObjectStp
 from .order_response import OrderResponse
+from .order_response_activation_condition import OrderResponseActivationCondition
+from .order_status import OrderStatus
 from .orderbook_response import OrderbookResponse
 from .orders_executed_request import OrdersExecutedRequest
+from .orders_executed_request_method import OrdersExecutedRequestMethod
 from .orders_executed_response import OrdersExecutedResponse
 from .orders_executed_response_result import OrdersExecutedResponseResult
 from .orders_executed_subscribe import OrdersExecutedSubscribe
+from .orders_executed_subscribe_method import OrdersExecutedSubscribeMethod
 from .orders_executed_update import OrdersExecutedUpdate
+from .orders_executed_update_method import OrdersExecutedUpdateMethod
 from .orders_pending_request import OrdersPendingRequest
+from .orders_pending_request_method import OrdersPendingRequestMethod
 from .orders_pending_response import OrdersPendingResponse
 from .orders_pending_response_result import OrdersPendingResponseResult
 from .orders_pending_subscribe import OrdersPendingSubscribe
+from .orders_pending_subscribe_method import OrdersPendingSubscribeMethod
 from .orders_pending_update import OrdersPendingUpdate
+from .orders_pending_update_method import OrdersPendingUpdateMethod
 from .ping_request import PingRequest
+from .ping_request_method import PingRequestMethod
 from .ping_response import PingResponse
 from .ping_response_result import PingResponseResult
 from .positions_subscribe import PositionsSubscribe
+from .positions_subscribe_method import PositionsSubscribeMethod
 from .positions_update import PositionsUpdate
+from .positions_update_method import PositionsUpdateMethod
 from .positions_update_params import PositionsUpdateParams
 from .positions_update_params_records_item import PositionsUpdateParamsRecordsItem
 from .positions_update_params_records_item_liq_stage import PositionsUpdateParamsRecordsItemLiqStage
 from .positions_update_params_records_item_position_side import PositionsUpdateParamsRecordsItemPositionSide
-from .provider_fee_details import ProviderFeeDetails
+from .public_validation_error import PublicValidationError
 from .sub_account import SubAccount
 from .sub_account_api_key import SubAccountApiKey
 from .sub_account_api_key_access_endpoints_item import SubAccountApiKeyAccessEndpointsItem
@@ -143,23 +186,35 @@ from .sub_account_permissions import SubAccountPermissions
 from .sub_account_transfer import SubAccountTransfer
 from .subscription_response import SubscriptionResponse
 from .subscription_response_result import SubscriptionResponseResult
+from .subscription_response_result_status import SubscriptionResponseResultStatus
 from .time_request import TimeRequest
+from .time_request_method import TimeRequestMethod
 from .time_response import TimeResponse
 from .trade import Trade
 from .trade_type import TradeType
 from .trades_request import TradesRequest
+from .trades_request_method import TradesRequestMethod
 from .trades_response import TradesResponse
 from .trades_subscribe import TradesSubscribe
+from .trades_subscribe_method import TradesSubscribeMethod
 from .trades_update import TradesUpdate
+from .trades_update_method import TradesUpdateMethod
 from .transaction_history import TransactionHistory
 from .transaction_history_confirmations import TransactionHistoryConfirmations
-from .unauthorized_error_body import UnauthorizedErrorBody
-from .unauthorized_error_body_data import UnauthorizedErrorBodyData
+from .travel_rule_address import TravelRuleAddress
+from .travel_rule_beneficiary import TravelRuleBeneficiary
+from .travel_rule_beneficiary_type import TravelRuleBeneficiaryType
+from .travel_rule_originator import TravelRuleOriginator
+from .travel_rule_originator_type import TravelRuleOriginatorType
+from .travel_rule_vasp import TravelRuleVasp
+from .travel_rule_withdrawal import TravelRuleWithdrawal
+from .travel_rule_withdrawal_wallet_type import TravelRuleWithdrawalWalletType
 from .unprocessable_entity_error_body import UnprocessableEntityErrorBody
-from .unprocessable_entity_error_body_errors import UnprocessableEntityErrorBodyErrors
 from .unsubscribe_request import UnsubscribeRequest
+from .unsubscribe_request_method import UnsubscribeRequestMethod
 
 __all__ = [
+    "ActiveOrderStatus",
     "Asset",
     "AssetLimits",
     "AssetLimitsDepositValue",
@@ -168,42 +223,62 @@ __all__ = [
     "AssetNetworks",
     "AssetProviders",
     "AuthorizeRequest",
+    "AuthorizeRequestMethod",
     "AuthorizeResponse",
     "AuthorizeResponseResult",
+    "AuthorizeResponseResultStatus",
     "BadRequestErrorBody",
-    "BadRequestErrorBodyData",
     "BalanceMarginRequest",
+    "BalanceMarginRequestMethod",
     "BalanceMarginResponse",
     "BalanceMarginResponseResultValue",
     "BalanceMarginSubscribe",
+    "BalanceMarginSubscribeMethod",
     "BalanceMarginUpdate",
+    "BalanceMarginUpdateMethod",
     "BalanceMarginUpdateParamsItem",
     "BalanceSpotRequest",
+    "BalanceSpotRequestMethod",
     "BalanceSpotResponse",
     "BalanceSpotResponseResultValue",
     "BalanceSpotSubscribe",
+    "BalanceSpotSubscribeMethod",
     "BalanceSpotUpdate",
+    "BalanceSpotUpdateMethod",
     "BalanceSpotUpdateParamsItemValue",
     "BaseRequest",
     "BaseResponse",
     "BookTickerSubscribe",
+    "BookTickerSubscribeMethod",
     "BookTickerUpdate",
     "BookTickerUpdateData",
+    "BookTickerUpdateMethod",
     "BorrowsEventsSubscribe",
+    "BorrowsEventsSubscribeMethod",
     "BorrowsEventsUpdate",
+    "BorrowsEventsUpdateMethod",
     "BorrowsSubscribe",
+    "BorrowsSubscribeMethod",
     "BorrowsUpdate",
+    "BorrowsUpdateMethod",
     "BorrowsUpdateParams",
     "BorrowsUpdateParamsRecordsItem",
+    "BulkCancelOrderItem",
+    "BulkCancelOrderResponse",
+    "BulkCancelOrderResponseItem",
+    "BulkCancelOrderResult",
     "BulkLimitOrderResponse",
     "BulkLimitOrderResponseItem",
     "BulkOrderItem",
     "BulkOrderItemSide",
     "Candle",
     "CandlesRequest",
+    "CandlesRequestMethod",
     "CandlesResponse",
     "CandlesSubscribe",
+    "CandlesSubscribeMethod",
     "CandlesUpdate",
+    "CandlesUpdateMethod",
     "CodeHistory",
     "CodeInfo",
     "ConvertConfirmResponse",
@@ -214,83 +289,105 @@ __all__ = [
     "ConvertHistoryResponseRecordsItemPathItem",
     "CreditLine",
     "DealsRequest",
+    "DealsRequestMethod",
     "DealsResponse",
     "DealsResponseResult",
     "DealsResponseResultRecordsItem",
     "DealsSubscribe",
+    "DealsSubscribeMethod",
     "DealsUpdate",
+    "DealsUpdateMethod",
     "DepthLevel",
     "DepthRequest",
+    "DepthRequestMethod",
     "DepthResponse",
     "DepthSubscribe",
+    "DepthSubscribeMethod",
     "DepthUpdate",
     "DepthUpdateData",
+    "DepthUpdateMethod",
     "Error",
     "ErrorInner",
     "ErrorResponse",
     "ErrorV4",
+    "ExecutedDeal",
+    "ExecutedDealSide",
     "ExecutedOrderObject",
     "ExecutedOrderObjectPositionSide",
     "ExecutedOrderObjectStp",
     "FeeDetails",
     "FeeDetailsFlex",
     "FeeInfo",
-    "FeeInfoDeposit",
-    "FeeInfoWithdraw",
-    "FixedPlan",
-    "FlexInvestment",
-    "FlexInvestmentHistory",
-    "FlexPlan",
     "FuturesMarket",
-    "InterestPayment",
-    "Investment",
+    "FuturesMarketProductType",
     "LastpriceRequest",
+    "LastpriceRequestMethod",
     "LastpriceResponse",
     "LastpriceSubscribe",
+    "LastpriceSubscribeMethod",
     "LastpriceUpdate",
+    "LastpriceUpdateMethod",
+    "MainAccountFeeInfo",
+    "MainAccountFeeInfoDeposit",
+    "MainAccountFeeInfoWithdraw",
     "MarginPositionsEventsSubscribe",
+    "MarginPositionsEventsSubscribeMethod",
     "MarginPositionsEventsUpdate",
-    "MarketOrderRequest",
-    "MarketOrderRequestSide",
-    "MarketOrderRequestStp",
+    "MarginPositionsEventsUpdateMethod",
     "MarketRequest",
+    "MarketRequestMethod",
     "MarketResponse",
     "MarketStatistics",
     "MarketSubscribe",
+    "MarketSubscribeMethod",
     "MarketTodayRequest",
+    "MarketTodayRequestMethod",
     "MarketTodayResponse",
     "MarketTodayStatistics",
     "MarketTodaySubscribe",
+    "MarketTodaySubscribeMethod",
     "MarketTodayUpdate",
+    "MarketTodayUpdateMethod",
     "MarketUpdate",
-    "MiningReward",
+    "MarketUpdateMethod",
     "NotFoundErrorBody",
     "OrderBook",
     "OrderObject",
     "OrderObjectPositionSide",
     "OrderObjectStp",
     "OrderResponse",
+    "OrderResponseActivationCondition",
+    "OrderStatus",
     "OrderbookResponse",
     "OrdersExecutedRequest",
+    "OrdersExecutedRequestMethod",
     "OrdersExecutedResponse",
     "OrdersExecutedResponseResult",
     "OrdersExecutedSubscribe",
+    "OrdersExecutedSubscribeMethod",
     "OrdersExecutedUpdate",
+    "OrdersExecutedUpdateMethod",
     "OrdersPendingRequest",
+    "OrdersPendingRequestMethod",
     "OrdersPendingResponse",
     "OrdersPendingResponseResult",
     "OrdersPendingSubscribe",
+    "OrdersPendingSubscribeMethod",
     "OrdersPendingUpdate",
+    "OrdersPendingUpdateMethod",
     "PingRequest",
+    "PingRequestMethod",
     "PingResponse",
     "PingResponseResult",
     "PositionsSubscribe",
+    "PositionsSubscribeMethod",
     "PositionsUpdate",
+    "PositionsUpdateMethod",
     "PositionsUpdateParams",
     "PositionsUpdateParamsRecordsItem",
     "PositionsUpdateParamsRecordsItemLiqStage",
     "PositionsUpdateParamsRecordsItemPositionSide",
-    "ProviderFeeDetails",
+    "PublicValidationError",
     "SubAccount",
     "SubAccountApiKey",
     "SubAccountApiKeyAccessEndpointsItem",
@@ -301,19 +398,30 @@ __all__ = [
     "SubAccountTransfer",
     "SubscriptionResponse",
     "SubscriptionResponseResult",
+    "SubscriptionResponseResultStatus",
     "TimeRequest",
+    "TimeRequestMethod",
     "TimeResponse",
     "Trade",
     "TradeType",
     "TradesRequest",
+    "TradesRequestMethod",
     "TradesResponse",
     "TradesSubscribe",
+    "TradesSubscribeMethod",
     "TradesUpdate",
+    "TradesUpdateMethod",
     "TransactionHistory",
     "TransactionHistoryConfirmations",
-    "UnauthorizedErrorBody",
-    "UnauthorizedErrorBodyData",
+    "TravelRuleAddress",
+    "TravelRuleBeneficiary",
+    "TravelRuleBeneficiaryType",
+    "TravelRuleOriginator",
+    "TravelRuleOriginatorType",
+    "TravelRuleVasp",
+    "TravelRuleWithdrawal",
+    "TravelRuleWithdrawalWalletType",
     "UnprocessableEntityErrorBody",
-    "UnprocessableEntityErrorBodyErrors",
     "UnsubscribeRequest",
+    "UnsubscribeRequestMethod",
 ]

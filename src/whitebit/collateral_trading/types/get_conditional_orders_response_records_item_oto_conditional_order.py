@@ -12,8 +12,8 @@ from .get_conditional_orders_response_records_item_oto_conditional_order_positio
 
 
 class GetConditionalOrdersResponseRecordsItemOtoConditionalOrder(UniversalBaseModel):
-    order_id: typing.Optional[int] = None
-    client_order_id: typing.Optional[str] = None
+    order_id: typing_extensions.Annotated[typing.Optional[int], FieldMetadata(alias="orderId")] = None
+    client_order_id: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="clientOrderId")] = None
     market: typing.Optional[str] = None
     position_side: typing_extensions.Annotated[
         typing.Optional[GetConditionalOrdersResponseRecordsItemOtoConditionalOrderPositionSide],

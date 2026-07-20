@@ -2,4 +2,4 @@
 
 import typing
 
-LimitOrderRequestStp = typing.Union[typing.Literal["no", "cancel_both", "cancel_new", "cancel_old"], typing.Any]
+LimitOrderRequestStp = typing.Union[typing.Literal["no", "cb", "cn", "co"], typing.Any]

@@ -3,7 +3,9 @@
 import typing
 
 import pydantic
+import typing_extensions
 from ...core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from ...core.serialization import FieldMetadata
 from .get_conditional_orders_response_records_item_oco_stop_loss import (
     GetConditionalOrdersResponseRecordsItemOcoStopLoss,
 )
@@ -18,8 +20,19 @@ class GetConditionalOrdersResponseRecordsItemOco(UniversalBaseModel):
     """
 
     id: typing.Optional[int] = None
-    stop_loss: typing.Optional[GetConditionalOrdersResponseRecordsItemOcoStopLoss] = None
-    take_profit: typing.Optional[GetConditionalOrdersResponseRecordsItemOcoTakeProfit] = None
+    reduce_only: typing_extensions.Annotated[typing.Optional[bool], FieldMetadata(alias="reduceOnly")] = pydantic.Field(
+        default=None
+    )
+    """
+    Reduce-only flag
+    """
+
+    stop_loss: typing_extensions.Annotated[
+        typing.Optional[GetConditionalOrdersResponseRecordsItemOcoStopLoss], FieldMetadata(alias="stopLoss")
+    ] = None
+    take_profit: typing_extensions.Annotated[
+        typing.Optional[GetConditionalOrdersResponseRecordsItemOcoTakeProfit], FieldMetadata(alias="takeProfit")
+    ] = None
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

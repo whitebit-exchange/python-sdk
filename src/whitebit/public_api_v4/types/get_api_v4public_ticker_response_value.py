@@ -19,27 +19,27 @@ class GetApiV4PublicTickerResponseValue(UniversalBaseModel):
 
     last_price: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Last price
+    Most recent trade price in the quote currency.
     """
 
     quote_volume: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Volume in quote currency
+    Rolling 24-hour trading volume in the quote currency.
     """
 
     base_volume: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Volume in base currency
+    Rolling 24-hour trading volume in the base currency.
     """
 
     is_frozen: typing.Optional[bool] = pydantic.Field(default=None)
     """
-    Indicates whether trading is disabled
+    Indicates whether trading is disabled for the market pair.
     """
 
     change: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Change in percent between open and last prices
+    Percentage change between the rolling 24-hour open price and the last traded price.
     """
 
     if IS_PYDANTIC_V2:

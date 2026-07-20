@@ -5,10 +5,11 @@ import typing
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2
 from .base_request import BaseRequest
+from .time_request_method import TimeRequestMethod
 
 
 class TimeRequest(BaseRequest):
-    method: typing.Optional[typing.Literal["time"]] = pydantic.Field(default=None)
+    method: typing.Optional[TimeRequestMethod] = pydantic.Field(default=None)
     """
     Method name. Fixed value: `time`.
     """

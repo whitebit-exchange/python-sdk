@@ -16,26 +16,26 @@ class CollateralAccountBalanceSummaryResponseItem(UniversalBaseModel):
 
     balance: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Current balance amount
+    Total collateral balance for the asset, in the asset's native units
     """
 
     borrow: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Amount currently borrowed
+    Amount currently borrowed against the asset, in the asset's native units
     """
 
     available_without_borrow: typing_extensions.Annotated[
         typing.Optional[str], FieldMetadata(alias="availableWithoutBorrow")
     ] = pydantic.Field(default=None)
     """
-    Available balance without using borrow
+    Balance available for use without additional borrowing, in the asset's native units
     """
 
     available_with_borrow: typing_extensions.Annotated[
         typing.Optional[str], FieldMetadata(alias="availableWithBorrow")
     ] = pydantic.Field(default=None)
     """
-    Available balance including borrowing capacity
+    Maximum balance available when borrowing capacity is included, in the asset's native units
     """
 
     if IS_PYDANTIC_V2:

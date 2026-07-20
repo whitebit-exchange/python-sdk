@@ -5,6 +5,7 @@ import typing
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 from .executed_order_object import ExecutedOrderObject
+from .orders_executed_update_method import OrdersExecutedUpdateMethod
 
 
 class OrdersExecutedUpdate(UniversalBaseModel):
@@ -13,7 +14,7 @@ class OrdersExecutedUpdate(UniversalBaseModel):
     Update events have null id
     """
 
-    method: typing.Literal["ordersExecuted_update"] = pydantic.Field(default="ordersExecuted_update")
+    method: OrdersExecutedUpdateMethod = pydantic.Field()
     """
     Method name. Fixed value: `ordersExecuted_update`.
     """

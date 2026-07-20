@@ -12,26 +12,26 @@ from .set_kill_switch_response_types_item import SetKillSwitchResponseTypesItem
 class SetKillSwitchResponse(UniversalBaseModel):
     market: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Market name
+    Trading pair the timer applies to.
     """
 
     start_time: typing_extensions.Annotated[typing.Optional[int], FieldMetadata(alias="startTime")] = pydantic.Field(
         default=None
     )
     """
-    Timer start timestamp
+    Unix timestamp (seconds) when the timer was created or last reset.
     """
 
     cancellation_time: typing_extensions.Annotated[typing.Optional[int], FieldMetadata(alias="cancellationTime")] = (
         pydantic.Field(default=None)
     )
     """
-    Order cancellation timestamp (startTime + timeout)
+    Unix timestamp (seconds) when the kill-switch will cancel orders. Equals `startTime + timeout`.
     """
 
     types: typing.Optional[typing.List[SetKillSwitchResponseTypesItem]] = pydantic.Field(default=None)
     """
-    Order types affected by kill-switch
+    Order types targeted by the kill-switch. Possible values: `spot`, `margin`, `futures`.
     """
 
     if IS_PYDANTIC_V2:

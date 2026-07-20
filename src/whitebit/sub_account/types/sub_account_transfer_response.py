@@ -9,7 +9,7 @@ from ...core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 class SubAccountTransferResponse(UniversalBaseModel):
     transaction_id: typing.Optional[str] = pydantic.Field(default=None)
     """
-    External identifier of the transaction. Correlate transfer history responses using the transactionId value.
+    External identifier of the transaction. Correlate transfer history responses using the `transaction_id` value.
     """
 
     if IS_PYDANTIC_V2:

@@ -10,26 +10,67 @@ from .bulk_order_item_side import BulkOrderItemSide
 
 
 class BulkOrderItem(UniversalBaseModel):
-    side: typing.Optional[BulkOrderItemSide] = None
-    amount: typing.Optional[str] = None
-    price: typing.Optional[str] = None
-    market: typing.Optional[str] = None
-    post_only: typing_extensions.Annotated[typing.Optional[bool], FieldMetadata(alias="postOnly")] = None
-    ioc: typing.Optional[bool] = pydantic.Field(default=None)
+    side: typing.Optional[BulkOrderItemSide] = pydantic.Field(default=None)
     """
-    Immediate-or-cancel (IOC) executes all or part of an order immediately and cancels any unfilled portion.
-    
-    IOC does not support `rpi=true` because RPI uses post-only behavior by design.
-    The API returns error code `37` when an order item sets both `ioc=true` and `rpi=true`.
+    Order side. Allowed values: `buy`, `sell`.
     """
 
-    client_order_id: typing.Optional[str] = None
+    amount: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Order quantity in base (stock) currency. Minimum and maximum values are market-dependent. Query `GET /api/v4/public/markets` for `minAmount` and precision (`stockPrec`).
+    """
+
+    price: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Limit price per unit in quote (money) currency. Minimum and maximum values are market-dependent. Query `GET /api/v4/public/markets` for precision (`moneyPrec`).
+    """
+
+    market: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Trading pair for the order. Format: `BASE_QUOTE` (e.g., `BTC_USDT`).
+    """
+
+    post_only: typing_extensions.Annotated[typing.Optional[bool], FieldMetadata(alias="postOnly")] = pydantic.Field(
+        default=None
+    )
+    """
+    Post-only flag. When `true`, the order executes only as a maker order and is rejected if it would match immediately. Default: `false`.
+    """
+
+    ioc: typing.Optional[bool] = pydantic.Field(default=None)
+    """
+    Immediate-or-cancel (IOC) executes all or part of an order immediately and cancels any unfilled portion. Default: `false`.
+    
+    IOC does not support `rpi=true` because RPI uses post-only behavior by design.
+    The API returns error code `40` when an order item sets both `ioc=true` and `rpi=true`.
+    """
+
+    client_order_id: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="clientOrderId")] = (
+        pydantic.Field(default=None)
+    )
+    """
+    Custom client order identifier. Uniqueness is enforced only among the account's open (pending) orders on the same market — once a previous order is filled or canceled, the same identifier can be reused, including on the same market. Contains only letters, numbers, dashes, dots, or underscores.
+    """
+
     rpi: typing.Optional[bool] = pydantic.Field(default=None)
     """
-    Enables Retail Price Improvement (RPI) mode.
+    Enables Retail Price Improvement (RPI) mode. Default: `false`.
     
     RPI orders use post-only behavior by design. An RPI order does not support `ioc=true`.
-    The API returns error code `37` when an order item sets both `rpi=true` and `ioc=true`.
+    The API returns error code `40` when an order item sets both `rpi=true` and `ioc=true`.
+    """
+
+    retail: typing.Optional[bool] = pydantic.Field(default=None)
+    """
+    Retail-source taker flag for the bulk-order item. When `true`, the item is eligible to match against orders submitted by RPI makers and may receive price improvement at execution. Default: `false`.
+    
+    The Retail flag must be enabled on the account before a private-API request can set `retail=true`. Contact the account manager to enable the Retail flag.
+    
+    The Retail flag cannot be combined with `rpi`. The API returns error code `41` when an item sets both `retail=true` and `rpi=true`.
+    
+    The flag has no effect on a `postOnly=true` item. Post-only orders are [makers](/glossary#maker); only takers carry the retail designation.
+    
+    Refer to [Retail flag](/glossary#retail-flag) and [Order Parameter Rules](/guides/order-parameter-rules) for unsupported parameter combinations.
     """
 
     if IS_PYDANTIC_V2:

@@ -11,7 +11,6 @@ from ..core.request_options import RequestOptions
 from ..errors.bad_request_error import BadRequestError
 from ..errors.not_found_error import NotFoundError
 from ..types.credit_line import CreditLine
-from ..types.not_found_error_body import NotFoundErrorBody
 
 # this is used as the default value for optional parameters
 OMIT = typing.cast(typing.Any, ...)
@@ -22,7 +21,7 @@ class RawCreditLineClient:
         self._client_wrapper = client_wrapper
 
     def get_credit_line_info(
-        self, *, request: str, nonce: str, request_options: typing.Optional[RequestOptions] = None
+        self, *, request: str, nonce: int, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[CreditLine]:
         """
         The endpoint returns an active loan.
@@ -41,7 +40,7 @@ class RawCreditLineClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         request_options : typing.Optional[RequestOptions]
@@ -91,9 +90,9 @@ class RawCreditLineClient:
                 raise NotFoundError(
                     headers=dict(_response.headers),
                     body=typing.cast(
-                        NotFoundErrorBody,
+                        typing.Optional[typing.Any],
                         parse_obj_as(
-                            type_=NotFoundErrorBody,  # type: ignore
+                            type_=typing.Optional[typing.Any],  # type: ignore
                             object_=_response.json(),
                         ),
                     ),
@@ -109,7 +108,7 @@ class AsyncRawCreditLineClient:
         self._client_wrapper = client_wrapper
 
     async def get_credit_line_info(
-        self, *, request: str, nonce: str, request_options: typing.Optional[RequestOptions] = None
+        self, *, request: str, nonce: int, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[CreditLine]:
         """
         The endpoint returns an active loan.
@@ -128,7 +127,7 @@ class AsyncRawCreditLineClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         request_options : typing.Optional[RequestOptions]
@@ -178,9 +177,9 @@ class AsyncRawCreditLineClient:
                 raise NotFoundError(
                     headers=dict(_response.headers),
                     body=typing.cast(
-                        NotFoundErrorBody,
+                        typing.Optional[typing.Any],
                         parse_obj_as(
-                            type_=NotFoundErrorBody,  # type: ignore
+                            type_=typing.Optional[typing.Any],  # type: ignore
                             object_=_response.json(),
                         ),
                     ),

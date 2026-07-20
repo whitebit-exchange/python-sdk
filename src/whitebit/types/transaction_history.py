@@ -17,7 +17,7 @@ class TransactionHistory(UniversalBaseModel):
 
     unique_id: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Unique Id of deposit/withdraw
+    Unique Id of deposit/withdraw. Unique per user.
     """
 
     created_at: typing_extensions.Annotated[typing.Optional[int], FieldMetadata(alias="createdAt")] = pydantic.Field(
@@ -76,12 +76,12 @@ class TransactionHistory(UniversalBaseModel):
         pydantic.Field(default=None)
     )
     """
-    Deposit/Withdraw transaction hash
+    Deposit/Withdraw transaction hash. A single hash can map to multiple records (e.g. several outputs to a WhiteBIT address in one on-chain transaction); use `transaction_id` to distinguish them.
     """
 
     transaction_id: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Transaction ID
+    Transaction UUID. Unique across the whole system and never reused.
     """
 
     details: typing.Optional[typing.Dict[str, typing.Optional[typing.Any]]] = pydantic.Field(default=None)

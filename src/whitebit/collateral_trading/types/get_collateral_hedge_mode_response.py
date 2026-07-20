@@ -13,7 +13,7 @@ class GetCollateralHedgeModeResponse(UniversalBaseModel):
         default=None
     )
     """
-    Current hedge mode status
+    Indicates whether hedge mode is active. When `true`, the account supports simultaneous long and short positions on the same market.
     """
 
     if IS_PYDANTIC_V2:

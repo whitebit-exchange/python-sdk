@@ -7,13 +7,17 @@ from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 
 
 class ErrorV4(UniversalBaseModel):
+    """
+    Generic wrapped error envelope (fallback). Market-data validation errors use the flat PublicValidationError shape (HTTP 422) instead, and infrastructure-level failures (maintenance, rate limit, internal error, unknown route) are non-JSON or flat. See the API description for the full set of public error shapes.
+    """
+
     success: typing.Optional[bool] = None
     message: typing.Optional[str] = pydantic.Field(default=None)
     """
     Error message
     """
 
-    params: typing.Optional[typing.List[str]] = None
+    errors: typing.Optional[typing.List[str]] = None
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

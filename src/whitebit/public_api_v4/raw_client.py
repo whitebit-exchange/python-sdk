@@ -9,13 +9,14 @@ from ..core.http_response import AsyncHttpResponse, HttpResponse
 from ..core.jsonable_encoder import jsonable_encoder
 from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
+from ..errors.unprocessable_entity_error import UnprocessableEntityError
 from ..types.asset import Asset
+from ..types.fee_info import FeeInfo
 from ..types.orderbook_response import OrderbookResponse
 from .types.get_api_v4public_collateral_markets_response import GetApiV4PublicCollateralMarketsResponse
 from .types.get_api_v4public_funding_history_market_response_item import GetApiV4PublicFundingHistoryMarketResponseItem
 from .types.get_api_v4public_futures_response import GetApiV4PublicFuturesResponse
 from .types.get_api_v4public_markets_response_item import GetApiV4PublicMarketsResponseItem
-from .types.get_api_v4public_mining_pool_response import GetApiV4PublicMiningPoolResponse
 from .types.get_api_v4public_platform_status_response import GetApiV4PublicPlatformStatusResponse
 from .types.get_api_v4public_ticker_response_value import GetApiV4PublicTickerResponseValue
 from .types.get_api_v4public_time_response import GetApiV4PublicTimeResponse
@@ -31,7 +32,7 @@ class RawPublicApiV4Client:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[GetApiV4PublicPlatformStatusResponse]:
         """
-        The endpoint retrieves maintenance status
+        The endpoint retrieves the current maintenance status of the WhiteBIT platform. Use the response to detect scheduled downtime and pause trading automation during maintenance windows. The `status` field returns `"system operational"` when all platform services are available, or `"system maintenance"` when the platform is undergoing planned maintenance.
 
         Parameters
         ----------
@@ -68,10 +69,14 @@ class RawPublicApiV4Client:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[typing.List[GetApiV4PublicMarketsResponseItem]]:
         """
-        The endpoint retrieves all information about available spot and futures markets.
+        The endpoint retrieves configuration and trading rules for all available spot, futures, and TradFi futures markets. Use the response to discover tradeable pairs, check minimum order sizes, and read fee schedules. Each entry includes precision settings, fee ratios, and order-size constraints for the market.
 
         <Note>
-        The API caches the response for 1 second
+        Market configuration is reference data, re-synced from the database approximately every 10 seconds. Polling more frequently returns identical data. The cache is shared across all callers.
+        </Note>
+
+        <Note>
+        TradFi futures markets are region-gated. Markets not available in a given region are omitted from the response entirely and do not appear under any other market type.
         </Note>
 
         <Warning>
@@ -158,10 +163,10 @@ class RawPublicApiV4Client:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[typing.Dict[str, Asset]]:
         """
-        The endpoint retrieves the assets status.
+        The endpoint retrieves the deposit and withdrawal status for every supported asset. Use the response to check whether deposits and withdrawals are enabled, read per-network fee and limit details, and determine required blockchain confirmation counts. The response includes crypto assets, fiat currencies, and fiat payment methods.
 
         <Note>
-        The API caches the response for 1 second
+        Asset status is reference data, re-synced approximately once per minute. Polling more frequently returns identical data. The cache is shared across all callers.
         </Note>
 
         <Warning>
@@ -227,7 +232,7 @@ class RawPublicApiV4Client:
             Orders depth quantity: 0 - 100. Not defined or 0 will return 100 entries.
 
         level : typing.Optional[int]
-            Optional parameter that controls the aggregation level. Level 0 – default, no aggregation. Levels 1–5 provide increasing aggregation of the order book.
+            Aggregation level for price grouping. Level 0 applies no aggregation. Levels 1–5 provide increasing aggregation of the order book.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -257,6 +262,17 @@ class RawPublicApiV4Client:
                     ),
                 )
                 return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -305,6 +321,17 @@ class RawPublicApiV4Client:
                     ),
                 )
                 return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -339,7 +366,7 @@ class RawPublicApiV4Client:
             Market pair name
 
         type : typing.Optional[GetApiV4PublicTradesMarketRequestType]
-            Can be buy or sell
+            Filter by trade side. Omit to return both buy and sell trades.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -368,6 +395,17 @@ class RawPublicApiV4Client:
                     ),
                 )
                 return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -375,12 +413,12 @@ class RawPublicApiV4Client:
 
     def fee(
         self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.Dict[str, typing.Optional[typing.Any]]]:
+    ) -> HttpResponse[typing.Dict[str, FeeInfo]]:
         """
-        The endpoint retrieves the list of [fees](/glossary#fee) and min/max amounts for deposits and withdrawals
+        The endpoint retrieves the [fee](/glossary#fee) schedule and deposit/withdrawal limits for every supported asset. Use the response to display fee estimates before a user initiates a deposit or withdrawal. The response is keyed by currency ticker; each entry contains deposit and withdrawal fee amounts and min/max transfer limits.
 
         <Note>
-        The API caches the response for 1 second
+        The fee schedule is reference data, re-synced approximately once per minute. Polling more frequently returns identical data. The cache is shared across all callers.
         </Note>
 
         <Warning>
@@ -394,7 +432,7 @@ class RawPublicApiV4Client:
 
         Returns
         -------
-        HttpResponse[typing.Dict[str, typing.Optional[typing.Any]]]
+        HttpResponse[typing.Dict[str, FeeInfo]]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -406,9 +444,9 @@ class RawPublicApiV4Client:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Optional[typing.Any]],
+                    typing.Dict[str, FeeInfo],
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Optional[typing.Any]],  # type: ignore
+                        type_=typing.Dict[str, FeeInfo],  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -422,10 +460,10 @@ class RawPublicApiV4Client:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[GetApiV4PublicTimeResponse]:
         """
-        The endpoint retrieves the current server time.
+        The endpoint retrieves the current server time as a Unix timestamp. Use the response to synchronize local clocks before generating HMAC signatures for authenticated requests. The endpoint takes no parameters and has no request-validation errors; it returns HTTP 200 on success and fails only at the infrastructure level (see the API description).
 
         <Note>
-        The API caches the response for 1 second
+        The server time is computed per request and is not cached.
         </Note>
 
         <Warning>
@@ -467,10 +505,10 @@ class RawPublicApiV4Client:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[typing.List[str]]:
         """
-        The endpoint retrieves the current API life-state.
+        The endpoint checks API availability by returning a simple health-check response. Use the endpoint to verify network connectivity and confirm the API server is reachable. A successful response contains the string `"pong"`. The endpoint takes no parameters and has no request-validation errors; it returns HTTP 200 on success and fails only at the infrastructure level (see the API description).
 
         <Note>
-        The API caches the response for 1 second
+        The health-check response is generated per request and is not cached.
         </Note>
 
         <Warning>
@@ -512,10 +550,10 @@ class RawPublicApiV4Client:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[GetApiV4PublicCollateralMarketsResponse]:
         """
-        The endpoint returns the list of [markets](/glossary#market) that are available for [collateral](/glossary#collateral) trading
+        The endpoint returns the list of [market](/glossary#market) pair names available for [collateral](/glossary#collateral) trading. Use the response to determine which markets support margin positions. Each item in the result array is a market pair name in `BASE_QUOTE` format (e.g., `BTC_USDT`).
 
         <Note>
-        The API caches the response for 1 second
+        The collateral market list is reference data, re-synced approximately every 10 seconds. Polling more frequently returns identical data. The cache is shared across all callers.
         </Note>
 
         <Warning>
@@ -557,7 +595,7 @@ class RawPublicApiV4Client:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[GetApiV4PublicFuturesResponse]:
         """
-        The endpoint returns the list of available futures markets.
+        The endpoint returns detailed information for all available futures markets. Use the response to read current pricing, open interest, funding rates, and leverage bracket configuration. Each entry includes the predicted next funding rate, settlement timestamps, and maximum allowed position sizes per leverage level.
 
         <Note>
         The API caches the response for 1 second
@@ -609,11 +647,23 @@ class RawPublicApiV4Client:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[typing.List[GetApiV4PublicFundingHistoryMarketResponseItem]]:
         """
-        The endpoint returns the funding rate history for a specified futures market.
+        The endpoint returns the funding rate history for a specified futures market. Use the response to analyze historical funding rate trends and settlement prices. Results are sorted by funding time in descending order and support offset-based pagination via `limit` and `offset` parameters.
 
         <Warning>
         Rate limit 2000 requests/10 sec.
         </Warning>
+
+        <Note>
+        This endpoint supports pagination. Use `limit` (default: 100, max: 100) and `offset` (default: 0, max: 1000000) to page through results.
+        </Note>
+
+        <Note>
+        The response is a plain array with no `total`, `has_more`, or cursor — a returned count below `limit` marks the last page (an empty array means no further records).
+        </Note>
+
+        <Note>
+        Funding history is served per request at the API layer, with no application-level cache.
+        </Note>
 
         Parameters
         ----------
@@ -627,10 +677,10 @@ class RawPublicApiV4Client:
             End timestamp in seconds
 
         limit : typing.Optional[int]
-            Number of records to return. Default: 100, Maximum: 1000
+            Number of records to return. Default: 100, Maximum: 100
 
         offset : typing.Optional[int]
-            Number of records to skip
+            Number of records to skip. Maximum: 1000000
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -662,49 +712,17 @@ class RawPublicApiV4Client:
                     ),
                 )
                 return HttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    def mining_pool_overview(
-        self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[GetApiV4PublicMiningPoolResponse]:
-        """
-        The endpoint returns overall information about the current mining pool state.
-
-        Hash rate is expressed in H units.
-
-        <Warning>
-        Rate limit 1000 requests/10 sec.
-        </Warning>
-
-        Parameters
-        ----------
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        HttpResponse[GetApiV4PublicMiningPoolResponse]
-            Successful response
-        """
-        _response = self._client_wrapper.httpx_client.request(
-            "api/v4/public/mining-pool",
-            base_url=self._client_wrapper.get_environment().base,
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    GetApiV4PublicMiningPoolResponse,
-                    parse_obj_as(
-                        type_=GetApiV4PublicMiningPoolResponse,  # type: ignore
-                        object_=_response.json(),
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
                     ),
                 )
-                return HttpResponse(response=_response, data=_data)
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -719,7 +737,7 @@ class AsyncRawPublicApiV4Client:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[GetApiV4PublicPlatformStatusResponse]:
         """
-        The endpoint retrieves maintenance status
+        The endpoint retrieves the current maintenance status of the WhiteBIT platform. Use the response to detect scheduled downtime and pause trading automation during maintenance windows. The `status` field returns `"system operational"` when all platform services are available, or `"system maintenance"` when the platform is undergoing planned maintenance.
 
         Parameters
         ----------
@@ -756,10 +774,14 @@ class AsyncRawPublicApiV4Client:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[typing.List[GetApiV4PublicMarketsResponseItem]]:
         """
-        The endpoint retrieves all information about available spot and futures markets.
+        The endpoint retrieves configuration and trading rules for all available spot, futures, and TradFi futures markets. Use the response to discover tradeable pairs, check minimum order sizes, and read fee schedules. Each entry includes precision settings, fee ratios, and order-size constraints for the market.
 
         <Note>
-        The API caches the response for 1 second
+        Market configuration is reference data, re-synced from the database approximately every 10 seconds. Polling more frequently returns identical data. The cache is shared across all callers.
+        </Note>
+
+        <Note>
+        TradFi futures markets are region-gated. Markets not available in a given region are omitted from the response entirely and do not appear under any other market type.
         </Note>
 
         <Warning>
@@ -846,10 +868,10 @@ class AsyncRawPublicApiV4Client:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[typing.Dict[str, Asset]]:
         """
-        The endpoint retrieves the assets status.
+        The endpoint retrieves the deposit and withdrawal status for every supported asset. Use the response to check whether deposits and withdrawals are enabled, read per-network fee and limit details, and determine required blockchain confirmation counts. The response includes crypto assets, fiat currencies, and fiat payment methods.
 
         <Note>
-        The API caches the response for 1 second
+        Asset status is reference data, re-synced approximately once per minute. Polling more frequently returns identical data. The cache is shared across all callers.
         </Note>
 
         <Warning>
@@ -915,7 +937,7 @@ class AsyncRawPublicApiV4Client:
             Orders depth quantity: 0 - 100. Not defined or 0 will return 100 entries.
 
         level : typing.Optional[int]
-            Optional parameter that controls the aggregation level. Level 0 – default, no aggregation. Levels 1–5 provide increasing aggregation of the order book.
+            Aggregation level for price grouping. Level 0 applies no aggregation. Levels 1–5 provide increasing aggregation of the order book.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -945,6 +967,17 @@ class AsyncRawPublicApiV4Client:
                     ),
                 )
                 return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -993,6 +1026,17 @@ class AsyncRawPublicApiV4Client:
                     ),
                 )
                 return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -1027,7 +1071,7 @@ class AsyncRawPublicApiV4Client:
             Market pair name
 
         type : typing.Optional[GetApiV4PublicTradesMarketRequestType]
-            Can be buy or sell
+            Filter by trade side. Omit to return both buy and sell trades.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1056,6 +1100,17 @@ class AsyncRawPublicApiV4Client:
                     ),
                 )
                 return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -1063,12 +1118,12 @@ class AsyncRawPublicApiV4Client:
 
     async def fee(
         self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.Dict[str, typing.Optional[typing.Any]]]:
+    ) -> AsyncHttpResponse[typing.Dict[str, FeeInfo]]:
         """
-        The endpoint retrieves the list of [fees](/glossary#fee) and min/max amounts for deposits and withdrawals
+        The endpoint retrieves the [fee](/glossary#fee) schedule and deposit/withdrawal limits for every supported asset. Use the response to display fee estimates before a user initiates a deposit or withdrawal. The response is keyed by currency ticker; each entry contains deposit and withdrawal fee amounts and min/max transfer limits.
 
         <Note>
-        The API caches the response for 1 second
+        The fee schedule is reference data, re-synced approximately once per minute. Polling more frequently returns identical data. The cache is shared across all callers.
         </Note>
 
         <Warning>
@@ -1082,7 +1137,7 @@ class AsyncRawPublicApiV4Client:
 
         Returns
         -------
-        AsyncHttpResponse[typing.Dict[str, typing.Optional[typing.Any]]]
+        AsyncHttpResponse[typing.Dict[str, FeeInfo]]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -1094,9 +1149,9 @@ class AsyncRawPublicApiV4Client:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.Dict[str, typing.Optional[typing.Any]],
+                    typing.Dict[str, FeeInfo],
                     parse_obj_as(
-                        type_=typing.Dict[str, typing.Optional[typing.Any]],  # type: ignore
+                        type_=typing.Dict[str, FeeInfo],  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -1110,10 +1165,10 @@ class AsyncRawPublicApiV4Client:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[GetApiV4PublicTimeResponse]:
         """
-        The endpoint retrieves the current server time.
+        The endpoint retrieves the current server time as a Unix timestamp. Use the response to synchronize local clocks before generating HMAC signatures for authenticated requests. The endpoint takes no parameters and has no request-validation errors; it returns HTTP 200 on success and fails only at the infrastructure level (see the API description).
 
         <Note>
-        The API caches the response for 1 second
+        The server time is computed per request and is not cached.
         </Note>
 
         <Warning>
@@ -1155,10 +1210,10 @@ class AsyncRawPublicApiV4Client:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[typing.List[str]]:
         """
-        The endpoint retrieves the current API life-state.
+        The endpoint checks API availability by returning a simple health-check response. Use the endpoint to verify network connectivity and confirm the API server is reachable. A successful response contains the string `"pong"`. The endpoint takes no parameters and has no request-validation errors; it returns HTTP 200 on success and fails only at the infrastructure level (see the API description).
 
         <Note>
-        The API caches the response for 1 second
+        The health-check response is generated per request and is not cached.
         </Note>
 
         <Warning>
@@ -1200,10 +1255,10 @@ class AsyncRawPublicApiV4Client:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[GetApiV4PublicCollateralMarketsResponse]:
         """
-        The endpoint returns the list of [markets](/glossary#market) that are available for [collateral](/glossary#collateral) trading
+        The endpoint returns the list of [market](/glossary#market) pair names available for [collateral](/glossary#collateral) trading. Use the response to determine which markets support margin positions. Each item in the result array is a market pair name in `BASE_QUOTE` format (e.g., `BTC_USDT`).
 
         <Note>
-        The API caches the response for 1 second
+        The collateral market list is reference data, re-synced approximately every 10 seconds. Polling more frequently returns identical data. The cache is shared across all callers.
         </Note>
 
         <Warning>
@@ -1245,7 +1300,7 @@ class AsyncRawPublicApiV4Client:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[GetApiV4PublicFuturesResponse]:
         """
-        The endpoint returns the list of available futures markets.
+        The endpoint returns detailed information for all available futures markets. Use the response to read current pricing, open interest, funding rates, and leverage bracket configuration. Each entry includes the predicted next funding rate, settlement timestamps, and maximum allowed position sizes per leverage level.
 
         <Note>
         The API caches the response for 1 second
@@ -1297,11 +1352,23 @@ class AsyncRawPublicApiV4Client:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[typing.List[GetApiV4PublicFundingHistoryMarketResponseItem]]:
         """
-        The endpoint returns the funding rate history for a specified futures market.
+        The endpoint returns the funding rate history for a specified futures market. Use the response to analyze historical funding rate trends and settlement prices. Results are sorted by funding time in descending order and support offset-based pagination via `limit` and `offset` parameters.
 
         <Warning>
         Rate limit 2000 requests/10 sec.
         </Warning>
+
+        <Note>
+        This endpoint supports pagination. Use `limit` (default: 100, max: 100) and `offset` (default: 0, max: 1000000) to page through results.
+        </Note>
+
+        <Note>
+        The response is a plain array with no `total`, `has_more`, or cursor — a returned count below `limit` marks the last page (an empty array means no further records).
+        </Note>
+
+        <Note>
+        Funding history is served per request at the API layer, with no application-level cache.
+        </Note>
 
         Parameters
         ----------
@@ -1315,10 +1382,10 @@ class AsyncRawPublicApiV4Client:
             End timestamp in seconds
 
         limit : typing.Optional[int]
-            Number of records to return. Default: 100, Maximum: 1000
+            Number of records to return. Default: 100, Maximum: 100
 
         offset : typing.Optional[int]
-            Number of records to skip
+            Number of records to skip. Maximum: 1000000
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1350,49 +1417,17 @@ class AsyncRawPublicApiV4Client:
                     ),
                 )
                 return AsyncHttpResponse(response=_response, data=_data)
-            _response_json = _response.json()
-        except JSONDecodeError:
-            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
-        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
-
-    async def mining_pool_overview(
-        self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[GetApiV4PublicMiningPoolResponse]:
-        """
-        The endpoint returns overall information about the current mining pool state.
-
-        Hash rate is expressed in H units.
-
-        <Warning>
-        Rate limit 1000 requests/10 sec.
-        </Warning>
-
-        Parameters
-        ----------
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        AsyncHttpResponse[GetApiV4PublicMiningPoolResponse]
-            Successful response
-        """
-        _response = await self._client_wrapper.httpx_client.request(
-            "api/v4/public/mining-pool",
-            base_url=self._client_wrapper.get_environment().base,
-            method="GET",
-            request_options=request_options,
-        )
-        try:
-            if 200 <= _response.status_code < 300:
-                _data = typing.cast(
-                    GetApiV4PublicMiningPoolResponse,
-                    parse_obj_as(
-                        type_=GetApiV4PublicMiningPoolResponse,  # type: ignore
-                        object_=_response.json(),
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
                     ),
                 )
-                return AsyncHttpResponse(response=_response, data=_data)
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)

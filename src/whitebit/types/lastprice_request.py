@@ -4,6 +4,7 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .lastprice_request_method import LastpriceRequestMethod
 
 
 class LastpriceRequest(UniversalBaseModel):
@@ -12,7 +13,7 @@ class LastpriceRequest(UniversalBaseModel):
     Unique request identifier
     """
 
-    method: typing.Literal["lastprice_request"] = pydantic.Field(default="lastprice_request")
+    method: LastpriceRequestMethod = pydantic.Field()
     """
     Method name. Fixed value: `lastprice_request`.
     """

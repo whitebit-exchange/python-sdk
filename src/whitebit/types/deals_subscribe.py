@@ -4,6 +4,7 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .deals_subscribe_method import DealsSubscribeMethod
 
 
 class DealsSubscribe(UniversalBaseModel):
@@ -12,7 +13,7 @@ class DealsSubscribe(UniversalBaseModel):
     Unique request identifier
     """
 
-    method: typing.Literal["deals_subscribe"] = pydantic.Field(default="deals_subscribe")
+    method: DealsSubscribeMethod = pydantic.Field()
     """
     Method name. Fixed value: `deals_subscribe`.
     """

@@ -2,6 +2,6 @@
 
 # isort: skip_file
 
-from .types import GetMarketFeeResponse
+from .types import GetMarketFeeResponse, GetMarketFeeResponseCustomFeeValue
 
-__all__ = ["GetMarketFeeResponse"]
+__all__ = ["GetMarketFeeResponse", "GetMarketFeeResponseCustomFeeValue"]

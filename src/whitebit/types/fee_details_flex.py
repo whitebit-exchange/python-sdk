@@ -7,9 +7,24 @@ from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 
 
 class FeeDetailsFlex(UniversalBaseModel):
-    min_fee: typing.Optional[str] = None
-    max_fee: typing.Optional[str] = None
-    percent: typing.Optional[str] = None
+    """
+    Percentage-based (flexible) fee. `null` if no flexible fee applies.
+    """
+
+    percent: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Fee percentage (e.g., `"1.5"` means 1.5%)
+    """
+
+    min_fee: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Minimum fee amount regardless of percentage calculation
+    """
+
+    max_fee: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Maximum fee amount regardless of percentage calculation
+    """
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

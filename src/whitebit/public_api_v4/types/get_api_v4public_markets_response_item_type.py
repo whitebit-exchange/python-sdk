@@ -2,4 +2,4 @@
 
 import typing
 
-GetApiV4PublicMarketsResponseItemType = typing.Union[typing.Literal["spot", "futures"], typing.Any]
+GetApiV4PublicMarketsResponseItemType = typing.Union[typing.Literal["spot", "futures", "tradfiFutures"], typing.Any]

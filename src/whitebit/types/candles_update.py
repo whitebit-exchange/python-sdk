@@ -5,11 +5,12 @@ import typing
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 from .candle import Candle
+from .candles_update_method import CandlesUpdateMethod
 
 
 class CandlesUpdate(UniversalBaseModel):
     id: typing.Optional[typing.Optional[typing.Any]] = None
-    method: typing.Literal["candles_update"] = pydantic.Field(default="candles_update")
+    method: CandlesUpdateMethod = pydantic.Field()
     """
     Method name. Fixed value: `candles_update`.
     """

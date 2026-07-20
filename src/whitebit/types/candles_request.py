@@ -4,6 +4,7 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .candles_request_method import CandlesRequestMethod
 
 
 class CandlesRequest(UniversalBaseModel):
@@ -12,7 +13,7 @@ class CandlesRequest(UniversalBaseModel):
     Unique request identifier
     """
 
-    method: typing.Literal["candles_request"] = pydantic.Field(default="candles_request")
+    method: CandlesRequestMethod = pydantic.Field()
     """
     Method name. Fixed value: `candles_request`.
     """

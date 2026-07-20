@@ -40,7 +40,13 @@ class SubAccountApiKeysClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> SubAccountApiKey:
         """
-        The endpoint creates a new API key for a [sub-account](/glossary#sub-account).
+        The endpoint creates a new API key for a [sub-account](/glossary#sub-account). Each sub-account supports up to 50 API keys, independent from the main account and from other sub-accounts.
+
+        <Note>
+        A `type: 2` key carries deposit and withdrawal permissions, but crypto deposits must also
+        be enabled for the account. Deposits are disabled by default — to enable them, contact your
+        assigned Account Manager or email institutional@whitebit.com.
+        </Note>
 
         <Warning>
         Rate limit: 1000 requests/10 sec.
@@ -72,7 +78,7 @@ class SubAccountApiKeysClient:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.sub_account_api_keys.create_sub_account_api_key(type=1, sub_account_id='8e667b4a-0b71-4988-8af5-9474dbfaeb51', )
         """
         _response = self._raw_client.create_sub_account_api_key(
@@ -122,7 +128,7 @@ class SubAccountApiKeysClient:
         --------
         from whitebit import WhitebitApi
         from whitebit.sub_account_api_keys import EditSubAccountApiKeyRequestUrlsItem
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.sub_account_api_keys.edit_sub_account_api_key(api_key_id='a1b2c3d4-e5f6-7890-abcd-ef1234567890', title='Trading Bot Key', urls=[EditSubAccountApiKeyRequestUrlsItem(url='/api/v4/main-account/withdraw', enable=False, ), EditSubAccountApiKeyRequestUrlsItem(url='/api/v4/main-account/balance', enable=True, )], )
         """
         _response = self._raw_client.edit_sub_account_api_key(
@@ -160,7 +166,7 @@ class SubAccountApiKeysClient:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.sub_account_api_keys.delete_sub_account_api_key(api_key_id='a1b2c3d4-e5f6-7890-abcd-ef1234567890', )
         """
         _response = self._raw_client.delete_sub_account_api_key(api_key_id=api_key_id, request_options=request_options)
@@ -186,6 +192,10 @@ class SubAccountApiKeysClient:
         The API does not cache the response.
         </Note>
 
+        <Note>
+        Results are sorted by api-key id descending (newest key first). The response is a plain array with no `total`, `has_more`, or cursor — a returned count below `limit` marks the last page (an empty array means no further records).
+        </Note>
+
         Parameters
         ----------
         sub_account_id : typing.Optional[str]
@@ -206,7 +216,7 @@ class SubAccountApiKeysClient:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.sub_account_api_keys.list_sub_account_api_keys()
         """
         _response = self._raw_client.list_sub_account_api_keys(
@@ -244,7 +254,7 @@ class SubAccountApiKeysClient:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.sub_account_api_keys.reset_sub_account_api_key(api_key_id='a1b2c3d4-e5f6-7890-abcd-ef1234567890', )
         """
         _response = self._raw_client.reset_sub_account_api_key(api_key_id=api_key_id, request_options=request_options)
@@ -280,7 +290,7 @@ class SubAccountApiKeysClient:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.sub_account_api_keys.list_sub_account_api_key_ip_addresses(api_key_id='a1b2c3d4-e5f6-7890-abcd-ef1234567890', )
         """
         _response = self._raw_client.list_sub_account_api_key_ip_addresses(
@@ -321,7 +331,7 @@ class SubAccountApiKeysClient:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.sub_account_api_keys.create_sub_account_api_key_ip_address(api_key_id='a1b2c3d4-e5f6-7890-abcd-ef1234567890', ip='192.168.1.100', )
         """
         _response = self._raw_client.create_sub_account_api_key_ip_address(
@@ -362,7 +372,7 @@ class SubAccountApiKeysClient:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.sub_account_api_keys.delete_sub_account_api_key_ip_address(api_key_id='a1b2c3d4-e5f6-7890-abcd-ef1234567890', ip='192.168.1.100', )
         """
         _response = self._raw_client.delete_sub_account_api_key_ip_address(
@@ -395,7 +405,13 @@ class AsyncSubAccountApiKeysClient:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> SubAccountApiKey:
         """
-        The endpoint creates a new API key for a [sub-account](/glossary#sub-account).
+        The endpoint creates a new API key for a [sub-account](/glossary#sub-account). Each sub-account supports up to 50 API keys, independent from the main account and from other sub-accounts.
+
+        <Note>
+        A `type: 2` key carries deposit and withdrawal permissions, but crypto deposits must also
+        be enabled for the account. Deposits are disabled by default — to enable them, contact your
+        assigned Account Manager or email institutional@whitebit.com.
+        </Note>
 
         <Warning>
         Rate limit: 1000 requests/10 sec.
@@ -428,7 +444,7 @@ class AsyncSubAccountApiKeysClient:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.sub_account_api_keys.create_sub_account_api_key(type=1, sub_account_id='8e667b4a-0b71-4988-8af5-9474dbfaeb51', )
         asyncio.run(main())
@@ -481,7 +497,7 @@ class AsyncSubAccountApiKeysClient:
         from whitebit import AsyncWhitebitApi
         from whitebit.sub_account_api_keys import EditSubAccountApiKeyRequestUrlsItem
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.sub_account_api_keys.edit_sub_account_api_key(api_key_id='a1b2c3d4-e5f6-7890-abcd-ef1234567890', title='Trading Bot Key', urls=[EditSubAccountApiKeyRequestUrlsItem(url='/api/v4/main-account/withdraw', enable=False, ), EditSubAccountApiKeyRequestUrlsItem(url='/api/v4/main-account/balance', enable=True, )], )
         asyncio.run(main())
@@ -522,7 +538,7 @@ class AsyncSubAccountApiKeysClient:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.sub_account_api_keys.delete_sub_account_api_key(api_key_id='a1b2c3d4-e5f6-7890-abcd-ef1234567890', )
         asyncio.run(main())
@@ -552,6 +568,10 @@ class AsyncSubAccountApiKeysClient:
         The API does not cache the response.
         </Note>
 
+        <Note>
+        Results are sorted by api-key id descending (newest key first). The response is a plain array with no `total`, `has_more`, or cursor — a returned count below `limit` marks the last page (an empty array means no further records).
+        </Note>
+
         Parameters
         ----------
         sub_account_id : typing.Optional[str]
@@ -573,7 +593,7 @@ class AsyncSubAccountApiKeysClient:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.sub_account_api_keys.list_sub_account_api_keys()
         asyncio.run(main())
@@ -614,7 +634,7 @@ class AsyncSubAccountApiKeysClient:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.sub_account_api_keys.reset_sub_account_api_key(api_key_id='a1b2c3d4-e5f6-7890-abcd-ef1234567890', )
         asyncio.run(main())
@@ -655,7 +675,7 @@ class AsyncSubAccountApiKeysClient:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.sub_account_api_keys.list_sub_account_api_key_ip_addresses(api_key_id='a1b2c3d4-e5f6-7890-abcd-ef1234567890', )
         asyncio.run(main())
@@ -699,7 +719,7 @@ class AsyncSubAccountApiKeysClient:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.sub_account_api_keys.create_sub_account_api_key_ip_address(api_key_id='a1b2c3d4-e5f6-7890-abcd-ef1234567890', ip='192.168.1.100', )
         asyncio.run(main())
@@ -743,7 +763,7 @@ class AsyncSubAccountApiKeysClient:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.sub_account_api_keys.delete_sub_account_api_key_ip_address(api_key_id='a1b2c3d4-e5f6-7890-abcd-ef1234567890', ip='192.168.1.100', )
         asyncio.run(main())

@@ -17,12 +17,12 @@ class RawMarketFeeClient:
         self._client_wrapper = client_wrapper
 
     def get_market_fee(
-        self, *, market: str, request_options: typing.Optional[RequestOptions] = None
+        self, *, market: typing.Optional[str] = None, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[GetMarketFeeResponse]:
         """
-        Returns maker and taker fees for a specific market.
+        Returns the account's default spot and futures maker and taker fees, plus any custom per-market overrides.
 
-        The `maker` and `taker` fields represent spot trading fees. The `futures_maker` and `futures_taker` fields represent futures trading fees.
+        The `maker` and `taker` fields represent default spot trading fees. The `futures_maker` and `futures_taker` fields represent default futures trading fees. The `custom_fee` object lists per-market overrides, keyed by market name.
 
         The system calculates the effective futures fee as the lower value between the user-specific custom fee and the market-specific fee.
 
@@ -32,14 +32,8 @@ class RawMarketFeeClient:
 
         Parameters
         ----------
-        market : str
-            Market to query.
-
-            If the request includes the `market` parameter, the system returns fees for the specified market only.
-
-            When fee values are identical across markets, the response contains identical values regardless of the specified market.
-
-            Example: BTC_USDT
+        market : typing.Optional[str]
+            Optional. Currently ignored by the API — all market fees are returned regardless of the value provided. Retained for backward compatibility. Example: BTC_USDT
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -90,12 +84,12 @@ class AsyncRawMarketFeeClient:
         self._client_wrapper = client_wrapper
 
     async def get_market_fee(
-        self, *, market: str, request_options: typing.Optional[RequestOptions] = None
+        self, *, market: typing.Optional[str] = None, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[GetMarketFeeResponse]:
         """
-        Returns maker and taker fees for a specific market.
+        Returns the account's default spot and futures maker and taker fees, plus any custom per-market overrides.
 
-        The `maker` and `taker` fields represent spot trading fees. The `futures_maker` and `futures_taker` fields represent futures trading fees.
+        The `maker` and `taker` fields represent default spot trading fees. The `futures_maker` and `futures_taker` fields represent default futures trading fees. The `custom_fee` object lists per-market overrides, keyed by market name.
 
         The system calculates the effective futures fee as the lower value between the user-specific custom fee and the market-specific fee.
 
@@ -105,14 +99,8 @@ class AsyncRawMarketFeeClient:
 
         Parameters
         ----------
-        market : str
-            Market to query.
-
-            If the request includes the `market` parameter, the system returns fees for the specified market only.
-
-            When fee values are identical across markets, the response contains identical values regardless of the specified market.
-
-            Example: BTC_USDT
+        market : typing.Optional[str]
+            Optional. Currently ignored by the API — all market fees are returned regardless of the value provided. Retained for backward compatibility. Example: BTC_USDT
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.

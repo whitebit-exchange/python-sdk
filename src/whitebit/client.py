@@ -3,28 +3,24 @@
 import typing
 
 import httpx
-from .account_endpoints.client import AccountEndpointsClient, AsyncAccountEndpointsClient
-from .authentication.client import AsyncAuthenticationClient, AuthenticationClient
 from .codes.client import AsyncCodesClient, CodesClient
 from .collateral_trading.client import AsyncCollateralTradingClient, CollateralTradingClient
 from .core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from .core.request_options import RequestOptions
 from .credit_line.client import AsyncCreditLineClient, CreditLineClient
-from .crypto_lending_fixed.client import AsyncCryptoLendingFixedClient, CryptoLendingFixedClient
-from .crypto_lending_flex.client import AsyncCryptoLendingFlexClient, CryptoLendingFlexClient
 from .deposit.client import AsyncDepositClient, DepositClient
 from .environment import WhitebitApiEnvironment
 from .fees.client import AsyncFeesClient, FeesClient
 from .jwt.client import AsyncJwtClient, JwtClient
 from .main_account.client import AsyncMainAccountClient, MainAccountClient
 from .market_fee.client import AsyncMarketFeeClient, MarketFeeClient
-from .mining_pool.client import AsyncMiningPoolClient, MiningPoolClient
 from .public_api_v4.client import AsyncPublicApiV4Client, PublicApiV4Client
 from .raw_client import AsyncRawWhitebitApi, RawWhitebitApi
 from .spot_trading.client import AsyncSpotTradingClient, SpotTradingClient
 from .sub_account.client import AsyncSubAccountClient, SubAccountClient
 from .sub_account_api_keys.client import AsyncSubAccountApiKeysClient, SubAccountApiKeysClient
 from .transfer.client import AsyncTransferClient, TransferClient
+from .travel_rule.client import AsyncTravelRuleClient, TravelRuleClient
 from .types.convert_confirm_response import ConvertConfirmResponse
 from .types.convert_estimate_request_direction import ConvertEstimateRequestDirection
 from .types.convert_estimate_response import ConvertEstimateResponse
@@ -48,8 +44,9 @@ class WhitebitApi:
 
 
 
-    txc_apikey : str
-    token : typing.Union[str, typing.Callable[[], str]]
+    txc_payload : str
+    txc_signature : str
+    api_key : str
     timeout : typing.Optional[float]
         The timeout to be used, in seconds, for requests. By default the timeout is 60 seconds, unless a custom httpx client is used, in which case this default is not enforced.
 
@@ -62,15 +59,16 @@ class WhitebitApi:
     Examples
     --------
     from whitebit import WhitebitApi
-    client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+    client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
     """
 
     def __init__(
         self,
         *,
         environment: WhitebitApiEnvironment = WhitebitApiEnvironment.DEFAULT,
-        txc_apikey: str,
-        token: typing.Union[str, typing.Callable[[], str]],
+        txc_payload: str,
+        txc_signature: str,
+        api_key: str,
         timeout: typing.Optional[float] = None,
         follow_redirects: typing.Optional[bool] = True,
         httpx_client: typing.Optional[httpx.Client] = None,
@@ -80,8 +78,9 @@ class WhitebitApi:
         )
         self._client_wrapper = SyncClientWrapper(
             environment=environment,
-            txc_apikey=txc_apikey,
-            token=token,
+            txc_payload=txc_payload,
+            txc_signature=txc_signature,
+            api_key=api_key,
             httpx_client=httpx_client
             if httpx_client is not None
             else httpx.Client(timeout=_defaulted_timeout, follow_redirects=follow_redirects)
@@ -90,8 +89,6 @@ class WhitebitApi:
             timeout=_defaulted_timeout,
         )
         self._raw_client = RawWhitebitApi(client_wrapper=self._client_wrapper)
-        self.authentication = AuthenticationClient(client_wrapper=self._client_wrapper)
-        self.account_endpoints = AccountEndpointsClient(client_wrapper=self._client_wrapper)
         self.public_api_v4 = PublicApiV4Client(client_wrapper=self._client_wrapper)
         self.main_account = MainAccountClient(client_wrapper=self._client_wrapper)
         self.deposit = DepositClient(client_wrapper=self._client_wrapper)
@@ -99,13 +96,11 @@ class WhitebitApi:
         self.withdraw = WithdrawClient(client_wrapper=self._client_wrapper)
         self.transfer = TransferClient(client_wrapper=self._client_wrapper)
         self.codes = CodesClient(client_wrapper=self._client_wrapper)
-        self.crypto_lending_fixed = CryptoLendingFixedClient(client_wrapper=self._client_wrapper)
-        self.crypto_lending_flex = CryptoLendingFlexClient(client_wrapper=self._client_wrapper)
         self.fees = FeesClient(client_wrapper=self._client_wrapper)
         self.sub_account = SubAccountClient(client_wrapper=self._client_wrapper)
         self.sub_account_api_keys = SubAccountApiKeysClient(client_wrapper=self._client_wrapper)
-        self.mining_pool = MiningPoolClient(client_wrapper=self._client_wrapper)
         self.credit_line = CreditLineClient(client_wrapper=self._client_wrapper)
+        self.travel_rule = TravelRuleClient(client_wrapper=self._client_wrapper)
         self.collateral_trading = CollateralTradingClient(client_wrapper=self._client_wrapper)
         self.market_fee = MarketFeeClient(client_wrapper=self._client_wrapper)
         self.spot_trading = SpotTradingClient(client_wrapper=self._client_wrapper)
@@ -135,6 +130,16 @@ class WhitebitApi:
         """
         The endpoint creates a quote for converting one currency to another. Quote lifetime is 10 seconds, then quote will be expired.
 
+        The minimum convert size is derived from the resulting proceeds, not a fixed per-pair floor: a request is rejected as too small when `rate × amount` rounds to zero in the target currency. Account balance is pre-checked at estimate time and re-checked at confirm time, because balance can change within the 10-second quote window. There is an absolute server-side maximum on the conversion amount.
+
+        <Note>
+        The endpoint can be used to obtain a pre-execution price estimate for a market order. Call the endpoint with the desired amount before placing a market order to see the approximate execution price.
+        </Note>
+
+        <Note>
+        Error `message` values may be returned as translation keys (for example `validation.required`) rather than finalized English strings. Treat the `code` and the field name under `errors` as the stable contract.
+        </Note>
+
         <Warning>
         Rate limit: 10000 requests/10 sec.
         </Warning>
@@ -151,7 +156,7 @@ class WhitebitApi:
             Convert amount direction, defines in which currency corresponding "amount" field is populated. Use "to" in case amount is in "to" currency, use "from" if amount is in "from" currency
 
         amount : str
-            Amount to convert or receive.
+            Amount to convert or receive. The value is silently truncated to 8 decimal places before evaluation; excess decimals do not raise an error.
 
         nonce : typing.Optional[int]
             Nonce for request
@@ -170,7 +175,7 @@ class WhitebitApi:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.convert_estimate(from_='BTC', to='USDT', direction="to", amount='35,103.1', )
         """
         _response = self._raw_client.convert_estimate(
@@ -194,6 +199,16 @@ class WhitebitApi:
     ) -> ConvertConfirmResponse:
         """
         The endpoint confirms an estimated quote.
+
+        An expired quote returns code `20` (`api.converter.quoteExpired`), which is distinct from a quote that could not be found (code `0`). Balance is re-checked at confirm time and can fail with code `37` even when the estimate succeeded, because balance may change within the 10-second quote window.
+
+        <Note>
+        A re-confirmed (already used) quote and a quote that never existed both return code `0` with the `quoteId` field key `frontendServerSide.converter.quoteInvalid`. The response alone does not distinguish "already used" from "never existed".
+        </Note>
+
+        <Note>
+        Error `message` values may be returned as translation keys (for example `api.converter.quoteExpired`) rather than finalized English strings. Treat the `code` and the field name under `errors` as the stable contract.
+        </Note>
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
@@ -221,7 +236,7 @@ class WhitebitApi:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.convert_confirm(quote_id='4050', )
         """
         _response = self._raw_client.convert_confirm(
@@ -237,19 +252,26 @@ class WhitebitApi:
         from_: typing.Optional[str] = OMIT,
         to: typing.Optional[str] = OMIT,
         quote_id: typing.Optional[str] = OMIT,
-        limit: typing.Optional[str] = OMIT,
-        offset: typing.Optional[str] = OMIT,
+        limit: typing.Optional[int] = OMIT,
+        offset: typing.Optional[int] = OMIT,
         nonce: typing.Optional[int] = OMIT,
         request: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> ConvertHistoryResponse:
         """
-        The endpoint returns convert history.
+        The endpoint returns convert history, sorted by `id` descending (newest first).
+
+        The `from`–`to` window is capped at 30 days per request, even though data is retained for 6 months. A wider range is rejected with code `30` (`api.validation.dateTime.maxRange`).
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
         </Warning>
-        **Note:** The endpoint can retrieve data not older than 6 months from current month. For older data, use the Report on the History page.
+
+        <Note>
+        Error `message` values may be returned as translation keys (for example `api.validation.dateTime.maxRange`) rather than finalized English strings. Treat the `code` and the field name under `errors` as the stable contract.
+        </Note>
+
+        **Note:** The endpoint can retrieve data not older than 6 months from the current month. For older data, use the Report on the History page.
 
         Parameters
         ----------
@@ -260,19 +282,19 @@ class WhitebitApi:
             To currency. Example: USDT
 
         from_ : typing.Optional[str]
-            From time filter. Example: 1699260637. Default: now()
+            From time filter (Unix seconds). Must be no more than 30 days before `to` and no older than 6 months. Example: 1699260637. Default: now()
 
         to : typing.Optional[str]
-            To time filter. Example: 1699260637. Default: now() +
+            To time filter (Unix seconds). Must be no more than 30 days after `from`. Example: 1699260637. Default: now()
 
         quote_id : typing.Optional[str]
             Quote Id. Example: 4050
 
-        limit : typing.Optional[str]
-            How many records to receive. Default: 100
+        limit : typing.Optional[int]
+            How many records to receive. Allowed range: 1–100. Default: 100
 
-        offset : typing.Optional[str]
-            Amount to convert or receive. Default 0
+        offset : typing.Optional[int]
+            Number of records to skip for pagination. Minimum: 0. Default: 0
 
         nonce : typing.Optional[int]
             Nonce for request
@@ -291,7 +313,7 @@ class WhitebitApi:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.convert_history(from_ticker='BTC', )
         """
         _response = self._raw_client.convert_history(
@@ -322,8 +344,9 @@ class AsyncWhitebitApi:
 
 
 
-    txc_apikey : str
-    token : typing.Union[str, typing.Callable[[], str]]
+    txc_payload : str
+    txc_signature : str
+    api_key : str
     timeout : typing.Optional[float]
         The timeout to be used, in seconds, for requests. By default the timeout is 60 seconds, unless a custom httpx client is used, in which case this default is not enforced.
 
@@ -336,15 +359,16 @@ class AsyncWhitebitApi:
     Examples
     --------
     from whitebit import AsyncWhitebitApi
-    client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+    client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
     """
 
     def __init__(
         self,
         *,
         environment: WhitebitApiEnvironment = WhitebitApiEnvironment.DEFAULT,
-        txc_apikey: str,
-        token: typing.Union[str, typing.Callable[[], str]],
+        txc_payload: str,
+        txc_signature: str,
+        api_key: str,
         timeout: typing.Optional[float] = None,
         follow_redirects: typing.Optional[bool] = True,
         httpx_client: typing.Optional[httpx.AsyncClient] = None,
@@ -354,8 +378,9 @@ class AsyncWhitebitApi:
         )
         self._client_wrapper = AsyncClientWrapper(
             environment=environment,
-            txc_apikey=txc_apikey,
-            token=token,
+            txc_payload=txc_payload,
+            txc_signature=txc_signature,
+            api_key=api_key,
             httpx_client=httpx_client
             if httpx_client is not None
             else httpx.AsyncClient(timeout=_defaulted_timeout, follow_redirects=follow_redirects)
@@ -364,8 +389,6 @@ class AsyncWhitebitApi:
             timeout=_defaulted_timeout,
         )
         self._raw_client = AsyncRawWhitebitApi(client_wrapper=self._client_wrapper)
-        self.authentication = AsyncAuthenticationClient(client_wrapper=self._client_wrapper)
-        self.account_endpoints = AsyncAccountEndpointsClient(client_wrapper=self._client_wrapper)
         self.public_api_v4 = AsyncPublicApiV4Client(client_wrapper=self._client_wrapper)
         self.main_account = AsyncMainAccountClient(client_wrapper=self._client_wrapper)
         self.deposit = AsyncDepositClient(client_wrapper=self._client_wrapper)
@@ -373,13 +396,11 @@ class AsyncWhitebitApi:
         self.withdraw = AsyncWithdrawClient(client_wrapper=self._client_wrapper)
         self.transfer = AsyncTransferClient(client_wrapper=self._client_wrapper)
         self.codes = AsyncCodesClient(client_wrapper=self._client_wrapper)
-        self.crypto_lending_fixed = AsyncCryptoLendingFixedClient(client_wrapper=self._client_wrapper)
-        self.crypto_lending_flex = AsyncCryptoLendingFlexClient(client_wrapper=self._client_wrapper)
         self.fees = AsyncFeesClient(client_wrapper=self._client_wrapper)
         self.sub_account = AsyncSubAccountClient(client_wrapper=self._client_wrapper)
         self.sub_account_api_keys = AsyncSubAccountApiKeysClient(client_wrapper=self._client_wrapper)
-        self.mining_pool = AsyncMiningPoolClient(client_wrapper=self._client_wrapper)
         self.credit_line = AsyncCreditLineClient(client_wrapper=self._client_wrapper)
+        self.travel_rule = AsyncTravelRuleClient(client_wrapper=self._client_wrapper)
         self.collateral_trading = AsyncCollateralTradingClient(client_wrapper=self._client_wrapper)
         self.market_fee = AsyncMarketFeeClient(client_wrapper=self._client_wrapper)
         self.spot_trading = AsyncSpotTradingClient(client_wrapper=self._client_wrapper)
@@ -409,6 +430,16 @@ class AsyncWhitebitApi:
         """
         The endpoint creates a quote for converting one currency to another. Quote lifetime is 10 seconds, then quote will be expired.
 
+        The minimum convert size is derived from the resulting proceeds, not a fixed per-pair floor: a request is rejected as too small when `rate × amount` rounds to zero in the target currency. Account balance is pre-checked at estimate time and re-checked at confirm time, because balance can change within the 10-second quote window. There is an absolute server-side maximum on the conversion amount.
+
+        <Note>
+        The endpoint can be used to obtain a pre-execution price estimate for a market order. Call the endpoint with the desired amount before placing a market order to see the approximate execution price.
+        </Note>
+
+        <Note>
+        Error `message` values may be returned as translation keys (for example `validation.required`) rather than finalized English strings. Treat the `code` and the field name under `errors` as the stable contract.
+        </Note>
+
         <Warning>
         Rate limit: 10000 requests/10 sec.
         </Warning>
@@ -425,7 +456,7 @@ class AsyncWhitebitApi:
             Convert amount direction, defines in which currency corresponding "amount" field is populated. Use "to" in case amount is in "to" currency, use "from" if amount is in "from" currency
 
         amount : str
-            Amount to convert or receive.
+            Amount to convert or receive. The value is silently truncated to 8 decimal places before evaluation; excess decimals do not raise an error.
 
         nonce : typing.Optional[int]
             Nonce for request
@@ -445,7 +476,7 @@ class AsyncWhitebitApi:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.convert_estimate(from_='BTC', to='USDT', direction="to", amount='35,103.1', )
         asyncio.run(main())
@@ -471,6 +502,16 @@ class AsyncWhitebitApi:
     ) -> ConvertConfirmResponse:
         """
         The endpoint confirms an estimated quote.
+
+        An expired quote returns code `20` (`api.converter.quoteExpired`), which is distinct from a quote that could not be found (code `0`). Balance is re-checked at confirm time and can fail with code `37` even when the estimate succeeded, because balance may change within the 10-second quote window.
+
+        <Note>
+        A re-confirmed (already used) quote and a quote that never existed both return code `0` with the `quoteId` field key `frontendServerSide.converter.quoteInvalid`. The response alone does not distinguish "already used" from "never existed".
+        </Note>
+
+        <Note>
+        Error `message` values may be returned as translation keys (for example `api.converter.quoteExpired`) rather than finalized English strings. Treat the `code` and the field name under `errors` as the stable contract.
+        </Note>
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
@@ -499,7 +540,7 @@ class AsyncWhitebitApi:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.convert_confirm(quote_id='4050', )
         asyncio.run(main())
@@ -517,19 +558,26 @@ class AsyncWhitebitApi:
         from_: typing.Optional[str] = OMIT,
         to: typing.Optional[str] = OMIT,
         quote_id: typing.Optional[str] = OMIT,
-        limit: typing.Optional[str] = OMIT,
-        offset: typing.Optional[str] = OMIT,
+        limit: typing.Optional[int] = OMIT,
+        offset: typing.Optional[int] = OMIT,
         nonce: typing.Optional[int] = OMIT,
         request: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> ConvertHistoryResponse:
         """
-        The endpoint returns convert history.
+        The endpoint returns convert history, sorted by `id` descending (newest first).
+
+        The `from`–`to` window is capped at 30 days per request, even though data is retained for 6 months. A wider range is rejected with code `30` (`api.validation.dateTime.maxRange`).
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
         </Warning>
-        **Note:** The endpoint can retrieve data not older than 6 months from current month. For older data, use the Report on the History page.
+
+        <Note>
+        Error `message` values may be returned as translation keys (for example `api.validation.dateTime.maxRange`) rather than finalized English strings. Treat the `code` and the field name under `errors` as the stable contract.
+        </Note>
+
+        **Note:** The endpoint can retrieve data not older than 6 months from the current month. For older data, use the Report on the History page.
 
         Parameters
         ----------
@@ -540,19 +588,19 @@ class AsyncWhitebitApi:
             To currency. Example: USDT
 
         from_ : typing.Optional[str]
-            From time filter. Example: 1699260637. Default: now()
+            From time filter (Unix seconds). Must be no more than 30 days before `to` and no older than 6 months. Example: 1699260637. Default: now()
 
         to : typing.Optional[str]
-            To time filter. Example: 1699260637. Default: now() +
+            To time filter (Unix seconds). Must be no more than 30 days after `from`. Example: 1699260637. Default: now()
 
         quote_id : typing.Optional[str]
             Quote Id. Example: 4050
 
-        limit : typing.Optional[str]
-            How many records to receive. Default: 100
+        limit : typing.Optional[int]
+            How many records to receive. Allowed range: 1–100. Default: 100
 
-        offset : typing.Optional[str]
-            Amount to convert or receive. Default 0
+        offset : typing.Optional[int]
+            Number of records to skip for pagination. Minimum: 0. Default: 0
 
         nonce : typing.Optional[int]
             Nonce for request
@@ -572,7 +620,7 @@ class AsyncWhitebitApi:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.convert_history(from_ticker='BTC', )
         asyncio.run(main())

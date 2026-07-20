@@ -4,10 +4,11 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .authorize_response_result_status import AuthorizeResponseResultStatus
 
 
 class AuthorizeResponseResult(UniversalBaseModel):
-    status: typing.Literal["success"] = pydantic.Field(default="success")
+    status: AuthorizeResponseResultStatus = pydantic.Field()
     """
     Fixed value: `success`.
     """

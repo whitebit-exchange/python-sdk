@@ -14,19 +14,19 @@ class GetOcoOrdersResponseItemTakeProfit(UniversalBaseModel):
     Take profit order details
     """
 
-    order_id: typing.Optional[int] = None
-    client_order_id: typing.Optional[str] = None
+    order_id: typing_extensions.Annotated[typing.Optional[int], FieldMetadata(alias="orderId")] = None
+    client_order_id: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="clientOrderId")] = None
     market: typing.Optional[str] = None
     side: typing.Optional[GetOcoOrdersResponseItemTakeProfitSide] = None
     type: typing.Optional[str] = None
     timestamp: typing.Optional[float] = None
-    deal_money: typing.Optional[str] = None
-    deal_stock: typing.Optional[str] = None
+    deal_money: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="dealMoney")] = None
+    deal_stock: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="dealStock")] = None
     amount: typing.Optional[str] = None
     taker_fee: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="takerFee")] = None
     maker_fee: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="makerFee")] = None
     left: typing.Optional[str] = None
-    deal_fee: typing.Optional[str] = None
+    deal_fee: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="dealFee")] = None
     post_only: typing.Optional[bool] = None
     mtime: typing.Optional[float] = None
     price: typing.Optional[str] = None

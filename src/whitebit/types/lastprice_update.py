@@ -4,11 +4,12 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .lastprice_update_method import LastpriceUpdateMethod
 
 
 class LastpriceUpdate(UniversalBaseModel):
     id: typing.Optional[typing.Optional[typing.Any]] = None
-    method: typing.Literal["lastprice_update"] = pydantic.Field(default="lastprice_update")
+    method: LastpriceUpdateMethod = pydantic.Field()
     """
     Method name. Fixed value: `lastprice_update`.
     """

@@ -4,6 +4,7 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .orders_executed_subscribe_method import OrdersExecutedSubscribeMethod
 
 
 class OrdersExecutedSubscribe(UniversalBaseModel):
@@ -12,7 +13,7 @@ class OrdersExecutedSubscribe(UniversalBaseModel):
     Unique request identifier
     """
 
-    method: typing.Literal["ordersExecuted_subscribe"] = pydantic.Field(default="ordersExecuted_subscribe")
+    method: OrdersExecutedSubscribeMethod = pydantic.Field()
     """
     Method name. Fixed value: `ordersExecuted_subscribe`.
     """

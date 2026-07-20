@@ -7,13 +7,18 @@ import pydantic
 import typing_extensions
 from ...core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 from ...core.serialization import FieldMetadata
+from .create_withdraw_request_beneficiary_address import CreateWithdrawRequestBeneficiaryAddress
+from .create_withdraw_request_beneficiary_bank import CreateWithdrawRequestBeneficiaryBank
+from .create_withdraw_request_beneficiary_card import CreateWithdrawRequestBeneficiaryCard
 
 
 class CreateWithdrawRequestBeneficiary(UniversalBaseModel):
     """
-    Beneficiary information data array.
+    Beneficiary information.
 
-    ⚠️ Required if currency [ticker](/glossary#ticker) is one of: UAH_IBAN, USD_VISAMASTER, EUR_VISAMASTER, USD, EUR
+    ⚠️ Required if currency [ticker](/glossary#ticker) is one of: UAH_IBAN, USD_VISAMASTER, EUR_VISAMASTER, USD, EUR.
+
+    Per-field requirements vary by currency and provider. Card-related fields (`cardToken`, `card.*`, `cardTokenSave`, `fingerprintSession`) apply only to card-acquiring rails; bank-related fields (`bank.*`) apply to bank-rail withdrawals; `tin` is required for UAH_IBAN; `phone`, `email`, and `birthDate` are required for VISAMASTER/Mercuryo rails. See `/asset-status-list` for the active provider per currency.
     """
 
     first_name: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="firstName")] = pydantic.Field(
@@ -61,7 +66,48 @@ class CreateWithdrawRequestBeneficiary(UniversalBaseModel):
     """
     Beneficiary birth date. Format: YYYY-MM-DD.
     
-    ⚠️ Required if currency [ticker](/glossary#ticker) is one of: USD_VISAMASTER, EUR_VISAMASTER
+    ⚠️ Required if currency [ticker](/glossary#ticker) is one of: USD_VISAMASTER, EUR_VISAMASTER, or when withdrawing through Mercuryo.
+    """
+
+    code: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Beneficiary verification code returned by a prior verification step. Used by some card-acquiring flows that require a one-time verification challenge before settlement.
+    """
+
+    card_token: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="cardToken")] = pydantic.Field(
+        default=None
+    )
+    """
+    Tokenized payment-card identifier for card-acquiring rails. Use instead of raw PAN; obtain from the card-tokenisation endpoint or from a prior successful settlement on the same card.
+    """
+
+    card_token_save: typing_extensions.Annotated[typing.Optional[bool], FieldMetadata(alias="cardTokenSave")] = (
+        pydantic.Field(default=None)
+    )
+    """
+    If `true`, request the acquiring provider to persist the card token for reuse on subsequent withdrawals to the same beneficiary.
+    """
+
+    fingerprint_session: typing_extensions.Annotated[
+        typing.Optional[str], FieldMetadata(alias="fingerprintSession")
+    ] = pydantic.Field(default=None)
+    """
+    Anti-fraud device-fingerprint session identifier captured at the partner's checkout surface and forwarded to the acquiring provider. Required by some VISAMASTER configurations.
+    """
+
+    card: typing.Optional[CreateWithdrawRequestBeneficiaryCard] = pydantic.Field(default=None)
+    """
+    Card details for card-acquiring rails. Use `cardToken` instead when available; raw card details apply only when a fresh card is being added.
+    """
+
+    address: typing.Optional[CreateWithdrawRequestBeneficiaryAddress] = pydantic.Field(default=None)
+    """
+    Beneficiary postal address. Required for several VISAMASTER/SEPA configurations.
+    """
+
+    bank: typing.Optional[CreateWithdrawRequestBeneficiaryBank] = pydantic.Field(default=None)
+    """
+    Beneficiary bank details for bank-rail withdrawals (used when the destination is an account number rather than an IBAN).
     """
 
     if IS_PYDANTIC_V2:

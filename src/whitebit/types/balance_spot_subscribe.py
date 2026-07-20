@@ -4,6 +4,7 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .balance_spot_subscribe_method import BalanceSpotSubscribeMethod
 
 
 class BalanceSpotSubscribe(UniversalBaseModel):
@@ -12,7 +13,7 @@ class BalanceSpotSubscribe(UniversalBaseModel):
     Unique request identifier
     """
 
-    method: typing.Literal["balanceSpot_subscribe"] = pydantic.Field(default="balanceSpot_subscribe")
+    method: BalanceSpotSubscribeMethod = pydantic.Field()
     """
     Method name. Fixed value: `balanceSpot_subscribe`.
     """

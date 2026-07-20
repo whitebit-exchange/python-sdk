@@ -4,6 +4,7 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .trades_request_method import TradesRequestMethod
 
 
 class TradesRequest(UniversalBaseModel):
@@ -12,7 +13,7 @@ class TradesRequest(UniversalBaseModel):
     Unique request identifier
     """
 
-    method: typing.Literal["trades_request"] = pydantic.Field(default="trades_request")
+    method: TradesRequestMethod = pydantic.Field()
     """
     Method name. Fixed value: `trades_request`.
     """

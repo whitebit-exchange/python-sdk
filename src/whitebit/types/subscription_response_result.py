@@ -4,10 +4,11 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .subscription_response_result_status import SubscriptionResponseResultStatus
 
 
 class SubscriptionResponseResult(UniversalBaseModel):
-    status: typing.Literal["success"] = pydantic.Field(default="success")
+    status: SubscriptionResponseResultStatus = pydantic.Field()
     """
     Fixed value: `success`.
     """

@@ -10,7 +10,7 @@ from .get_api_v4public_platform_status_response_status import GetApiV4PublicPlat
 class GetApiV4PublicPlatformStatusResponse(UniversalBaseModel):
     status: GetApiV4PublicPlatformStatusResponseStatus = pydantic.Field()
     """
-    system operational or system maintenance
+    Platform operational state. `"system operational"` indicates all services are available. `"system maintenance"` indicates the platform is undergoing planned maintenance.
     """
 
     if IS_PYDANTIC_V2:

@@ -4,11 +4,12 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .trades_update_method import TradesUpdateMethod
 
 
 class TradesUpdate(UniversalBaseModel):
     id: typing.Optional[typing.Optional[typing.Any]] = None
-    method: typing.Literal["trades_update"] = pydantic.Field(default="trades_update")
+    method: TradesUpdateMethod = pydantic.Field()
     """
     Method name. Fixed value: `trades_update`.
     """

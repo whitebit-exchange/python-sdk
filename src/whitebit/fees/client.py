@@ -4,7 +4,7 @@ import typing
 
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
-from ..types.fee_info import FeeInfo
+from ..types.main_account_fee_info import MainAccountFeeInfo
 from .raw_client import AsyncRawFeesClient, RawFeesClient
 
 # this is used as the default value for optional parameters
@@ -27,11 +27,13 @@ class FeesClient:
         return self._raw_client
 
     def get_fees(
-        self, *, request: str, nonce: str, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.List[FeeInfo]:
+        self, *, request: str, nonce: int, request_options: typing.Optional[RequestOptions] = None
+    ) -> typing.List[MainAccountFeeInfo]:
         """
         Returns an array of objects containing deposit/withdrawal [fees](/glossary#fee) for the corresponding currencies.
         Zero value in amount fields means that the setting is disabled.
+
+        The endpoint takes no input beyond the signed request envelope and returns the full per-currency fee schedule on success. It can return only the [common authentication errors](/api-reference/authentication).
 
         <Warning>
         Rate limit: 1000 requests/10 sec.
@@ -46,7 +48,7 @@ class FeesClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         request_options : typing.Optional[RequestOptions]
@@ -54,14 +56,14 @@ class FeesClient:
 
         Returns
         -------
-        typing.List[FeeInfo]
+        typing.List[MainAccountFeeInfo]
             Successful response
 
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
-        client.fees.get_fees(request='{{request}}', nonce='{{nonce}}', )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
+        client.fees.get_fees(request='{{request}}', nonce=1594297865000, )
         """
         _response = self._raw_client.get_fees(request=request, nonce=nonce, request_options=request_options)
         return _response.data
@@ -83,11 +85,13 @@ class AsyncFeesClient:
         return self._raw_client
 
     async def get_fees(
-        self, *, request: str, nonce: str, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.List[FeeInfo]:
+        self, *, request: str, nonce: int, request_options: typing.Optional[RequestOptions] = None
+    ) -> typing.List[MainAccountFeeInfo]:
         """
         Returns an array of objects containing deposit/withdrawal [fees](/glossary#fee) for the corresponding currencies.
         Zero value in amount fields means that the setting is disabled.
+
+        The endpoint takes no input beyond the signed request envelope and returns the full per-currency fee schedule on success. It can return only the [common authentication errors](/api-reference/authentication).
 
         <Warning>
         Rate limit: 1000 requests/10 sec.
@@ -102,7 +106,7 @@ class AsyncFeesClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         request_options : typing.Optional[RequestOptions]
@@ -110,16 +114,16 @@ class AsyncFeesClient:
 
         Returns
         -------
-        typing.List[FeeInfo]
+        typing.List[MainAccountFeeInfo]
             Successful response
 
         Examples
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
-            await client.fees.get_fees(request='{{request}}', nonce='{{nonce}}', )
+            await client.fees.get_fees(request='{{request}}', nonce=1594297865000, )
         asyncio.run(main())
         """
         _response = await self._raw_client.get_fees(request=request, nonce=nonce, request_options=request_options)

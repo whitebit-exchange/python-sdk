@@ -27,44 +27,42 @@ class GetApiV4PublicMarketsResponseItem(UniversalBaseModel):
 
     stock_prec: typing_extensions.Annotated[str, FieldMetadata(alias="stockPrec")] = pydantic.Field()
     """
-    Stock currency precision
+    Maximum number of decimal places for the base (stock) currency quantity. Represented as a stringified integer.
     """
 
     money_prec: typing_extensions.Annotated[str, FieldMetadata(alias="moneyPrec")] = pydantic.Field()
     """
-    Precision of money currency
+    Maximum number of decimal places for the quote (money) currency amount. Represented as a stringified integer.
     """
 
     fee_prec: typing_extensions.Annotated[str, FieldMetadata(alias="feePrec")] = pydantic.Field()
     """
-    Fee precision
+    Maximum number of decimal places used when calculating fees. Represented as a stringified integer.
     """
 
     maker_fee: typing_extensions.Annotated[str, FieldMetadata(alias="makerFee")] = pydantic.Field()
     """
-    Default maker fee ratio
+    Default maker fee as a decimal ratio (e.g., `"0.001"` = 0.1%). Multiply by 100 to convert to a percentage.
     """
 
     taker_fee: typing_extensions.Annotated[str, FieldMetadata(alias="takerFee")] = pydantic.Field()
     """
-    Default taker fee ratio
+    Default taker fee as a decimal ratio (e.g., `"0.001"` = 0.1%). Multiply by 100 to convert to a percentage.
     """
 
     min_amount: typing_extensions.Annotated[str, FieldMetadata(alias="minAmount")] = pydantic.Field()
     """
-    Minimal amount of stock to trade
+    Minimum order quantity in the base (stock) currency.
     """
 
     min_total: typing_extensions.Annotated[str, FieldMetadata(alias="minTotal")] = pydantic.Field()
     """
-    Minimal amount of money to trade
+    Minimum order total in the quote (money) currency.
     """
 
-    max_total: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="maxTotal")] = pydantic.Field(
-        default=None
-    )
+    max_total: typing_extensions.Annotated[str, FieldMetadata(alias="maxTotal")] = pydantic.Field()
     """
-    Maximum total (amount * price) of money to trade
+    Maximum order total (quantity × price) in the quote (money) currency. `"0"` indicates no upper limit.
     """
 
     trades_enabled: typing_extensions.Annotated[bool, FieldMetadata(alias="tradesEnabled")] = pydantic.Field()
@@ -72,16 +70,19 @@ class GetApiV4PublicMarketsResponseItem(UniversalBaseModel):
     Indicates whether trading is enabled
     """
 
-    is_collateral: typing_extensions.Annotated[typing.Optional[bool], FieldMetadata(alias="isCollateral")] = (
-        pydantic.Field(default=None)
-    )
+    is_collateral: typing_extensions.Annotated[bool, FieldMetadata(alias="isCollateral")] = pydantic.Field()
     """
     Indicates whether margin trading is enabled
     """
 
     type: GetApiV4PublicMarketsResponseItemType = pydantic.Field()
     """
-    Market type. Possible values: spot, futures
+    Market type. Possible values: spot, futures, tradfiFutures
+    """
+
+    is_trad_fi_futures: typing_extensions.Annotated[bool, FieldMetadata(alias="isTradFiFutures")] = pydantic.Field()
+    """
+    Indicates whether the market is a traditional-finance (TradFi) futures market. Always paired with `type: tradfiFutures`. TradFi futures markets are region-gated and are omitted from the response entirely where not available.
     """
 
     if IS_PYDANTIC_V2:

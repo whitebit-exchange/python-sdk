@@ -6,111 +6,130 @@ import pydantic
 import typing_extensions
 from ...core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 from ...core.serialization import FieldMetadata
+from ...types.order_status import OrderStatus
 from .get_order_history_response_value_item_side import GetOrderHistoryResponseValueItemSide
 
 
 class GetOrderHistoryResponseValueItem(UniversalBaseModel):
     amount: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Trade amount
+    Order quantity in base currency for limit orders, or in quote currency for buy market orders.
     """
 
     price: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Order price
+    Limit price per unit in quote currency. Returns `"0"` for market orders.
     """
 
     type: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Order type
+    Order type. Possible values: `limit`, `market`, `stock market`, `stop limit`, `stop market`.
     """
 
     id: typing.Optional[int] = pydantic.Field(default=None)
     """
-    Order identifier
+    Unique order identifier assigned by the matching engine.
     """
 
-    client_order_id: typing.Optional[str] = pydantic.Field(default=None)
+    client_order_id: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="clientOrderId")] = (
+        pydantic.Field(default=None)
+    )
     """
-    Custom order identifier. Empty string if not specified
+    Custom client order identifier supplied in the request. Returns an empty string when not specified.
     """
 
     side: typing.Optional[GetOrderHistoryResponseValueItemSide] = pydantic.Field(default=None)
     """
-    Order side
+    Order side. Possible values: `buy`, `sell`.
     """
 
     ctime: typing.Optional[float] = pydantic.Field(default=None)
     """
-    Timestamp of order creation
-    """
-
-    taker_fee: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="takerFee")] = pydantic.Field(
-        default=None
-    )
-    """
-    Taker fee ratio. If the number less than 0.0001 - rounded to zero
+    Unix timestamp in seconds (UTC) of order creation, with microsecond precision.
     """
 
     ftime: typing.Optional[float] = pydantic.Field(default=None)
     """
-    Executed order timestamp
+    Unix timestamp when the order reached its final status (FILLED or CANCELLED). For partially-filled orders that are subsequently cancelled, the timestamp reflects the cancellation time, not the last fill time.
     """
 
-    maker_fee: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="makerFee")] = pydantic.Field(
+    deal_fee: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="dealFee")] = pydantic.Field(
         default=None
     )
     """
-    Maker fee ratio. If the number less than 0.0001 - rounded to zero
+    Cumulative trading fee charged for filled portions, denominated in the fee asset.
     """
 
-    deal_fee: typing.Optional[str] = pydantic.Field(default=None)
+    deal_stock: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="dealStock")] = pydantic.Field(
+        default=None
+    )
     """
-    Paid fee when order is finished
-    """
-
-    deal_stock: typing.Optional[str] = pydantic.Field(default=None)
-    """
-    Amount in stock currency that finished
+    Filled amount in base (stock) currency.
     """
 
-    deal_money: typing.Optional[str] = pydantic.Field(default=None)
+    deal_money: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="dealMoney")] = pydantic.Field(
+        default=None
+    )
     """
-    Amount in money currency that finished
+    Filled amount in quote (money) currency.
     """
 
     post_only: typing_extensions.Annotated[typing.Optional[bool], FieldMetadata(alias="postOnly")] = pydantic.Field(
         default=None
     )
     """
-    Post-only flag
+    Post-only flag. When `true`, the order executed only as a maker order.
     """
 
     ioc: typing.Optional[bool] = pydantic.Field(default=None)
     """
-    Immediate or cancel flag
+    Immediate-or-cancel flag. When `true`, the order executed available quantity immediately and cancelled the rest.
     """
 
-    status: typing.Optional[str] = pydantic.Field(default=None)
+    activated: typing.Optional[int] = pydantic.Field(default=None)
     """
-    Order status
+    Stop/conditional orders only — Unix timestamp at which the trigger price was reached and the order was activated. Absent for unconditional orders.
     """
 
+    activation_price: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="activationPrice")] = (
+        pydantic.Field(default=None)
+    )
+    """
+    Stop/conditional orders only — the trigger price that, when reached, activates the order. Absent for unconditional orders.
+    """
+
+    activation_condition: typing_extensions.Annotated[
+        typing.Optional[str], FieldMetadata(alias="activationCondition")
+    ] = pydantic.Field(default=None)
+    """
+    Stop/conditional orders only — comparison operator that decides when `activationPrice` is met. Absent for unconditional orders.
+    """
+
+    status: typing.Optional[OrderStatus] = None
     fee_asset: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="feeAsset")] = pydantic.Field(
         default=None
     )
     """
-    Fee asset
+    Currency ticker of the asset used to pay the trading fee.
     """
 
-    stp: typing.Optional[str] = pydantic.Field(default=None)
+    position_side: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="positionSide")] = (
+        pydantic.Field(default=None)
+    )
     """
-    Self trade prevention mode
+    Position side for futures/margin orders. Omitted for spot orders without position context.
     """
 
     rpi: typing.Optional[bool] = pydantic.Field(default=None)
     """
-    Retail Price Improvement flag
+    Retail Price Improvement flag. `true` when the order used RPI pricing.
+    """
+
+    reduce_only: typing_extensions.Annotated[typing.Optional[bool], FieldMetadata(alias="reduceOnly")] = pydantic.Field(
+        default=None
+    )
+    """
+    Reduce-only flag. When `true`, the order could only reduce or close an existing position. See [reduce-only](/glossary#reduce-only).
     """
 
     if IS_PYDANTIC_V2:

@@ -11,7 +11,7 @@ from ..core.serialization import FieldMetadata
 class SubAccountTransfer(UniversalBaseModel):
     transaction_id: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Transaction identifier. Same value as id. Correlate with the transfer endpoint response using the transactionId field.
+    Transaction identifier. Same value as id. Correlate with the transfer endpoint response using the transaction_id field.
     """
 
     id: typing.Optional[str] = pydantic.Field(default=None)

@@ -6,21 +6,25 @@ import pydantic
 import typing_extensions
 from ...core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 from ...core.serialization import FieldMetadata
+from ...types.active_order_status import ActiveOrderStatus
 from .create_collateral_stop_limit_order_response_oto import CreateCollateralStopLimitOrderResponseOto
 from .create_collateral_stop_limit_order_response_position_side import (
     CreateCollateralStopLimitOrderResponsePositionSide,
 )
 from .create_collateral_stop_limit_order_response_side import CreateCollateralStopLimitOrderResponseSide
-from .create_collateral_stop_limit_order_response_status import CreateCollateralStopLimitOrderResponseStatus
 
 
 class CreateCollateralStopLimitOrderResponse(UniversalBaseModel):
-    order_id: typing.Optional[int] = pydantic.Field(default=None)
+    order_id: typing_extensions.Annotated[typing.Optional[int], FieldMetadata(alias="orderId")] = pydantic.Field(
+        default=None
+    )
     """
     Unique order identifier
     """
 
-    client_order_id: typing.Optional[str] = pydantic.Field(default=None)
+    client_order_id: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="clientOrderId")] = (
+        pydantic.Field(default=None)
+    )
     """
     Custom client order identifier. Empty string if not specified
     """
@@ -42,15 +46,19 @@ class CreateCollateralStopLimitOrderResponse(UniversalBaseModel):
 
     timestamp: typing.Optional[float] = pydantic.Field(default=None)
     """
-    Timestamp of order creation in Unix format
+    Unix timestamp in seconds (UTC) of order creation, with microsecond precision.
     """
 
-    deal_money: typing.Optional[str] = pydantic.Field(default=None)
+    deal_money: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="dealMoney")] = pydantic.Field(
+        default=None
+    )
     """
     Amount in money currency that is finished
     """
 
-    deal_stock: typing.Optional[str] = pydantic.Field(default=None)
+    deal_stock: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="dealStock")] = pydantic.Field(
+        default=None
+    )
     """
     Amount in stock currency that is finished
     """
@@ -65,7 +73,9 @@ class CreateCollateralStopLimitOrderResponse(UniversalBaseModel):
     Remaining amount that must be finished
     """
 
-    deal_fee: typing.Optional[str] = pydantic.Field(default=None)
+    deal_fee: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="dealFee")] = pydantic.Field(
+        default=None
+    )
     """
     Fee in money that is paid when order is finished
     """
@@ -80,14 +90,10 @@ class CreateCollateralStopLimitOrderResponse(UniversalBaseModel):
     Price at which the stop-limit order activates
     """
 
-    status: typing.Optional[CreateCollateralStopLimitOrderResponseStatus] = pydantic.Field(default=None)
-    """
-    Order status
-    """
-
+    status: typing.Optional[ActiveOrderStatus] = None
     stp: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Self trade prevention mode
+    Self-trade prevention mode. Possible values: `no`, `cb`, `cn`, `co`. Always returned in abbreviated form, even when the request used a legacy value.
     """
 
     oto: typing.Optional[CreateCollateralStopLimitOrderResponseOto] = pydantic.Field(default=None)
@@ -100,6 +106,13 @@ class CreateCollateralStopLimitOrderResponse(UniversalBaseModel):
     ] = pydantic.Field(default=None)
     """
     Position side
+    """
+
+    reduce_only: typing_extensions.Annotated[typing.Optional[bool], FieldMetadata(alias="reduceOnly")] = pydantic.Field(
+        default=None
+    )
+    """
+    Reduce-only flag
     """
 
     if IS_PYDANTIC_V2:

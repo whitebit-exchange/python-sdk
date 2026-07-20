@@ -22,22 +22,29 @@ from .types.create_collateral_bulk_order_request_orders_item import CreateCollat
 from .types.create_collateral_bulk_order_response_item import CreateCollateralBulkOrderResponseItem
 from .types.create_collateral_limit_order_request_position_side import CreateCollateralLimitOrderRequestPositionSide
 from .types.create_collateral_limit_order_request_side import CreateCollateralLimitOrderRequestSide
+from .types.create_collateral_limit_order_request_stp import CreateCollateralLimitOrderRequestStp
 from .types.create_collateral_limit_order_response import CreateCollateralLimitOrderResponse
 from .types.create_collateral_market_order_request_position_side import CreateCollateralMarketOrderRequestPositionSide
 from .types.create_collateral_market_order_request_side import CreateCollateralMarketOrderRequestSide
+from .types.create_collateral_market_order_request_stp import CreateCollateralMarketOrderRequestStp
 from .types.create_collateral_market_order_response import CreateCollateralMarketOrderResponse
+from .types.create_collateral_oco_order_request_position_side import CreateCollateralOcoOrderRequestPositionSide
 from .types.create_collateral_oco_order_request_side import CreateCollateralOcoOrderRequestSide
+from .types.create_collateral_oco_order_request_stp import CreateCollateralOcoOrderRequestStp
 from .types.create_collateral_oco_order_response import CreateCollateralOcoOrderResponse
 from .types.create_collateral_stop_limit_order_request_position_side import (
     CreateCollateralStopLimitOrderRequestPositionSide,
 )
 from .types.create_collateral_stop_limit_order_request_side import CreateCollateralStopLimitOrderRequestSide
+from .types.create_collateral_stop_limit_order_request_stp import CreateCollateralStopLimitOrderRequestStp
 from .types.create_collateral_stop_limit_order_response import CreateCollateralStopLimitOrderResponse
 from .types.create_collateral_trigger_market_order_request_position_side import (
     CreateCollateralTriggerMarketOrderRequestPositionSide,
 )
 from .types.create_collateral_trigger_market_order_request_side import CreateCollateralTriggerMarketOrderRequestSide
+from .types.create_collateral_trigger_market_order_request_stp import CreateCollateralTriggerMarketOrderRequestStp
 from .types.create_collateral_trigger_market_order_response import CreateCollateralTriggerMarketOrderResponse
+from .types.get_collateral_account_adl_quantile_response_item import GetCollateralAccountAdlQuantileResponseItem
 from .types.get_collateral_hedge_mode_response import GetCollateralHedgeModeResponse
 from .types.get_conditional_orders_response import GetConditionalOrdersResponse
 from .types.get_funding_history_response import GetFundingHistoryResponse
@@ -58,11 +65,11 @@ class RawCollateralTradingClient:
         *,
         ticker: typing.Optional[str] = OMIT,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[typing.Dict[str, float]]:
         """
-        The endpoint returns a current [collateral balance](/glossary#balance-collateral).
+        The endpoint returns the current [collateral balance](/glossary#balance-collateral) for one or all assets. The response maps each asset ticker to its collateral balance amount. Use the optional `ticker` parameter to filter results to a single asset.
 
         <Note>
         The API does not cache the response.
@@ -94,7 +101,7 @@ class RawCollateralTradingClient:
         request : typing.Optional[str]
             Request signature
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
             Unique request identifier
 
         request_options : typing.Optional[RequestOptions]
@@ -162,11 +169,11 @@ class RawCollateralTradingClient:
         *,
         ticker: typing.Optional[str] = OMIT,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[typing.List[CollateralAccountBalanceSummaryResponseItem]]:
         """
-        The endpoint retrieves collateral account balance summary with detailed breakdown per asset.
+        The endpoint returns a detailed [collateral balance](/glossary#balance-collateral) summary with a per-asset breakdown. Each record includes the current balance, borrowed amount, and available balance with and without borrowing capacity. Use the optional `ticker` parameter to filter results to a single asset.
 
         <Note>
         The API does not cache the response.
@@ -198,7 +205,7 @@ class RawCollateralTradingClient:
         request : typing.Optional[str]
             Request signature
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
             Unique request identifier
 
         request_options : typing.Optional[RequestOptions]
@@ -269,7 +276,7 @@ class RawCollateralTradingClient:
         amount: str,
         price: str,
         request: str,
-        nonce: str,
+        nonce: int,
         client_order_id: typing.Optional[str] = OMIT,
         stop_loss: typing.Optional[str] = OMIT,
         take_profit: typing.Optional[str] = OMIT,
@@ -277,10 +284,19 @@ class RawCollateralTradingClient:
         ioc: typing.Optional[bool] = OMIT,
         rpi: typing.Optional[bool] = OMIT,
         position_side: typing.Optional[CreateCollateralLimitOrderRequestPositionSide] = OMIT,
+        reduce_only: typing.Optional[bool] = OMIT,
+        stp: typing.Optional[CreateCollateralLimitOrderRequestStp] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[CreateCollateralLimitOrderResponse]:
         """
-        The endpoint creates [limit order](/glossary#limit-order) using [collateral balance](/glossary#balance-collateral).
+        The endpoint creates a [limit order](/glossary#limit-order) using [collateral balance](/glossary#balance-collateral). The order executes at the specified price or better. Use `buy` to open or increase a long position and `sell` to open or increase a short position. To close a position, place an opposite-side order matching the position amount.
+
+        **Order validation rules** (per-market, from `GET /api/v4/public/markets`):
+        - `amount` must have at most `stockPrec` decimal places
+        - `price` must have at most `moneyPrec` decimal places
+        - `amount` must be ≥ `minAmount`
+        - `amount × price` must be ≥ `minTotal`
+        - `amount × price` must be ≤ `maxTotal` (when `maxTotal` is not `"0"`)
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
@@ -291,17 +307,26 @@ class RawCollateralTradingClient:
         </Note>
 
         <Note>
-          - RPI orders are post-only by design and cannot be used with the IOC flag. The API returns error code `37` when both `rpi=true` and `ioc=true` are used.
+          - RPI orders are post-only by design and cannot be used with the IOC flag. The API returns error code `40` when both `rpi=true` and `ioc=true` are used.
         </Note>
 
 
         <Accordion title="Error Codes">
-          - `30` - default validation error code
+          - `30` - default validation error code. Also returned when `reduceOnly=true` is combined with `stopLoss` or `takeProfit`
           - `31` - market validation failed
           - `32` - amount validation failed
           - `33` - price validation failed
-          - `36` - client_order_id validation failed
-          - `37` - `ioc=true` cannot be used with `postOnly=true` or `rpi=true`
+          - `36` - clientOrderId validation failed
+          - `37` - `ioc=true` cannot be combined with `postOnly=true`
+          - `40` - `ioc=true` cannot be combined with `rpi=true`
+          - `43` - `rpi=true` is not allowed for the account
+          - `10` - insufficient balance to place the order
+          - `111` - resulting position would exceed the market maximum
+          - `112` - pending orders value would exceed the allowed maximum
+          - `113` - position side cannot be changed while open positions or orders exist
+          - `114` - hedge mode position side does not match (sent `BOTH` or omitted `positionSide` in hedge mode, or sent `LONG`/`SHORT` in one-way mode)
+          - `115` - order would open a position in the opposite direction (one-way mode)
+          - `116` - reduce-only validation failed (no position exists or order side matches position direction)
         </Accordion>
 
         Parameters
@@ -313,17 +338,17 @@ class RawCollateralTradingClient:
             Order type. Variables: 'buy' / 'sell'. For open long position use **buy**, for short **sell**.
 
         amount : str
-            Amount of [stock](/glossary#stock) currency to buy or sell.
+            Amount of [stock](/glossary#stock) currency to buy or sell. Minimum and step values are market-dependent — query the [market info](/api-reference/market-data/market-info) endpoint for constraints.
 
         price : str
-            Price in [money](/glossary#money) currency. Example: '9800'
+            Limit order price in [money](/glossary#money) currency. Minimum price step is market-dependent — query the [market info](/api-reference/market-data/market-info) endpoint for constraints.
 
         request : str
 
-        nonce : str
+        nonce : int
 
         client_order_id : typing.Optional[str]
-            Identifier should be unique and contain letters, dashes, numbers, dots or underscores.
+            Custom client order identifier. Uniqueness is enforced only among the account's open (pending) orders on the same market — once a previous order is filled or canceled, the same identifier can be reused, including on the same market. Contains only letters, numbers, dashes, dots, or underscores.
 
         stop_loss : typing.Optional[str]
             Stop loss price.
@@ -336,18 +361,31 @@ class RawCollateralTradingClient:
             When provided, the system creates an [OTO](/glossary#one-triggers-the-other-oto) order with a take profit condition.
 
         post_only : typing.Optional[bool]
-            Orders are guaranteed to be the [maker](/glossary#maker) order when [executed](/glossary#finished-orders).
+            When `true`, guarantees the order executes as a [maker](/glossary#maker) order. The system rejects the order if it would immediately match as taker. Default: `false`.
 
         ioc : typing.Optional[bool]
-            An immediate or cancel order (IOC) is an order that attempts to execute all or part immediately and then cancels any unfilled portion.
+            When `true`, the order executes all or part immediately and cancels any unfilled portion. Cannot be combined with `postOnly=true` or `rpi=true`.
 
         rpi : typing.Optional[bool]
             Enables Retail Price Improvement (RPI) mode.
 
-            RPI orders are post-only by design and cannot be used with `ioc=true`. The API returns error code `37` when both `rpi=true` and `ioc=true` are used.
+            RPI orders are post-only by design and cannot be used with `ioc=true`. The API returns error code `40` when both `rpi=true` and `ioc=true` are used.
 
         position_side : typing.Optional[CreateCollateralLimitOrderRequestPositionSide]
-            Defines the position direction when hedge mode is enabled. See [positionSide](/glossary#position-side)
+            Position direction. Optional at the request layer but functionally required when hedge mode is enabled. See [positionSide](/glossary#position-side).
+
+            - **One-way mode** (default account mode): the field is ignored. Orders always use `BOTH`, and the response returns `positionSide: "BOTH"` whether the field is sent or omitted.
+            - **Hedge mode**: the field MUST be `LONG` or `SHORT`. Sending `BOTH`, omitting the field, or sending a value that does not match the account's mode causes the trade service to reject the order with error code `114` (`Hedge mode position side does not match`).
+
+        reduce_only : typing.Optional[bool]
+            When `true`, the order can only reduce or close an existing position — the order cannot increase the position or open a new one. If the order amount exceeds the current position size, the system reduces the order to match — the response returns the adjusted amount. Cannot be combined with `stopLoss` or `takeProfit`. The API returns error code `116` if no open position exists or the order side matches the position direction. See [reduce-only](/glossary#reduce-only).
+
+        stp : typing.Optional[CreateCollateralLimitOrderRequestStp]
+            Self-trade prevention mode. Allowed values: `no` (self-trades allowed), `cb` (cancel both the new and the existing order), `cn` (cancel the new order, keep the existing), `co` (cancel the existing order, place the new one). Default: `no`.
+
+            Legacy values `cancel_both`, `cancel_new`, `cancel_old` are deprecated: the API accepts the legacy values with identical behavior until a deprecation deadline is announced, then rejects the legacy values. Responses always return the abbreviated form, regardless of which variant the request used.
+
+            See [Self-Trade Prevention](/platform/self-trade-prevention).
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -366,13 +404,15 @@ class RawCollateralTradingClient:
                 "side": side,
                 "amount": amount,
                 "price": price,
-                "client_order_id": client_order_id,
+                "clientOrderId": client_order_id,
                 "stopLoss": stop_loss,
                 "takeProfit": take_profit,
                 "postOnly": post_only,
                 "ioc": ioc,
                 "rpi": rpi,
                 "positionSide": position_side,
+                "reduceOnly": reduce_only,
+                "stp": stp,
                 "request": request,
                 "nonce": nonce,
             },
@@ -425,15 +465,31 @@ class RawCollateralTradingClient:
         orders: typing.Optional[typing.Sequence[CreateCollateralBulkOrderRequestOrdersItem]] = OMIT,
         stop_on_fail: typing.Optional[bool] = OMIT,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[typing.List[CreateCollateralBulkOrderResponseItem]]:
         """
-        The endpoint creates multiple collateral limit orders.
+        The endpoint creates multiple collateral [limit orders](/glossary#limit-order) in a single request. Each order in the `orders` array is validated and processed individually. The `stopOnFail` parameter controls whether processing stops at the first failure or continues through all orders. The response array contains a result or error object for each submitted order, in the same order as the request.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
         </Warning>
+
+        <Accordion title="Error Codes">
+          - `30` - default validation error code (per-order). Also returned when `reduceOnly=true` is combined with `stopLoss` or `takeProfit`
+          - `31` - market validation failed
+          - `32` - amount validation failed
+          - `33` - price validation failed
+          - `36` - clientOrderId validation failed
+          - `37` - `ioc=true` cannot be used with `postOnly=true` or `rpi=true`
+          - `10` - insufficient balance to place the order
+          - `111` - resulting position would exceed the market maximum
+          - `112` - pending orders value would exceed the allowed maximum
+          - `113` - position side cannot be changed while open positions or orders exist
+          - `114` - hedge mode position side does not match (per-order; sent `BOTH` or omitted `positionSide` in hedge mode, or sent `LONG`/`SHORT` in one-way mode)
+          - `115` - order would open a position in the opposite direction (one-way mode)
+          - `116` - reduce-only validation failed (no position exists or order side matches position direction). For bulk orders, this error appears per-order inside the response array.
+        </Accordion>
 
         Parameters
         ----------
@@ -448,7 +504,7 @@ class RawCollateralTradingClient:
 
         request : typing.Optional[str]
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -533,39 +589,79 @@ class RawCollateralTradingClient:
         side: CreateCollateralMarketOrderRequestSide,
         amount: str,
         request: str,
-        nonce: str,
+        nonce: int,
         client_order_id: typing.Optional[str] = OMIT,
         stop_loss: typing.Optional[str] = OMIT,
         take_profit: typing.Optional[str] = OMIT,
         position_side: typing.Optional[CreateCollateralMarketOrderRequestPositionSide] = OMIT,
+        reduce_only: typing.Optional[bool] = OMIT,
+        stp: typing.Optional[CreateCollateralMarketOrderRequestStp] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[CreateCollateralMarketOrderResponse]:
         """
-        The endpoint creates a collateral market order.
+        The endpoint creates a [market order](/glossary#market-order) using [collateral balance](/glossary#balance-collateral). The order executes immediately at the best available market price. Optionally attach `stopLoss` and `takeProfit` prices to create an [OTO](/glossary#one-triggers-the-other-oto) order that activates after the market order fills.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
         </Warning>
 
+        <Accordion title="Error Codes">
+          - `30` - default validation error code. Also returned when `reduceOnly=true` is combined with `stopLoss` or `takeProfit`
+          - `31` - market validation failed
+          - `32` - amount validation failed
+          - `36` - clientOrderId validation failed
+          - `10` - insufficient balance to place the order
+          - `111` - resulting position would exceed the market maximum
+          - `112` - pending orders value would exceed the allowed maximum
+          - `113` - position side cannot be changed while open positions or orders exist
+          - `114` - hedge mode position side does not match (sent `BOTH` or omitted `positionSide` in hedge mode, or sent `LONG`/`SHORT` in one-way mode)
+          - `115` - order would open a position in the opposite direction (one-way mode)
+          - `116` - reduce-only validation failed (no position exists or order side matches position direction)
+        </Accordion>
+
         Parameters
         ----------
         market : str
+            Available margin [market](/glossary#market). Example: BTC_USDT
 
         side : CreateCollateralMarketOrderRequestSide
+            Order direction. Use `buy` to open or increase a long position and `sell` to open or increase a short position.
 
         amount : str
+            Amount of [stock](/glossary#stock) currency to buy or sell. Minimum and step values are market-dependent — query the [market info](/api-reference/market-data/market-info) endpoint for constraints.
 
         request : str
 
-        nonce : str
+        nonce : int
 
         client_order_id : typing.Optional[str]
+            Custom client order identifier. Uniqueness is enforced only among the account's open (pending) orders on the same market — once a previous order is filled or canceled, the same identifier can be reused, including on the same market. Contains only letters, numbers, dashes, dots, or underscores.
 
         stop_loss : typing.Optional[str]
+            Stop loss price.
+
+            When provided, the system creates an [OTO](/glossary#one-triggers-the-other-oto) order with a stop loss condition.
 
         take_profit : typing.Optional[str]
+            Take profit price.
+
+            When provided, the system creates an [OTO](/glossary#one-triggers-the-other-oto) order with a take profit condition.
 
         position_side : typing.Optional[CreateCollateralMarketOrderRequestPositionSide]
+            Position direction. Optional at the request layer but functionally required when hedge mode is enabled. See [positionSide](/glossary#position-side).
+
+            - **One-way mode** (default account mode): the field is ignored. Orders always use `BOTH`, and the response returns `positionSide: "BOTH"` whether the field is sent or omitted.
+            - **Hedge mode**: the field MUST be `LONG` or `SHORT`. Sending `BOTH`, omitting the field, or sending a value that does not match the account's mode causes the trade service to reject the order with error code `114` (`Hedge mode position side does not match`).
+
+        reduce_only : typing.Optional[bool]
+            When `true`, the order can only reduce or close an existing position — the order cannot increase the position or open a new one. If the order amount exceeds the current position size, the system reduces the order to match — the response returns the adjusted amount. Cannot be combined with `stopLoss` or `takeProfit`. The API returns error code `116` if no open position exists or the order side matches the position direction. See [reduce-only](/glossary#reduce-only).
+
+        stp : typing.Optional[CreateCollateralMarketOrderRequestStp]
+            Self-trade prevention mode. Allowed values: `no` (self-trades allowed), `cb` (cancel both the new and the existing order), `cn` (cancel the new order, keep the existing), `co` (cancel the existing order, place the new one). Default: `no`.
+
+            Legacy values `cancel_both`, `cancel_new`, `cancel_old` are deprecated: the API accepts the legacy values with identical behavior until a deprecation deadline is announced, then rejects the legacy values. Responses always return the abbreviated form, regardless of which variant the request used.
+
+            See [Self-Trade Prevention](/platform/self-trade-prevention).
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -583,10 +679,12 @@ class RawCollateralTradingClient:
                 "market": market,
                 "side": side,
                 "amount": amount,
-                "client_order_id": client_order_id,
+                "clientOrderId": client_order_id,
                 "stopLoss": stop_loss,
                 "takeProfit": take_profit,
                 "positionSide": position_side,
+                "reduceOnly": reduce_only,
+                "stp": stp,
                 "request": request,
                 "nonce": nonce,
             },
@@ -642,43 +740,86 @@ class RawCollateralTradingClient:
         price: str,
         activation_price: str,
         request: str,
-        nonce: str,
+        nonce: int,
         stop_loss: typing.Optional[str] = OMIT,
         take_profit: typing.Optional[str] = OMIT,
         client_order_id: typing.Optional[str] = OMIT,
         position_side: typing.Optional[CreateCollateralStopLimitOrderRequestPositionSide] = OMIT,
+        reduce_only: typing.Optional[bool] = OMIT,
+        stp: typing.Optional[CreateCollateralStopLimitOrderRequestStp] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[CreateCollateralStopLimitOrderResponse]:
         """
-        The endpoint creates a collateral stop-limit order.
+        The endpoint creates a collateral [stop-limit order](/glossary#stop-limit-order) using [collateral balance](/glossary#balance-collateral). The order remains inactive until the market price reaches `activation_price`, then places a limit order at `price`. Optionally attach `stopLoss` and `takeProfit` prices to create an [OTO](/glossary#one-triggers-the-other-oto) order that activates after the stop-limit order fills.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
         </Warning>
 
+        <Accordion title="Error Codes">
+          - `30` - default validation error code. Also returned when `reduceOnly=true` is combined with `stopLoss` or `takeProfit`
+          - `31` - market validation failed
+          - `32` - amount validation failed
+          - `33` - price validation failed
+          - `36` - clientOrderId validation failed
+          - `10` - insufficient balance to place the order
+          - `111` - resulting position would exceed the market maximum
+          - `112` - pending orders value would exceed the allowed maximum
+          - `113` - position side cannot be changed while open positions or orders exist
+          - `114` - hedge mode position side does not match (sent `BOTH` or omitted `positionSide` in hedge mode, or sent `LONG`/`SHORT` in one-way mode)
+          - `115` - order would open a position in the opposite direction (one-way mode)
+          - `116` - reduce-only validation failed (no position exists or order side matches position direction)
+        </Accordion>
+
         Parameters
         ----------
         market : str
+            Available margin [market](/glossary#market). Example: BTC_USDT
 
         side : CreateCollateralStopLimitOrderRequestSide
+            Order direction. Use `buy` to open or increase a long position and `sell` to open or increase a short position.
 
         amount : str
+            Amount of [stock](/glossary#stock) currency to buy or sell. Minimum and step values are market-dependent — query the [market info](/api-reference/market-data/market-info) endpoint for constraints.
 
         price : str
+            Limit order price in [money](/glossary#money) currency. The order executes at the specified price or better after activation.
 
         activation_price : str
+            Trigger price in [money](/glossary#money) currency. The stop-limit order activates when the market price reaches the specified value.
 
         request : str
 
-        nonce : str
+        nonce : int
 
         stop_loss : typing.Optional[str]
+            Stop loss price.
+
+            When provided, the system creates an [OTO](/glossary#one-triggers-the-other-oto) order with a stop loss condition.
 
         take_profit : typing.Optional[str]
+            Take profit price.
+
+            When provided, the system creates an [OTO](/glossary#one-triggers-the-other-oto) order with a take profit condition.
 
         client_order_id : typing.Optional[str]
+            Custom client order identifier. Uniqueness is enforced only among the account's open (pending) orders on the same market — once a previous order is filled or canceled, the same identifier can be reused, including on the same market. Contains only letters, numbers, dashes, dots, or underscores.
 
         position_side : typing.Optional[CreateCollateralStopLimitOrderRequestPositionSide]
+            Position direction. Optional at the request layer but functionally required when hedge mode is enabled. See [positionSide](/glossary#position-side).
+
+            - **One-way mode** (default account mode): the field is ignored. Orders always use `BOTH`, and the response returns `positionSide: "BOTH"` whether the field is sent or omitted.
+            - **Hedge mode**: the field MUST be `LONG` or `SHORT`. Sending `BOTH`, omitting the field, or sending a value that does not match the account's mode causes the trade service to reject the order with error code `114` (`Hedge mode position side does not match`).
+
+        reduce_only : typing.Optional[bool]
+            When `true`, the order can only reduce or close an existing position — the order cannot increase the position or open a new one. If the order amount exceeds the current position size, the system reduces the order to match — the response returns the adjusted amount. Cannot be combined with `stopLoss` or `takeProfit`. The API returns error code `116` if no open position exists or the order side matches the position direction. See [reduce-only](/glossary#reduce-only).
+
+        stp : typing.Optional[CreateCollateralStopLimitOrderRequestStp]
+            Self-trade prevention mode. Allowed values: `no` (self-trades allowed), `cb` (cancel both the new and the existing order), `cn` (cancel the new order, keep the existing), `co` (cancel the existing order, place the new one). Default: `no`.
+
+            Legacy values `cancel_both`, `cancel_new`, `cancel_old` are deprecated: the API accepts the legacy values with identical behavior until a deprecation deadline is announced, then rejects the legacy values. Responses always return the abbreviated form, regardless of which variant the request used.
+
+            See [Self-Trade Prevention](/platform/self-trade-prevention).
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -700,8 +841,10 @@ class RawCollateralTradingClient:
                 "activation_price": activation_price,
                 "stopLoss": stop_loss,
                 "takeProfit": take_profit,
-                "client_order_id": client_order_id,
+                "clientOrderId": client_order_id,
                 "positionSide": position_side,
+                "reduceOnly": reduce_only,
+                "stp": stp,
                 "request": request,
                 "nonce": nonce,
             },
@@ -767,41 +910,82 @@ class RawCollateralTradingClient:
         amount: str,
         activation_price: str,
         request: str,
-        nonce: str,
+        nonce: int,
         client_order_id: typing.Optional[str] = OMIT,
         stop_loss: typing.Optional[str] = OMIT,
         take_profit: typing.Optional[str] = OMIT,
         position_side: typing.Optional[CreateCollateralTriggerMarketOrderRequestPositionSide] = OMIT,
+        reduce_only: typing.Optional[bool] = OMIT,
+        stp: typing.Optional[CreateCollateralTriggerMarketOrderRequestStp] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[CreateCollateralTriggerMarketOrderResponse]:
         """
-        The endpoint creates a collateral trigger market order.
+        The endpoint creates a collateral trigger [market order](/glossary#market-order) using [collateral balance](/glossary#balance-collateral). The order remains inactive until the market price reaches `activation_price`, then executes immediately at the best available market price. Optionally attach `stopLoss` and `takeProfit` prices to create an [OTO](/glossary#one-triggers-the-other-oto) order that activates after the trigger market order fills.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
         </Warning>
 
+        <Accordion title="Error Codes">
+          - `30` - default validation error code. Also returned when `reduceOnly=true` is combined with `stopLoss` or `takeProfit`
+          - `31` - market validation failed
+          - `32` - amount validation failed
+          - `36` - clientOrderId validation failed
+          - `10` - insufficient balance to place the order
+          - `111` - resulting position would exceed the market maximum
+          - `112` - pending orders value would exceed the allowed maximum
+          - `113` - position side cannot be changed while open positions or orders exist
+          - `114` - hedge mode position side does not match (sent `BOTH` or omitted `positionSide` in hedge mode, or sent `LONG`/`SHORT` in one-way mode)
+          - `115` - order would open a position in the opposite direction (one-way mode)
+          - `116` - reduce-only validation failed (no position exists or order side matches position direction)
+        </Accordion>
+
         Parameters
         ----------
         market : str
+            Available margin [market](/glossary#market). Example: BTC_USDT
 
         side : CreateCollateralTriggerMarketOrderRequestSide
+            Order direction. Use `buy` to open or increase a long position and `sell` to open or increase a short position.
 
         amount : str
+            Amount of [stock](/glossary#stock) currency to buy or sell. Minimum and step values are market-dependent — query the [market info](/api-reference/market-data/market-info) endpoint for constraints.
 
         activation_price : str
+            Trigger price in [money](/glossary#money) currency. The trigger market order activates when the market price reaches the specified value.
 
         request : str
 
-        nonce : str
+        nonce : int
 
         client_order_id : typing.Optional[str]
+            Custom client order identifier. Uniqueness is enforced only among the account's open (pending) orders on the same market — once a previous order is filled or canceled, the same identifier can be reused, including on the same market. Contains only letters, numbers, dashes, dots, or underscores.
 
         stop_loss : typing.Optional[str]
+            Stop loss price.
+
+            When provided, the system creates an [OTO](/glossary#one-triggers-the-other-oto) order with a stop loss condition.
 
         take_profit : typing.Optional[str]
+            Take profit price.
+
+            When provided, the system creates an [OTO](/glossary#one-triggers-the-other-oto) order with a take profit condition.
 
         position_side : typing.Optional[CreateCollateralTriggerMarketOrderRequestPositionSide]
+            Position direction. Optional at the request layer but functionally required when hedge mode is enabled. See [positionSide](/glossary#position-side).
+
+            - **One-way mode** (default account mode): the field is ignored. Orders always use `BOTH`, and the response returns `positionSide: "BOTH"` whether the field is sent or omitted.
+            - **Hedge mode**: the field MUST be `LONG` or `SHORT`. Sending `BOTH`, omitting the field, or sending a value that does not match the account's mode causes the trade service to reject the order with error code `114` (`Hedge mode position side does not match`).
+
+        reduce_only : typing.Optional[bool]
+            When `true`, the order can only reduce or close an existing position — the order cannot increase the position or open a new one. If the order amount exceeds the current position size, the system reduces the order to match — the response returns the adjusted amount. Cannot be combined with `stopLoss` or `takeProfit`. The API returns error code `116` if no open position exists or the order side matches the position direction. See [reduce-only](/glossary#reduce-only).
+
+        stp : typing.Optional[CreateCollateralTriggerMarketOrderRequestStp]
+            Self-trade prevention mode. Allowed values: `no` (self-trades allowed), `cb` (cancel both the new and the existing order), `cn` (cancel the new order, keep the existing), `co` (cancel the existing order, place the new one). Default: `no`.
+
+            Legacy values `cancel_both`, `cancel_new`, `cancel_old` are deprecated: the API accepts the legacy values with identical behavior until a deprecation deadline is announced, then rejects the legacy values. Responses always return the abbreviated form, regardless of which variant the request used.
+
+            See [Self-Trade Prevention](/platform/self-trade-prevention).
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -820,10 +1004,12 @@ class RawCollateralTradingClient:
                 "side": side,
                 "amount": amount,
                 "activation_price": activation_price,
-                "client_order_id": client_order_id,
+                "clientOrderId": client_order_id,
                 "stopLoss": stop_loss,
                 "takeProfit": take_profit,
                 "positionSide": position_side,
+                "reduceOnly": reduce_only,
+                "stp": stp,
                 "request": request,
                 "nonce": nonce,
             },
@@ -874,11 +1060,11 @@ class RawCollateralTradingClient:
         self,
         *,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[CollateralAccountSummaryResponse]:
         """
-        The endpoint retrieves collateral account summary.
+        The endpoint returns a collateral account summary including total equity, used margin, free margin, unrealized profit and loss, and the current leverage level. The `marginFraction` field indicates the ratio of used margin to total equity.
 
         <Warning>
         Rate limit: 12000 requests/10 sec.
@@ -888,7 +1074,7 @@ class RawCollateralTradingClient:
         ----------
         request : typing.Optional[str]
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -954,15 +1140,19 @@ class RawCollateralTradingClient:
         *,
         market: typing.Optional[str] = OMIT,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[typing.List[GetOpenPositionsResponseItem]]:
         """
-        The endpoint retrieves open positions.
+        The endpoint returns all open [collateral](/glossary#balance-collateral) positions for the authenticated account. Each position includes entry price, unrealized PnL, margin allocation, liquidation price, and take-profit/stop-loss configuration. Use the optional `market` parameter to filter results to a single trading pair.
 
         <Warning>
         Rate limit: 12000 requests/10 sec.
         </Warning>
+
+        <Accordion title="Error Codes">
+          - `30` - default validation error code (returned when the optional `market` filter is malformed)
+        </Accordion>
 
         Parameters
         ----------
@@ -974,7 +1164,7 @@ class RawCollateralTradingClient:
         request : typing.Optional[str]
             Request signature
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
             Unique request identifier
 
         request_options : typing.Optional[RequestOptions]
@@ -986,7 +1176,7 @@ class RawCollateralTradingClient:
             Successful response - returns array of open positions
         """
         _response = self._client_wrapper.httpx_client.request(
-            "api/v4/collateral-account/positions",
+            "api/v4/collateral-account/positions/open",
             base_url=self._client_wrapper.get_environment().base,
             method="POST",
             json={
@@ -1043,28 +1233,37 @@ class RawCollateralTradingClient:
         position_id: int,
         market: str,
         request: str,
-        nonce: str,
+        nonce: int,
         position_side: typing.Optional[ClosePositionRequestPositionSide] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[None]:
         """
-        The endpoint closes a position.
+        The endpoint closes an open [collateral](/glossary#balance-collateral) position at the current market price. The system places a market order in the opposite direction to fully close the specified position. Any attached take-profit or stop-loss orders are cancelled automatically.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
         </Warning>
 
+        <Accordion title="Error Codes">
+          - `30` - default validation error code (for example, a missing or malformed `positionId` or `market`)
+          - `104` - position not found. Returned whether the `positionId` does not exist, the position is already closed, or it is not owned by the account — these cases are not distinguished
+          - `10` - insufficient balance to fund the closing market order
+        </Accordion>
+
         Parameters
         ----------
         position_id : int
+            Unique identifier of the position to close. Obtain from the [open positions](/api-reference/collateral-trading/open-positions) endpoint.
 
         market : str
+            Market of the position to close. Example: BTC_USDT
 
         request : str
 
-        nonce : str
+        nonce : int
 
         position_side : typing.Optional[ClosePositionRequestPositionSide]
+            Defines the position direction when hedge mode is enabled. See [positionSide](/glossary#position-side)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1147,26 +1346,50 @@ class RawCollateralTradingClient:
         *,
         market: typing.Optional[str] = OMIT,
         position_id: typing.Optional[int] = OMIT,
+        start_date: typing.Optional[int] = OMIT,
+        end_date: typing.Optional[int] = OMIT,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[typing.List[GetPositionsHistoryResponseItem]]:
         """
-        The endpoint retrieves positions history.
+        The endpoint returns the history of [collateral](/glossary#balance-collateral) position state changes for the authenticated account. Each record represents a position event (open, partial close, full close, or liquidation) and includes the order details that triggered the change. Use the optional `market` and `positionId` parameters to filter results.
 
         <Warning>
         Rate limit: 12000 requests/10 sec.
         </Warning>
 
+        <Accordion title="Error Codes">
+          - `30` - default validation error code (invalid pagination — `limit` outside 1–100 or negative `offset` — or a date filter that violates `startDate` ≤ `endDate` ≤ `now + 1s`)
+        </Accordion>
+
+        <Note>
+        **Date filter window:** `startDate` and `endDate` are optional and have no defaults. The endpoint enforces no maximum window and no lower-bound floor. The only ordering constraint is `startDate` ≤ `endDate` ≤ `now + 1s` — requests that violate the ordering are rejected with a validation error.
+        </Note>
+
+        <Warning>
+        **Breaking change — April 29, 2026.** The `positionSide` field is no longer returned in the Position History response. Use `side` (same enum: `LONG`, `SHORT`, `BOTH`) plus `isHedge` (boolean) instead. Integrations reading `positionSide` from `/api/v4/collateral-account/positions/history` must migrate before consuming the new response.
+        </Warning>
+
         Parameters
         ----------
         market : typing.Optional[str]
+            Filter by specific market. Example: BTC_USDT
+
+            If not specified, returns position history for all markets.
 
         position_id : typing.Optional[int]
+            Filter by specific position identifier. If not specified, returns history for all positions.
+
+        start_date : typing.Optional[int]
+            Start of the query window as a Unix timestamp in seconds. Optional, no default. Must be ≤ `endDate`.
+
+        end_date : typing.Optional[int]
+            End of the query window as a Unix timestamp in seconds. Optional, no default. Must be ≥ `startDate` and ≤ `now + 1s`; violating values are rejected with a validation error.
 
         request : typing.Optional[str]
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1183,6 +1406,8 @@ class RawCollateralTradingClient:
             json={
                 "market": market,
                 "positionId": position_id,
+                "startDate": start_date,
+                "endDate": end_date,
                 "request": request,
                 "nonce": nonce,
             },
@@ -1258,15 +1483,24 @@ class RawCollateralTradingClient:
         limit: typing.Optional[int] = OMIT,
         offset: typing.Optional[int] = OMIT,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[GetFundingHistoryResponse]:
         """
-        The endpoint retrieves funding history.
+        The endpoint returns the funding rate payment history for [collateral](/glossary#balance-collateral) positions. Each record includes the funding rate, settlement price, position amount, and the resulting funding payment. Use the optional `market` parameter to filter results to a single trading pair. The response supports pagination via `limit` and `offset` parameters. Results are ordered by funding time (`fundingTime`), newest first.
 
         <Warning>
         Rate limit: 12000 requests/10 sec.
         </Warning>
+
+        <Note>
+        This endpoint supports pagination. Use `limit` (default: 100) and `offset` (default: 0) to page through results. The response does not include a `total` field — detect the last page when `records.length < limit`. An empty `records` array means you have paged past the end; receiving exactly `limit` records does not guarantee that another page exists.
+        </Note>
+
+        <Accordion title="Error Codes">
+          - `30` - default validation error code (invalid pagination — `limit` outside 1–100 or negative `offset`)
+          - `31` - market validation failed (the `market` filter is unknown or not available for collateral trading)
+        </Accordion>
 
         Parameters
         ----------
@@ -1284,7 +1518,7 @@ class RawCollateralTradingClient:
         request : typing.Optional[str]
             Request signature
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
             Unique request identifier
 
         request_options : typing.Optional[RequestOptions]
@@ -1350,22 +1584,39 @@ class RawCollateralTradingClient:
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def change_collateral_account_leverage(
-        self, *, leverage: int, request: str, nonce: str, request_options: typing.Optional[RequestOptions] = None
+        self, *, leverage: int, request: str, nonce: int, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[ChangeCollateralAccountLeverageResponse]:
         """
-        The endpoint changes account leverage.
+        The endpoint changes the leverage level for the [collateral](/glossary#balance-collateral) trading account. Leverage determines the ratio of borrowed funds to collateral and directly affects margin requirements and liquidation thresholds. Accepted values: `1`, `2`, `3`, `5`, `10`, `20`, `50`, `100`.
+
+        Each leverage level has a corresponding bracket defining the maximum position size for the tier. When a position exceeds the bracket limit, the system applies higher tiers with progressively lower leverage. Query market-specific brackets via `GET /api/v4/public/futures`.
 
         <Warning>
         Rate limit: 1000 requests/10 sec.
         </Warning>
 
+        <Note>
+        A market's `max_leverage` field (from `GET /api/v4/public/futures`) may be lower than `100`. Setting leverage above a market's maximum results in an error.
+        </Note>
+
+        <Warning>
+        Changing leverage affects **all open positions** across margin and futures trading. Decreasing leverage increases margin requirements — if available funds are insufficient to support the new level, the request returns an error.
+        </Warning>
+
+        <Accordion title="Error Codes">
+          - `30` - invalid `leverage` value (out of range, non-integer, or wrong type). Setting leverage above a market's `max_leverage` also surfaces here as an out-of-range value
+          - `17` - the requested leverage is valid but available balance is insufficient to support it
+          - `113` - leverage cannot be changed while open positions or orders exist
+        </Accordion>
+
         Parameters
         ----------
         leverage : int
+            Target leverage level. Accepted values: `1`, `2`, `3`, `5`, `10`, `20`, `50`, `100`. The effective maximum depends on the market's `max_leverage`.
 
         request : str
 
-        nonce : str
+        nonce : int
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1431,11 +1682,11 @@ class RawCollateralTradingClient:
         self,
         *,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[GetCollateralHedgeModeResponse]:
         """
-        The endpoint retrieves hedge mode status.
+        The endpoint returns the current [hedge mode](/glossary#hedge-mode) status for the collateral trading account. When hedge mode is enabled (`true`), the account supports simultaneous long and short positions on the same market. When disabled (`false`), the account operates in one-way mode.
 
         <Warning>
         Rate limit: 12000 requests/10 sec.
@@ -1445,7 +1696,7 @@ class RawCollateralTradingClient:
         ----------
         request : typing.Optional[str]
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1518,22 +1769,32 @@ class RawCollateralTradingClient:
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def update_hedge_mode(
-        self, *, hedge_mode: bool, request: str, nonce: str, request_options: typing.Optional[RequestOptions] = None
+        self, *, hedge_mode: bool, request: str, nonce: int, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[None]:
         """
-        The endpoint updates hedge mode.
+        The endpoint enables or disables [hedge mode](/glossary#hedge-mode) for the collateral trading account. When hedge mode is enabled (`true`), the account supports simultaneous long and short positions on the same market. When disabled (`false`), the account operates in one-way mode.
 
         <Warning>
         Rate limit: 1000 requests/10 sec.
         </Warning>
 
+        <Warning>
+        Switching between one-way mode and hedge mode requires **no open positions**. Close all futures positions before toggling the mode. If the switch does not take effect immediately after closing positions, wait approximately 15 seconds and retry.
+        </Warning>
+
+        <Accordion title="Error Codes">
+          - `30` - default validation error code (for example, a missing or non-boolean `hedgeMode` value)
+          - `113` - hedge mode cannot be changed while open positions or orders exist
+        </Accordion>
+
         Parameters
         ----------
         hedge_mode : bool
+            Set to `true` to enable hedge mode (simultaneous long and short positions) or `false` to use one-way mode.
 
         request : str
 
-        nonce : str
+        nonce : int
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1598,6 +1859,85 @@ class RawCollateralTradingClient:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
+    def get_collateral_account_adl_quantile(
+        self, *, request: str, nonce: int, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[typing.List[GetCollateralAccountAdlQuantileResponseItem]]:
+        """
+        The endpoint returns the [Auto-Deleveraging (ADL)](/glossary#auto-deleveraging-adl) quantile for each perpetual market in which the authenticated account holds an open position. Each entry exposes the deleveraging-priority value for the long and short sides of the position, where `0` indicates the lowest deleveraging priority and `4` indicates the highest. The endpoint returns an empty array when the account has no perpetual positions.
+
+        <Warning>
+        Rate limit: 12000 requests/10 sec.
+        </Warning>
+
+        <Note>
+        Only perpetual markets (markets with the `_PERP` suffix) are returned. Spot and margin markets are not included.
+        </Note>
+
+        Parameters
+        ----------
+        request : str
+
+        nonce : int
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[typing.List[GetCollateralAccountAdlQuantileResponseItem]]
+            Successful response — returns array of per-market ADL quantile entries
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "api/v4/collateral-account/adl-quantile",
+            base_url=self._client_wrapper.get_environment().base,
+            method="POST",
+            json={
+                "request": request,
+                "nonce": nonce,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.List[GetCollateralAccountAdlQuantileResponseItem],
+                    parse_obj_as(
+                        type_=typing.List[GetCollateralAccountAdlQuantileResponseItem],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 503:
+                raise ServiceUnavailableError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
     def get_conditional_orders(
         self,
         *,
@@ -1605,27 +1945,37 @@ class RawCollateralTradingClient:
         offset: typing.Optional[int] = OMIT,
         limit: typing.Optional[int] = OMIT,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[GetConditionalOrdersResponse]:
         """
-        The endpoint retrieves active conditional orders.
+        The endpoint returns active (unexecuted) conditional orders for the authenticated account. Conditional orders include [OCO](/glossary#one-cancels-the-other-oco) and [OTO](/glossary#one-triggers-the-other-oto) types. The response uses polymorphic structure — each record contains a `type` field (`oco` or `oto`) that determines the record shape. Use the optional `market` parameter to filter results.
 
         <Warning>
         Rate limit: 12000 requests/10 sec.
         </Warning>
 
+        <Accordion title="Error Codes">
+          - `30` - default validation error code (invalid pagination — `limit` outside 1–100 or negative `offset`)
+          - `31` - market validation failed (the `market` filter is unknown or not available for collateral trading)
+        </Accordion>
+
         Parameters
         ----------
         market : typing.Optional[str]
+            Filter by specific market. Example: BTC_USDT
+
+            If not specified, returns conditional orders for all markets.
 
         offset : typing.Optional[int]
+            Number of records to skip for pagination.
 
         limit : typing.Optional[int]
+            Maximum number of records to return per page.
 
         request : typing.Optional[str]
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1636,7 +1986,7 @@ class RawCollateralTradingClient:
             Successful response - returns paginated conditional orders (OCO and OTO types)
         """
         _response = self._client_wrapper.httpx_client.request(
-            "api/v4/orders/conditional",
+            "api/v4/conditional-orders",
             base_url=self._client_wrapper.get_environment().base,
             method="POST",
             json={
@@ -1707,27 +2057,41 @@ class RawCollateralTradingClient:
         offset: typing.Optional[int] = OMIT,
         limit: typing.Optional[int] = OMIT,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[typing.List[GetOcoOrdersResponseItem]]:
         """
-        The endpoint retrieves active OCO orders.
+        The endpoint returns active (unexecuted) [OCO](/glossary#one-cancels-the-other-oco) orders for the authenticated account. Each OCO order contains a `stop_loss` and `take_profit` leg. When one leg executes, the system cancels the other automatically. Use the optional `market` parameter to filter results.
 
         <Warning>
         Rate limit: 12000 requests/10 sec.
         </Warning>
 
+        <Note>
+        This endpoint supports pagination. Use `limit` (default: 50) and `offset` (default: 0) to page through results. The response does not include a `total` field — detect the last page when fewer than `limit` OCO orders are returned. An empty array means you have paged past the end; receiving exactly `limit` orders does not guarantee that another page exists.
+        </Note>
+
+        <Accordion title="Error Codes">
+          - `30` - default validation error code (invalid pagination — `limit` outside 1–100 or negative `offset`)
+          - `31` - market validation failed (the `market` filter is unknown or not available for collateral trading)
+        </Accordion>
+
         Parameters
         ----------
         market : typing.Optional[str]
+            Filter by specific market. Example: BTC_USDT
+
+            If not specified, returns OCO orders for all markets.
 
         offset : typing.Optional[int]
+            Number of records to skip for pagination.
 
         limit : typing.Optional[int]
+            Maximum number of records to return per page.
 
         request : typing.Optional[str]
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1738,7 +2102,7 @@ class RawCollateralTradingClient:
             Successful response - returns array of active OCO orders
         """
         _response = self._client_wrapper.httpx_client.request(
-            "api/v4/orders/oco",
+            "api/v4/oco-orders",
             base_url=self._client_wrapper.get_environment().base,
             method="POST",
             json={
@@ -1812,36 +2176,77 @@ class RawCollateralTradingClient:
         activation_price: str,
         stop_limit_price: str,
         request: str,
-        nonce: str,
+        nonce: int,
         client_order_id: typing.Optional[str] = OMIT,
+        reduce_only: typing.Optional[bool] = OMIT,
+        position_side: typing.Optional[CreateCollateralOcoOrderRequestPositionSide] = OMIT,
+        stp: typing.Optional[CreateCollateralOcoOrderRequestStp] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[CreateCollateralOcoOrderResponse]:
         """
-        The endpoint creates a collateral OCO order.
+        The endpoint creates a collateral [OCO](/glossary#one-cancels-the-other-oco) (one-cancels-the-other) order using [collateral balance](/glossary#balance-collateral). An OCO order combines a limit order (take-profit leg) and a stop-limit order (stop-loss leg) into a single conditional group. When one leg executes, the system cancels the other automatically.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
         </Warning>
 
+        <Accordion title="Error Codes">
+          - `30` - default validation error code. Also returned when `reduceOnly=true` is combined with `stopLoss` or `takeProfit`
+          - `31` - market validation failed
+          - `32` - amount validation failed
+          - `33` - price validation failed
+          - `36` - clientOrderId validation failed
+          - `10` - insufficient balance to place the order
+          - `111` - resulting position would exceed the market maximum
+          - `112` - pending orders value would exceed the allowed maximum
+          - `113` - position side cannot be changed while open positions or orders exist
+          - `114` - hedge mode position side does not match (sent `BOTH` or omitted `positionSide` in hedge mode, or sent `LONG`/`SHORT` in one-way mode)
+          - `115` - order would open a position in the opposite direction (one-way mode)
+          - `116` - reduce-only validation failed (no position exists or order side matches position direction)
+        </Accordion>
+
         Parameters
         ----------
         market : str
+            Available margin [market](/glossary#market). Example: BTC_USDT
 
         side : CreateCollateralOcoOrderRequestSide
+            Order direction. Use `buy` to open or increase a long position and `sell` to open or increase a short position.
 
         amount : str
+            Amount of [stock](/glossary#stock) currency for both legs of the OCO order. Minimum and step values are market-dependent — query the [market info](/api-reference/market-data/market-info) endpoint for constraints.
 
         price : str
+            Limit order price in [money](/glossary#money) currency for the take-profit leg.
 
         activation_price : str
+            Trigger price in [money](/glossary#money) currency for the stop-loss leg. The stop-limit order activates when the market price reaches the specified value.
 
         stop_limit_price : str
+            Execution price in [money](/glossary#money) currency for the stop-loss leg. After activation, the stop-loss leg places a limit order at the specified price.
 
         request : str
 
-        nonce : str
+        nonce : int
 
         client_order_id : typing.Optional[str]
+            Custom client order identifier. Uniqueness is enforced only among the account's open (pending) orders on the same market — once a previous order is filled or canceled, the same identifier can be reused, including on the same market. Contains only letters, numbers, dashes, dots, or underscores.
+
+        reduce_only : typing.Optional[bool]
+            When `true`, both legs of the OCO order can only reduce or close an existing position — neither leg can increase the position or open a new one. If the order amount exceeds the current position size, the system reduces the order to match — the response returns the adjusted amount. The API returns error code `116` if no open position exists or the order side matches the position direction. See [reduce-only](/glossary#reduce-only).
+
+        position_side : typing.Optional[CreateCollateralOcoOrderRequestPositionSide]
+            Position direction. Optional at the request layer but functionally required when hedge mode is enabled. See [positionSide](/glossary#position-side). Both legs of the OCO inherit the value.
+
+            - **One-way mode** (default account mode): the field is ignored. Orders always use `BOTH`, and the response returns `positionSide: "BOTH"` on each leg whether the field is sent or omitted.
+            - **Hedge mode**: the field MUST be `LONG` or `SHORT`. Sending `BOTH`, omitting the field, or sending a value that does not match the account's mode causes the trade service to reject the order with error code `114` (`Hedge mode position side does not match`).
+
+        stp : typing.Optional[CreateCollateralOcoOrderRequestStp]
+            Self-trade prevention mode. The value applies to both legs of the OCO order. Allowed values: `no` (self-trades allowed), `cb` (cancel both the new and the existing order), `cn` (cancel the new order, keep the existing), `co` (cancel the existing order, place the new one). Default: `no`.
+
+            Legacy values `cancel_both`, `cancel_new`, `cancel_old` are deprecated: the API accepts the legacy values with identical behavior until a deprecation deadline is announced, then rejects the legacy values. Responses always return the abbreviated form, regardless of which variant the request used.
+
+            See [Self-Trade Prevention](/platform/self-trade-prevention).
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1862,7 +2267,10 @@ class RawCollateralTradingClient:
                 "price": price,
                 "activation_price": activation_price,
                 "stop_limit_price": stop_limit_price,
-                "client_order_id": client_order_id,
+                "clientOrderId": client_order_id,
+                "reduceOnly": reduce_only,
+                "positionSide": position_side,
+                "stp": stp,
                 "request": request,
                 "nonce": nonce,
             },
@@ -1921,24 +2329,44 @@ class RawCollateralTradingClient:
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def cancel_conditional_order(
-        self, *, market: str, id: int, request: str, nonce: str, request_options: typing.Optional[RequestOptions] = None
+        self, *, market: str, id: int, request: str, nonce: int, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[None]:
         """
-        The endpoint cancels a conditional order.
+        The endpoint cancels an active conditional order ([OCO](/glossary#one-cancels-the-other-oco) or [OTO](/glossary#one-triggers-the-other-oto)) on the specified market. Both legs of the conditional order are cancelled. Use the [query unexecuted conditional orders](/api-reference/collateral-trading/query-unexecuted-conditional-orders) endpoint to obtain the conditional order `id` before cancellation.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
         </Warning>
 
+        <Accordion title="Error Codes">
+          - `30` - default validation error code
+          - `31` - market validation failed
+          - `2` - conditional order not found. Returned whether the `id` does not exist, or the order was already filled or already cancelled — these cases are not distinguished
+        </Accordion>
+
+        <Accordion title="Errors">
+        ```json
+        {
+          "code": 2,
+          "message": "Inner validation failed",
+          "errors": {
+            "id": ["Unexecuted order was not found."]
+          }
+        }
+        ```
+        </Accordion>
+
         Parameters
         ----------
         market : str
+            Market of the conditional order to cancel. Example: BTC_USDT
 
         id : int
+            Conditional order identifier. Obtain from the [query unexecuted conditional orders](/api-reference/collateral-trading/query-unexecuted-conditional-orders) endpoint.
 
         request : str
 
-        nonce : str
+        nonce : int
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -2010,7 +2438,7 @@ class RawCollateralTradingClient:
         market: str,
         order_id: int,
         request: str,
-        nonce: str,
+        nonce: int,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[CancelOcoOrderResponse]:
         """
@@ -2020,6 +2448,24 @@ class RawCollateralTradingClient:
         Rate limit: 10000 requests/10 sec.
         </Warning>
 
+        <Accordion title="Error Codes">
+          - `30` - default validation error code
+          - `31` - market validation failed
+          - `2` - OCO order not found. Returned whether the `orderId` does not exist, or the order was already filled or already cancelled — these cases are not distinguished
+        </Accordion>
+
+        <Accordion title="Errors">
+        ```json
+        {
+          "code": 2,
+          "message": "Inner validation failed",
+          "errors": {
+            "orderId": ["Unexecuted order was not found."]
+          }
+        }
+        ```
+        </Accordion>
+
         Parameters
         ----------
         market : str
@@ -2028,7 +2474,7 @@ class RawCollateralTradingClient:
 
         request : str
 
-        nonce : str
+        nonce : int
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -2044,7 +2490,7 @@ class RawCollateralTradingClient:
             method="POST",
             json={
                 "market": market,
-                "order_id": order_id,
+                "orderId": order_id,
                 "request": request,
                 "nonce": nonce,
             },
@@ -2108,7 +2554,7 @@ class RawCollateralTradingClient:
         market: str,
         oto_id: int,
         request: str,
-        nonce: str,
+        nonce: int,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[None]:
         """
@@ -2118,6 +2564,24 @@ class RawCollateralTradingClient:
         Rate limit: 10000 requests/10 sec.
         </Warning>
 
+        <Accordion title="Error Codes">
+          - `30` - default validation error code
+          - `31` - market validation failed
+          - `2` - OTO order not found. Returned whether the `otoId` does not exist, or the order was already filled or already cancelled — these cases are not distinguished
+        </Accordion>
+
+        <Accordion title="Errors">
+        ```json
+        {
+          "code": 2,
+          "message": "Inner validation failed",
+          "errors": {
+            "otoId": ["Unexecuted order was not found."]
+          }
+        }
+        ```
+        </Accordion>
+
         Parameters
         ----------
         market : str
@@ -2126,7 +2590,7 @@ class RawCollateralTradingClient:
 
         request : str
 
-        nonce : str
+        nonce : int
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -2202,11 +2666,11 @@ class AsyncRawCollateralTradingClient:
         *,
         ticker: typing.Optional[str] = OMIT,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[typing.Dict[str, float]]:
         """
-        The endpoint returns a current [collateral balance](/glossary#balance-collateral).
+        The endpoint returns the current [collateral balance](/glossary#balance-collateral) for one or all assets. The response maps each asset ticker to its collateral balance amount. Use the optional `ticker` parameter to filter results to a single asset.
 
         <Note>
         The API does not cache the response.
@@ -2238,7 +2702,7 @@ class AsyncRawCollateralTradingClient:
         request : typing.Optional[str]
             Request signature
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
             Unique request identifier
 
         request_options : typing.Optional[RequestOptions]
@@ -2306,11 +2770,11 @@ class AsyncRawCollateralTradingClient:
         *,
         ticker: typing.Optional[str] = OMIT,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[typing.List[CollateralAccountBalanceSummaryResponseItem]]:
         """
-        The endpoint retrieves collateral account balance summary with detailed breakdown per asset.
+        The endpoint returns a detailed [collateral balance](/glossary#balance-collateral) summary with a per-asset breakdown. Each record includes the current balance, borrowed amount, and available balance with and without borrowing capacity. Use the optional `ticker` parameter to filter results to a single asset.
 
         <Note>
         The API does not cache the response.
@@ -2342,7 +2806,7 @@ class AsyncRawCollateralTradingClient:
         request : typing.Optional[str]
             Request signature
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
             Unique request identifier
 
         request_options : typing.Optional[RequestOptions]
@@ -2413,7 +2877,7 @@ class AsyncRawCollateralTradingClient:
         amount: str,
         price: str,
         request: str,
-        nonce: str,
+        nonce: int,
         client_order_id: typing.Optional[str] = OMIT,
         stop_loss: typing.Optional[str] = OMIT,
         take_profit: typing.Optional[str] = OMIT,
@@ -2421,10 +2885,19 @@ class AsyncRawCollateralTradingClient:
         ioc: typing.Optional[bool] = OMIT,
         rpi: typing.Optional[bool] = OMIT,
         position_side: typing.Optional[CreateCollateralLimitOrderRequestPositionSide] = OMIT,
+        reduce_only: typing.Optional[bool] = OMIT,
+        stp: typing.Optional[CreateCollateralLimitOrderRequestStp] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[CreateCollateralLimitOrderResponse]:
         """
-        The endpoint creates [limit order](/glossary#limit-order) using [collateral balance](/glossary#balance-collateral).
+        The endpoint creates a [limit order](/glossary#limit-order) using [collateral balance](/glossary#balance-collateral). The order executes at the specified price or better. Use `buy` to open or increase a long position and `sell` to open or increase a short position. To close a position, place an opposite-side order matching the position amount.
+
+        **Order validation rules** (per-market, from `GET /api/v4/public/markets`):
+        - `amount` must have at most `stockPrec` decimal places
+        - `price` must have at most `moneyPrec` decimal places
+        - `amount` must be ≥ `minAmount`
+        - `amount × price` must be ≥ `minTotal`
+        - `amount × price` must be ≤ `maxTotal` (when `maxTotal` is not `"0"`)
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
@@ -2435,17 +2908,26 @@ class AsyncRawCollateralTradingClient:
         </Note>
 
         <Note>
-          - RPI orders are post-only by design and cannot be used with the IOC flag. The API returns error code `37` when both `rpi=true` and `ioc=true` are used.
+          - RPI orders are post-only by design and cannot be used with the IOC flag. The API returns error code `40` when both `rpi=true` and `ioc=true` are used.
         </Note>
 
 
         <Accordion title="Error Codes">
-          - `30` - default validation error code
+          - `30` - default validation error code. Also returned when `reduceOnly=true` is combined with `stopLoss` or `takeProfit`
           - `31` - market validation failed
           - `32` - amount validation failed
           - `33` - price validation failed
-          - `36` - client_order_id validation failed
-          - `37` - `ioc=true` cannot be used with `postOnly=true` or `rpi=true`
+          - `36` - clientOrderId validation failed
+          - `37` - `ioc=true` cannot be combined with `postOnly=true`
+          - `40` - `ioc=true` cannot be combined with `rpi=true`
+          - `43` - `rpi=true` is not allowed for the account
+          - `10` - insufficient balance to place the order
+          - `111` - resulting position would exceed the market maximum
+          - `112` - pending orders value would exceed the allowed maximum
+          - `113` - position side cannot be changed while open positions or orders exist
+          - `114` - hedge mode position side does not match (sent `BOTH` or omitted `positionSide` in hedge mode, or sent `LONG`/`SHORT` in one-way mode)
+          - `115` - order would open a position in the opposite direction (one-way mode)
+          - `116` - reduce-only validation failed (no position exists or order side matches position direction)
         </Accordion>
 
         Parameters
@@ -2457,17 +2939,17 @@ class AsyncRawCollateralTradingClient:
             Order type. Variables: 'buy' / 'sell'. For open long position use **buy**, for short **sell**.
 
         amount : str
-            Amount of [stock](/glossary#stock) currency to buy or sell.
+            Amount of [stock](/glossary#stock) currency to buy or sell. Minimum and step values are market-dependent — query the [market info](/api-reference/market-data/market-info) endpoint for constraints.
 
         price : str
-            Price in [money](/glossary#money) currency. Example: '9800'
+            Limit order price in [money](/glossary#money) currency. Minimum price step is market-dependent — query the [market info](/api-reference/market-data/market-info) endpoint for constraints.
 
         request : str
 
-        nonce : str
+        nonce : int
 
         client_order_id : typing.Optional[str]
-            Identifier should be unique and contain letters, dashes, numbers, dots or underscores.
+            Custom client order identifier. Uniqueness is enforced only among the account's open (pending) orders on the same market — once a previous order is filled or canceled, the same identifier can be reused, including on the same market. Contains only letters, numbers, dashes, dots, or underscores.
 
         stop_loss : typing.Optional[str]
             Stop loss price.
@@ -2480,18 +2962,31 @@ class AsyncRawCollateralTradingClient:
             When provided, the system creates an [OTO](/glossary#one-triggers-the-other-oto) order with a take profit condition.
 
         post_only : typing.Optional[bool]
-            Orders are guaranteed to be the [maker](/glossary#maker) order when [executed](/glossary#finished-orders).
+            When `true`, guarantees the order executes as a [maker](/glossary#maker) order. The system rejects the order if it would immediately match as taker. Default: `false`.
 
         ioc : typing.Optional[bool]
-            An immediate or cancel order (IOC) is an order that attempts to execute all or part immediately and then cancels any unfilled portion.
+            When `true`, the order executes all or part immediately and cancels any unfilled portion. Cannot be combined with `postOnly=true` or `rpi=true`.
 
         rpi : typing.Optional[bool]
             Enables Retail Price Improvement (RPI) mode.
 
-            RPI orders are post-only by design and cannot be used with `ioc=true`. The API returns error code `37` when both `rpi=true` and `ioc=true` are used.
+            RPI orders are post-only by design and cannot be used with `ioc=true`. The API returns error code `40` when both `rpi=true` and `ioc=true` are used.
 
         position_side : typing.Optional[CreateCollateralLimitOrderRequestPositionSide]
-            Defines the position direction when hedge mode is enabled. See [positionSide](/glossary#position-side)
+            Position direction. Optional at the request layer but functionally required when hedge mode is enabled. See [positionSide](/glossary#position-side).
+
+            - **One-way mode** (default account mode): the field is ignored. Orders always use `BOTH`, and the response returns `positionSide: "BOTH"` whether the field is sent or omitted.
+            - **Hedge mode**: the field MUST be `LONG` or `SHORT`. Sending `BOTH`, omitting the field, or sending a value that does not match the account's mode causes the trade service to reject the order with error code `114` (`Hedge mode position side does not match`).
+
+        reduce_only : typing.Optional[bool]
+            When `true`, the order can only reduce or close an existing position — the order cannot increase the position or open a new one. If the order amount exceeds the current position size, the system reduces the order to match — the response returns the adjusted amount. Cannot be combined with `stopLoss` or `takeProfit`. The API returns error code `116` if no open position exists or the order side matches the position direction. See [reduce-only](/glossary#reduce-only).
+
+        stp : typing.Optional[CreateCollateralLimitOrderRequestStp]
+            Self-trade prevention mode. Allowed values: `no` (self-trades allowed), `cb` (cancel both the new and the existing order), `cn` (cancel the new order, keep the existing), `co` (cancel the existing order, place the new one). Default: `no`.
+
+            Legacy values `cancel_both`, `cancel_new`, `cancel_old` are deprecated: the API accepts the legacy values with identical behavior until a deprecation deadline is announced, then rejects the legacy values. Responses always return the abbreviated form, regardless of which variant the request used.
+
+            See [Self-Trade Prevention](/platform/self-trade-prevention).
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -2510,13 +3005,15 @@ class AsyncRawCollateralTradingClient:
                 "side": side,
                 "amount": amount,
                 "price": price,
-                "client_order_id": client_order_id,
+                "clientOrderId": client_order_id,
                 "stopLoss": stop_loss,
                 "takeProfit": take_profit,
                 "postOnly": post_only,
                 "ioc": ioc,
                 "rpi": rpi,
                 "positionSide": position_side,
+                "reduceOnly": reduce_only,
+                "stp": stp,
                 "request": request,
                 "nonce": nonce,
             },
@@ -2569,15 +3066,31 @@ class AsyncRawCollateralTradingClient:
         orders: typing.Optional[typing.Sequence[CreateCollateralBulkOrderRequestOrdersItem]] = OMIT,
         stop_on_fail: typing.Optional[bool] = OMIT,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[typing.List[CreateCollateralBulkOrderResponseItem]]:
         """
-        The endpoint creates multiple collateral limit orders.
+        The endpoint creates multiple collateral [limit orders](/glossary#limit-order) in a single request. Each order in the `orders` array is validated and processed individually. The `stopOnFail` parameter controls whether processing stops at the first failure or continues through all orders. The response array contains a result or error object for each submitted order, in the same order as the request.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
         </Warning>
+
+        <Accordion title="Error Codes">
+          - `30` - default validation error code (per-order). Also returned when `reduceOnly=true` is combined with `stopLoss` or `takeProfit`
+          - `31` - market validation failed
+          - `32` - amount validation failed
+          - `33` - price validation failed
+          - `36` - clientOrderId validation failed
+          - `37` - `ioc=true` cannot be used with `postOnly=true` or `rpi=true`
+          - `10` - insufficient balance to place the order
+          - `111` - resulting position would exceed the market maximum
+          - `112` - pending orders value would exceed the allowed maximum
+          - `113` - position side cannot be changed while open positions or orders exist
+          - `114` - hedge mode position side does not match (per-order; sent `BOTH` or omitted `positionSide` in hedge mode, or sent `LONG`/`SHORT` in one-way mode)
+          - `115` - order would open a position in the opposite direction (one-way mode)
+          - `116` - reduce-only validation failed (no position exists or order side matches position direction). For bulk orders, this error appears per-order inside the response array.
+        </Accordion>
 
         Parameters
         ----------
@@ -2592,7 +3105,7 @@ class AsyncRawCollateralTradingClient:
 
         request : typing.Optional[str]
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -2677,39 +3190,79 @@ class AsyncRawCollateralTradingClient:
         side: CreateCollateralMarketOrderRequestSide,
         amount: str,
         request: str,
-        nonce: str,
+        nonce: int,
         client_order_id: typing.Optional[str] = OMIT,
         stop_loss: typing.Optional[str] = OMIT,
         take_profit: typing.Optional[str] = OMIT,
         position_side: typing.Optional[CreateCollateralMarketOrderRequestPositionSide] = OMIT,
+        reduce_only: typing.Optional[bool] = OMIT,
+        stp: typing.Optional[CreateCollateralMarketOrderRequestStp] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[CreateCollateralMarketOrderResponse]:
         """
-        The endpoint creates a collateral market order.
+        The endpoint creates a [market order](/glossary#market-order) using [collateral balance](/glossary#balance-collateral). The order executes immediately at the best available market price. Optionally attach `stopLoss` and `takeProfit` prices to create an [OTO](/glossary#one-triggers-the-other-oto) order that activates after the market order fills.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
         </Warning>
 
+        <Accordion title="Error Codes">
+          - `30` - default validation error code. Also returned when `reduceOnly=true` is combined with `stopLoss` or `takeProfit`
+          - `31` - market validation failed
+          - `32` - amount validation failed
+          - `36` - clientOrderId validation failed
+          - `10` - insufficient balance to place the order
+          - `111` - resulting position would exceed the market maximum
+          - `112` - pending orders value would exceed the allowed maximum
+          - `113` - position side cannot be changed while open positions or orders exist
+          - `114` - hedge mode position side does not match (sent `BOTH` or omitted `positionSide` in hedge mode, or sent `LONG`/`SHORT` in one-way mode)
+          - `115` - order would open a position in the opposite direction (one-way mode)
+          - `116` - reduce-only validation failed (no position exists or order side matches position direction)
+        </Accordion>
+
         Parameters
         ----------
         market : str
+            Available margin [market](/glossary#market). Example: BTC_USDT
 
         side : CreateCollateralMarketOrderRequestSide
+            Order direction. Use `buy` to open or increase a long position and `sell` to open or increase a short position.
 
         amount : str
+            Amount of [stock](/glossary#stock) currency to buy or sell. Minimum and step values are market-dependent — query the [market info](/api-reference/market-data/market-info) endpoint for constraints.
 
         request : str
 
-        nonce : str
+        nonce : int
 
         client_order_id : typing.Optional[str]
+            Custom client order identifier. Uniqueness is enforced only among the account's open (pending) orders on the same market — once a previous order is filled or canceled, the same identifier can be reused, including on the same market. Contains only letters, numbers, dashes, dots, or underscores.
 
         stop_loss : typing.Optional[str]
+            Stop loss price.
+
+            When provided, the system creates an [OTO](/glossary#one-triggers-the-other-oto) order with a stop loss condition.
 
         take_profit : typing.Optional[str]
+            Take profit price.
+
+            When provided, the system creates an [OTO](/glossary#one-triggers-the-other-oto) order with a take profit condition.
 
         position_side : typing.Optional[CreateCollateralMarketOrderRequestPositionSide]
+            Position direction. Optional at the request layer but functionally required when hedge mode is enabled. See [positionSide](/glossary#position-side).
+
+            - **One-way mode** (default account mode): the field is ignored. Orders always use `BOTH`, and the response returns `positionSide: "BOTH"` whether the field is sent or omitted.
+            - **Hedge mode**: the field MUST be `LONG` or `SHORT`. Sending `BOTH`, omitting the field, or sending a value that does not match the account's mode causes the trade service to reject the order with error code `114` (`Hedge mode position side does not match`).
+
+        reduce_only : typing.Optional[bool]
+            When `true`, the order can only reduce or close an existing position — the order cannot increase the position or open a new one. If the order amount exceeds the current position size, the system reduces the order to match — the response returns the adjusted amount. Cannot be combined with `stopLoss` or `takeProfit`. The API returns error code `116` if no open position exists or the order side matches the position direction. See [reduce-only](/glossary#reduce-only).
+
+        stp : typing.Optional[CreateCollateralMarketOrderRequestStp]
+            Self-trade prevention mode. Allowed values: `no` (self-trades allowed), `cb` (cancel both the new and the existing order), `cn` (cancel the new order, keep the existing), `co` (cancel the existing order, place the new one). Default: `no`.
+
+            Legacy values `cancel_both`, `cancel_new`, `cancel_old` are deprecated: the API accepts the legacy values with identical behavior until a deprecation deadline is announced, then rejects the legacy values. Responses always return the abbreviated form, regardless of which variant the request used.
+
+            See [Self-Trade Prevention](/platform/self-trade-prevention).
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -2727,10 +3280,12 @@ class AsyncRawCollateralTradingClient:
                 "market": market,
                 "side": side,
                 "amount": amount,
-                "client_order_id": client_order_id,
+                "clientOrderId": client_order_id,
                 "stopLoss": stop_loss,
                 "takeProfit": take_profit,
                 "positionSide": position_side,
+                "reduceOnly": reduce_only,
+                "stp": stp,
                 "request": request,
                 "nonce": nonce,
             },
@@ -2786,43 +3341,86 @@ class AsyncRawCollateralTradingClient:
         price: str,
         activation_price: str,
         request: str,
-        nonce: str,
+        nonce: int,
         stop_loss: typing.Optional[str] = OMIT,
         take_profit: typing.Optional[str] = OMIT,
         client_order_id: typing.Optional[str] = OMIT,
         position_side: typing.Optional[CreateCollateralStopLimitOrderRequestPositionSide] = OMIT,
+        reduce_only: typing.Optional[bool] = OMIT,
+        stp: typing.Optional[CreateCollateralStopLimitOrderRequestStp] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[CreateCollateralStopLimitOrderResponse]:
         """
-        The endpoint creates a collateral stop-limit order.
+        The endpoint creates a collateral [stop-limit order](/glossary#stop-limit-order) using [collateral balance](/glossary#balance-collateral). The order remains inactive until the market price reaches `activation_price`, then places a limit order at `price`. Optionally attach `stopLoss` and `takeProfit` prices to create an [OTO](/glossary#one-triggers-the-other-oto) order that activates after the stop-limit order fills.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
         </Warning>
 
+        <Accordion title="Error Codes">
+          - `30` - default validation error code. Also returned when `reduceOnly=true` is combined with `stopLoss` or `takeProfit`
+          - `31` - market validation failed
+          - `32` - amount validation failed
+          - `33` - price validation failed
+          - `36` - clientOrderId validation failed
+          - `10` - insufficient balance to place the order
+          - `111` - resulting position would exceed the market maximum
+          - `112` - pending orders value would exceed the allowed maximum
+          - `113` - position side cannot be changed while open positions or orders exist
+          - `114` - hedge mode position side does not match (sent `BOTH` or omitted `positionSide` in hedge mode, or sent `LONG`/`SHORT` in one-way mode)
+          - `115` - order would open a position in the opposite direction (one-way mode)
+          - `116` - reduce-only validation failed (no position exists or order side matches position direction)
+        </Accordion>
+
         Parameters
         ----------
         market : str
+            Available margin [market](/glossary#market). Example: BTC_USDT
 
         side : CreateCollateralStopLimitOrderRequestSide
+            Order direction. Use `buy` to open or increase a long position and `sell` to open or increase a short position.
 
         amount : str
+            Amount of [stock](/glossary#stock) currency to buy or sell. Minimum and step values are market-dependent — query the [market info](/api-reference/market-data/market-info) endpoint for constraints.
 
         price : str
+            Limit order price in [money](/glossary#money) currency. The order executes at the specified price or better after activation.
 
         activation_price : str
+            Trigger price in [money](/glossary#money) currency. The stop-limit order activates when the market price reaches the specified value.
 
         request : str
 
-        nonce : str
+        nonce : int
 
         stop_loss : typing.Optional[str]
+            Stop loss price.
+
+            When provided, the system creates an [OTO](/glossary#one-triggers-the-other-oto) order with a stop loss condition.
 
         take_profit : typing.Optional[str]
+            Take profit price.
+
+            When provided, the system creates an [OTO](/glossary#one-triggers-the-other-oto) order with a take profit condition.
 
         client_order_id : typing.Optional[str]
+            Custom client order identifier. Uniqueness is enforced only among the account's open (pending) orders on the same market — once a previous order is filled or canceled, the same identifier can be reused, including on the same market. Contains only letters, numbers, dashes, dots, or underscores.
 
         position_side : typing.Optional[CreateCollateralStopLimitOrderRequestPositionSide]
+            Position direction. Optional at the request layer but functionally required when hedge mode is enabled. See [positionSide](/glossary#position-side).
+
+            - **One-way mode** (default account mode): the field is ignored. Orders always use `BOTH`, and the response returns `positionSide: "BOTH"` whether the field is sent or omitted.
+            - **Hedge mode**: the field MUST be `LONG` or `SHORT`. Sending `BOTH`, omitting the field, or sending a value that does not match the account's mode causes the trade service to reject the order with error code `114` (`Hedge mode position side does not match`).
+
+        reduce_only : typing.Optional[bool]
+            When `true`, the order can only reduce or close an existing position — the order cannot increase the position or open a new one. If the order amount exceeds the current position size, the system reduces the order to match — the response returns the adjusted amount. Cannot be combined with `stopLoss` or `takeProfit`. The API returns error code `116` if no open position exists or the order side matches the position direction. See [reduce-only](/glossary#reduce-only).
+
+        stp : typing.Optional[CreateCollateralStopLimitOrderRequestStp]
+            Self-trade prevention mode. Allowed values: `no` (self-trades allowed), `cb` (cancel both the new and the existing order), `cn` (cancel the new order, keep the existing), `co` (cancel the existing order, place the new one). Default: `no`.
+
+            Legacy values `cancel_both`, `cancel_new`, `cancel_old` are deprecated: the API accepts the legacy values with identical behavior until a deprecation deadline is announced, then rejects the legacy values. Responses always return the abbreviated form, regardless of which variant the request used.
+
+            See [Self-Trade Prevention](/platform/self-trade-prevention).
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -2844,8 +3442,10 @@ class AsyncRawCollateralTradingClient:
                 "activation_price": activation_price,
                 "stopLoss": stop_loss,
                 "takeProfit": take_profit,
-                "client_order_id": client_order_id,
+                "clientOrderId": client_order_id,
                 "positionSide": position_side,
+                "reduceOnly": reduce_only,
+                "stp": stp,
                 "request": request,
                 "nonce": nonce,
             },
@@ -2911,41 +3511,82 @@ class AsyncRawCollateralTradingClient:
         amount: str,
         activation_price: str,
         request: str,
-        nonce: str,
+        nonce: int,
         client_order_id: typing.Optional[str] = OMIT,
         stop_loss: typing.Optional[str] = OMIT,
         take_profit: typing.Optional[str] = OMIT,
         position_side: typing.Optional[CreateCollateralTriggerMarketOrderRequestPositionSide] = OMIT,
+        reduce_only: typing.Optional[bool] = OMIT,
+        stp: typing.Optional[CreateCollateralTriggerMarketOrderRequestStp] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[CreateCollateralTriggerMarketOrderResponse]:
         """
-        The endpoint creates a collateral trigger market order.
+        The endpoint creates a collateral trigger [market order](/glossary#market-order) using [collateral balance](/glossary#balance-collateral). The order remains inactive until the market price reaches `activation_price`, then executes immediately at the best available market price. Optionally attach `stopLoss` and `takeProfit` prices to create an [OTO](/glossary#one-triggers-the-other-oto) order that activates after the trigger market order fills.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
         </Warning>
 
+        <Accordion title="Error Codes">
+          - `30` - default validation error code. Also returned when `reduceOnly=true` is combined with `stopLoss` or `takeProfit`
+          - `31` - market validation failed
+          - `32` - amount validation failed
+          - `36` - clientOrderId validation failed
+          - `10` - insufficient balance to place the order
+          - `111` - resulting position would exceed the market maximum
+          - `112` - pending orders value would exceed the allowed maximum
+          - `113` - position side cannot be changed while open positions or orders exist
+          - `114` - hedge mode position side does not match (sent `BOTH` or omitted `positionSide` in hedge mode, or sent `LONG`/`SHORT` in one-way mode)
+          - `115` - order would open a position in the opposite direction (one-way mode)
+          - `116` - reduce-only validation failed (no position exists or order side matches position direction)
+        </Accordion>
+
         Parameters
         ----------
         market : str
+            Available margin [market](/glossary#market). Example: BTC_USDT
 
         side : CreateCollateralTriggerMarketOrderRequestSide
+            Order direction. Use `buy` to open or increase a long position and `sell` to open or increase a short position.
 
         amount : str
+            Amount of [stock](/glossary#stock) currency to buy or sell. Minimum and step values are market-dependent — query the [market info](/api-reference/market-data/market-info) endpoint for constraints.
 
         activation_price : str
+            Trigger price in [money](/glossary#money) currency. The trigger market order activates when the market price reaches the specified value.
 
         request : str
 
-        nonce : str
+        nonce : int
 
         client_order_id : typing.Optional[str]
+            Custom client order identifier. Uniqueness is enforced only among the account's open (pending) orders on the same market — once a previous order is filled or canceled, the same identifier can be reused, including on the same market. Contains only letters, numbers, dashes, dots, or underscores.
 
         stop_loss : typing.Optional[str]
+            Stop loss price.
+
+            When provided, the system creates an [OTO](/glossary#one-triggers-the-other-oto) order with a stop loss condition.
 
         take_profit : typing.Optional[str]
+            Take profit price.
+
+            When provided, the system creates an [OTO](/glossary#one-triggers-the-other-oto) order with a take profit condition.
 
         position_side : typing.Optional[CreateCollateralTriggerMarketOrderRequestPositionSide]
+            Position direction. Optional at the request layer but functionally required when hedge mode is enabled. See [positionSide](/glossary#position-side).
+
+            - **One-way mode** (default account mode): the field is ignored. Orders always use `BOTH`, and the response returns `positionSide: "BOTH"` whether the field is sent or omitted.
+            - **Hedge mode**: the field MUST be `LONG` or `SHORT`. Sending `BOTH`, omitting the field, or sending a value that does not match the account's mode causes the trade service to reject the order with error code `114` (`Hedge mode position side does not match`).
+
+        reduce_only : typing.Optional[bool]
+            When `true`, the order can only reduce or close an existing position — the order cannot increase the position or open a new one. If the order amount exceeds the current position size, the system reduces the order to match — the response returns the adjusted amount. Cannot be combined with `stopLoss` or `takeProfit`. The API returns error code `116` if no open position exists or the order side matches the position direction. See [reduce-only](/glossary#reduce-only).
+
+        stp : typing.Optional[CreateCollateralTriggerMarketOrderRequestStp]
+            Self-trade prevention mode. Allowed values: `no` (self-trades allowed), `cb` (cancel both the new and the existing order), `cn` (cancel the new order, keep the existing), `co` (cancel the existing order, place the new one). Default: `no`.
+
+            Legacy values `cancel_both`, `cancel_new`, `cancel_old` are deprecated: the API accepts the legacy values with identical behavior until a deprecation deadline is announced, then rejects the legacy values. Responses always return the abbreviated form, regardless of which variant the request used.
+
+            See [Self-Trade Prevention](/platform/self-trade-prevention).
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -2964,10 +3605,12 @@ class AsyncRawCollateralTradingClient:
                 "side": side,
                 "amount": amount,
                 "activation_price": activation_price,
-                "client_order_id": client_order_id,
+                "clientOrderId": client_order_id,
                 "stopLoss": stop_loss,
                 "takeProfit": take_profit,
                 "positionSide": position_side,
+                "reduceOnly": reduce_only,
+                "stp": stp,
                 "request": request,
                 "nonce": nonce,
             },
@@ -3018,11 +3661,11 @@ class AsyncRawCollateralTradingClient:
         self,
         *,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[CollateralAccountSummaryResponse]:
         """
-        The endpoint retrieves collateral account summary.
+        The endpoint returns a collateral account summary including total equity, used margin, free margin, unrealized profit and loss, and the current leverage level. The `marginFraction` field indicates the ratio of used margin to total equity.
 
         <Warning>
         Rate limit: 12000 requests/10 sec.
@@ -3032,7 +3675,7 @@ class AsyncRawCollateralTradingClient:
         ----------
         request : typing.Optional[str]
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -3098,15 +3741,19 @@ class AsyncRawCollateralTradingClient:
         *,
         market: typing.Optional[str] = OMIT,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[typing.List[GetOpenPositionsResponseItem]]:
         """
-        The endpoint retrieves open positions.
+        The endpoint returns all open [collateral](/glossary#balance-collateral) positions for the authenticated account. Each position includes entry price, unrealized PnL, margin allocation, liquidation price, and take-profit/stop-loss configuration. Use the optional `market` parameter to filter results to a single trading pair.
 
         <Warning>
         Rate limit: 12000 requests/10 sec.
         </Warning>
+
+        <Accordion title="Error Codes">
+          - `30` - default validation error code (returned when the optional `market` filter is malformed)
+        </Accordion>
 
         Parameters
         ----------
@@ -3118,7 +3765,7 @@ class AsyncRawCollateralTradingClient:
         request : typing.Optional[str]
             Request signature
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
             Unique request identifier
 
         request_options : typing.Optional[RequestOptions]
@@ -3130,7 +3777,7 @@ class AsyncRawCollateralTradingClient:
             Successful response - returns array of open positions
         """
         _response = await self._client_wrapper.httpx_client.request(
-            "api/v4/collateral-account/positions",
+            "api/v4/collateral-account/positions/open",
             base_url=self._client_wrapper.get_environment().base,
             method="POST",
             json={
@@ -3187,28 +3834,37 @@ class AsyncRawCollateralTradingClient:
         position_id: int,
         market: str,
         request: str,
-        nonce: str,
+        nonce: int,
         position_side: typing.Optional[ClosePositionRequestPositionSide] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[None]:
         """
-        The endpoint closes a position.
+        The endpoint closes an open [collateral](/glossary#balance-collateral) position at the current market price. The system places a market order in the opposite direction to fully close the specified position. Any attached take-profit or stop-loss orders are cancelled automatically.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
         </Warning>
 
+        <Accordion title="Error Codes">
+          - `30` - default validation error code (for example, a missing or malformed `positionId` or `market`)
+          - `104` - position not found. Returned whether the `positionId` does not exist, the position is already closed, or it is not owned by the account — these cases are not distinguished
+          - `10` - insufficient balance to fund the closing market order
+        </Accordion>
+
         Parameters
         ----------
         position_id : int
+            Unique identifier of the position to close. Obtain from the [open positions](/api-reference/collateral-trading/open-positions) endpoint.
 
         market : str
+            Market of the position to close. Example: BTC_USDT
 
         request : str
 
-        nonce : str
+        nonce : int
 
         position_side : typing.Optional[ClosePositionRequestPositionSide]
+            Defines the position direction when hedge mode is enabled. See [positionSide](/glossary#position-side)
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -3291,26 +3947,50 @@ class AsyncRawCollateralTradingClient:
         *,
         market: typing.Optional[str] = OMIT,
         position_id: typing.Optional[int] = OMIT,
+        start_date: typing.Optional[int] = OMIT,
+        end_date: typing.Optional[int] = OMIT,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[typing.List[GetPositionsHistoryResponseItem]]:
         """
-        The endpoint retrieves positions history.
+        The endpoint returns the history of [collateral](/glossary#balance-collateral) position state changes for the authenticated account. Each record represents a position event (open, partial close, full close, or liquidation) and includes the order details that triggered the change. Use the optional `market` and `positionId` parameters to filter results.
 
         <Warning>
         Rate limit: 12000 requests/10 sec.
         </Warning>
 
+        <Accordion title="Error Codes">
+          - `30` - default validation error code (invalid pagination — `limit` outside 1–100 or negative `offset` — or a date filter that violates `startDate` ≤ `endDate` ≤ `now + 1s`)
+        </Accordion>
+
+        <Note>
+        **Date filter window:** `startDate` and `endDate` are optional and have no defaults. The endpoint enforces no maximum window and no lower-bound floor. The only ordering constraint is `startDate` ≤ `endDate` ≤ `now + 1s` — requests that violate the ordering are rejected with a validation error.
+        </Note>
+
+        <Warning>
+        **Breaking change — April 29, 2026.** The `positionSide` field is no longer returned in the Position History response. Use `side` (same enum: `LONG`, `SHORT`, `BOTH`) plus `isHedge` (boolean) instead. Integrations reading `positionSide` from `/api/v4/collateral-account/positions/history` must migrate before consuming the new response.
+        </Warning>
+
         Parameters
         ----------
         market : typing.Optional[str]
+            Filter by specific market. Example: BTC_USDT
+
+            If not specified, returns position history for all markets.
 
         position_id : typing.Optional[int]
+            Filter by specific position identifier. If not specified, returns history for all positions.
+
+        start_date : typing.Optional[int]
+            Start of the query window as a Unix timestamp in seconds. Optional, no default. Must be ≤ `endDate`.
+
+        end_date : typing.Optional[int]
+            End of the query window as a Unix timestamp in seconds. Optional, no default. Must be ≥ `startDate` and ≤ `now + 1s`; violating values are rejected with a validation error.
 
         request : typing.Optional[str]
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -3327,6 +4007,8 @@ class AsyncRawCollateralTradingClient:
             json={
                 "market": market,
                 "positionId": position_id,
+                "startDate": start_date,
+                "endDate": end_date,
                 "request": request,
                 "nonce": nonce,
             },
@@ -3402,15 +4084,24 @@ class AsyncRawCollateralTradingClient:
         limit: typing.Optional[int] = OMIT,
         offset: typing.Optional[int] = OMIT,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[GetFundingHistoryResponse]:
         """
-        The endpoint retrieves funding history.
+        The endpoint returns the funding rate payment history for [collateral](/glossary#balance-collateral) positions. Each record includes the funding rate, settlement price, position amount, and the resulting funding payment. Use the optional `market` parameter to filter results to a single trading pair. The response supports pagination via `limit` and `offset` parameters. Results are ordered by funding time (`fundingTime`), newest first.
 
         <Warning>
         Rate limit: 12000 requests/10 sec.
         </Warning>
+
+        <Note>
+        This endpoint supports pagination. Use `limit` (default: 100) and `offset` (default: 0) to page through results. The response does not include a `total` field — detect the last page when `records.length < limit`. An empty `records` array means you have paged past the end; receiving exactly `limit` records does not guarantee that another page exists.
+        </Note>
+
+        <Accordion title="Error Codes">
+          - `30` - default validation error code (invalid pagination — `limit` outside 1–100 or negative `offset`)
+          - `31` - market validation failed (the `market` filter is unknown or not available for collateral trading)
+        </Accordion>
 
         Parameters
         ----------
@@ -3428,7 +4119,7 @@ class AsyncRawCollateralTradingClient:
         request : typing.Optional[str]
             Request signature
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
             Unique request identifier
 
         request_options : typing.Optional[RequestOptions]
@@ -3494,22 +4185,39 @@ class AsyncRawCollateralTradingClient:
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def change_collateral_account_leverage(
-        self, *, leverage: int, request: str, nonce: str, request_options: typing.Optional[RequestOptions] = None
+        self, *, leverage: int, request: str, nonce: int, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[ChangeCollateralAccountLeverageResponse]:
         """
-        The endpoint changes account leverage.
+        The endpoint changes the leverage level for the [collateral](/glossary#balance-collateral) trading account. Leverage determines the ratio of borrowed funds to collateral and directly affects margin requirements and liquidation thresholds. Accepted values: `1`, `2`, `3`, `5`, `10`, `20`, `50`, `100`.
+
+        Each leverage level has a corresponding bracket defining the maximum position size for the tier. When a position exceeds the bracket limit, the system applies higher tiers with progressively lower leverage. Query market-specific brackets via `GET /api/v4/public/futures`.
 
         <Warning>
         Rate limit: 1000 requests/10 sec.
         </Warning>
 
+        <Note>
+        A market's `max_leverage` field (from `GET /api/v4/public/futures`) may be lower than `100`. Setting leverage above a market's maximum results in an error.
+        </Note>
+
+        <Warning>
+        Changing leverage affects **all open positions** across margin and futures trading. Decreasing leverage increases margin requirements — if available funds are insufficient to support the new level, the request returns an error.
+        </Warning>
+
+        <Accordion title="Error Codes">
+          - `30` - invalid `leverage` value (out of range, non-integer, or wrong type). Setting leverage above a market's `max_leverage` also surfaces here as an out-of-range value
+          - `17` - the requested leverage is valid but available balance is insufficient to support it
+          - `113` - leverage cannot be changed while open positions or orders exist
+        </Accordion>
+
         Parameters
         ----------
         leverage : int
+            Target leverage level. Accepted values: `1`, `2`, `3`, `5`, `10`, `20`, `50`, `100`. The effective maximum depends on the market's `max_leverage`.
 
         request : str
 
-        nonce : str
+        nonce : int
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -3575,11 +4283,11 @@ class AsyncRawCollateralTradingClient:
         self,
         *,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[GetCollateralHedgeModeResponse]:
         """
-        The endpoint retrieves hedge mode status.
+        The endpoint returns the current [hedge mode](/glossary#hedge-mode) status for the collateral trading account. When hedge mode is enabled (`true`), the account supports simultaneous long and short positions on the same market. When disabled (`false`), the account operates in one-way mode.
 
         <Warning>
         Rate limit: 12000 requests/10 sec.
@@ -3589,7 +4297,7 @@ class AsyncRawCollateralTradingClient:
         ----------
         request : typing.Optional[str]
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -3662,22 +4370,32 @@ class AsyncRawCollateralTradingClient:
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def update_hedge_mode(
-        self, *, hedge_mode: bool, request: str, nonce: str, request_options: typing.Optional[RequestOptions] = None
+        self, *, hedge_mode: bool, request: str, nonce: int, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[None]:
         """
-        The endpoint updates hedge mode.
+        The endpoint enables or disables [hedge mode](/glossary#hedge-mode) for the collateral trading account. When hedge mode is enabled (`true`), the account supports simultaneous long and short positions on the same market. When disabled (`false`), the account operates in one-way mode.
 
         <Warning>
         Rate limit: 1000 requests/10 sec.
         </Warning>
 
+        <Warning>
+        Switching between one-way mode and hedge mode requires **no open positions**. Close all futures positions before toggling the mode. If the switch does not take effect immediately after closing positions, wait approximately 15 seconds and retry.
+        </Warning>
+
+        <Accordion title="Error Codes">
+          - `30` - default validation error code (for example, a missing or non-boolean `hedgeMode` value)
+          - `113` - hedge mode cannot be changed while open positions or orders exist
+        </Accordion>
+
         Parameters
         ----------
         hedge_mode : bool
+            Set to `true` to enable hedge mode (simultaneous long and short positions) or `false` to use one-way mode.
 
         request : str
 
-        nonce : str
+        nonce : int
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -3742,6 +4460,85 @@ class AsyncRawCollateralTradingClient:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
+    async def get_collateral_account_adl_quantile(
+        self, *, request: str, nonce: int, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[typing.List[GetCollateralAccountAdlQuantileResponseItem]]:
+        """
+        The endpoint returns the [Auto-Deleveraging (ADL)](/glossary#auto-deleveraging-adl) quantile for each perpetual market in which the authenticated account holds an open position. Each entry exposes the deleveraging-priority value for the long and short sides of the position, where `0` indicates the lowest deleveraging priority and `4` indicates the highest. The endpoint returns an empty array when the account has no perpetual positions.
+
+        <Warning>
+        Rate limit: 12000 requests/10 sec.
+        </Warning>
+
+        <Note>
+        Only perpetual markets (markets with the `_PERP` suffix) are returned. Spot and margin markets are not included.
+        </Note>
+
+        Parameters
+        ----------
+        request : str
+
+        nonce : int
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[typing.List[GetCollateralAccountAdlQuantileResponseItem]]
+            Successful response — returns array of per-market ADL quantile entries
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "api/v4/collateral-account/adl-quantile",
+            base_url=self._client_wrapper.get_environment().base,
+            method="POST",
+            json={
+                "request": request,
+                "nonce": nonce,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.List[GetCollateralAccountAdlQuantileResponseItem],
+                    parse_obj_as(
+                        type_=typing.List[GetCollateralAccountAdlQuantileResponseItem],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 503:
+                raise ServiceUnavailableError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
     async def get_conditional_orders(
         self,
         *,
@@ -3749,27 +4546,37 @@ class AsyncRawCollateralTradingClient:
         offset: typing.Optional[int] = OMIT,
         limit: typing.Optional[int] = OMIT,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[GetConditionalOrdersResponse]:
         """
-        The endpoint retrieves active conditional orders.
+        The endpoint returns active (unexecuted) conditional orders for the authenticated account. Conditional orders include [OCO](/glossary#one-cancels-the-other-oco) and [OTO](/glossary#one-triggers-the-other-oto) types. The response uses polymorphic structure — each record contains a `type` field (`oco` or `oto`) that determines the record shape. Use the optional `market` parameter to filter results.
 
         <Warning>
         Rate limit: 12000 requests/10 sec.
         </Warning>
 
+        <Accordion title="Error Codes">
+          - `30` - default validation error code (invalid pagination — `limit` outside 1–100 or negative `offset`)
+          - `31` - market validation failed (the `market` filter is unknown or not available for collateral trading)
+        </Accordion>
+
         Parameters
         ----------
         market : typing.Optional[str]
+            Filter by specific market. Example: BTC_USDT
+
+            If not specified, returns conditional orders for all markets.
 
         offset : typing.Optional[int]
+            Number of records to skip for pagination.
 
         limit : typing.Optional[int]
+            Maximum number of records to return per page.
 
         request : typing.Optional[str]
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -3780,7 +4587,7 @@ class AsyncRawCollateralTradingClient:
             Successful response - returns paginated conditional orders (OCO and OTO types)
         """
         _response = await self._client_wrapper.httpx_client.request(
-            "api/v4/orders/conditional",
+            "api/v4/conditional-orders",
             base_url=self._client_wrapper.get_environment().base,
             method="POST",
             json={
@@ -3851,27 +4658,41 @@ class AsyncRawCollateralTradingClient:
         offset: typing.Optional[int] = OMIT,
         limit: typing.Optional[int] = OMIT,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[typing.List[GetOcoOrdersResponseItem]]:
         """
-        The endpoint retrieves active OCO orders.
+        The endpoint returns active (unexecuted) [OCO](/glossary#one-cancels-the-other-oco) orders for the authenticated account. Each OCO order contains a `stop_loss` and `take_profit` leg. When one leg executes, the system cancels the other automatically. Use the optional `market` parameter to filter results.
 
         <Warning>
         Rate limit: 12000 requests/10 sec.
         </Warning>
 
+        <Note>
+        This endpoint supports pagination. Use `limit` (default: 50) and `offset` (default: 0) to page through results. The response does not include a `total` field — detect the last page when fewer than `limit` OCO orders are returned. An empty array means you have paged past the end; receiving exactly `limit` orders does not guarantee that another page exists.
+        </Note>
+
+        <Accordion title="Error Codes">
+          - `30` - default validation error code (invalid pagination — `limit` outside 1–100 or negative `offset`)
+          - `31` - market validation failed (the `market` filter is unknown or not available for collateral trading)
+        </Accordion>
+
         Parameters
         ----------
         market : typing.Optional[str]
+            Filter by specific market. Example: BTC_USDT
+
+            If not specified, returns OCO orders for all markets.
 
         offset : typing.Optional[int]
+            Number of records to skip for pagination.
 
         limit : typing.Optional[int]
+            Maximum number of records to return per page.
 
         request : typing.Optional[str]
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -3882,7 +4703,7 @@ class AsyncRawCollateralTradingClient:
             Successful response - returns array of active OCO orders
         """
         _response = await self._client_wrapper.httpx_client.request(
-            "api/v4/orders/oco",
+            "api/v4/oco-orders",
             base_url=self._client_wrapper.get_environment().base,
             method="POST",
             json={
@@ -3956,36 +4777,77 @@ class AsyncRawCollateralTradingClient:
         activation_price: str,
         stop_limit_price: str,
         request: str,
-        nonce: str,
+        nonce: int,
         client_order_id: typing.Optional[str] = OMIT,
+        reduce_only: typing.Optional[bool] = OMIT,
+        position_side: typing.Optional[CreateCollateralOcoOrderRequestPositionSide] = OMIT,
+        stp: typing.Optional[CreateCollateralOcoOrderRequestStp] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[CreateCollateralOcoOrderResponse]:
         """
-        The endpoint creates a collateral OCO order.
+        The endpoint creates a collateral [OCO](/glossary#one-cancels-the-other-oco) (one-cancels-the-other) order using [collateral balance](/glossary#balance-collateral). An OCO order combines a limit order (take-profit leg) and a stop-limit order (stop-loss leg) into a single conditional group. When one leg executes, the system cancels the other automatically.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
         </Warning>
 
+        <Accordion title="Error Codes">
+          - `30` - default validation error code. Also returned when `reduceOnly=true` is combined with `stopLoss` or `takeProfit`
+          - `31` - market validation failed
+          - `32` - amount validation failed
+          - `33` - price validation failed
+          - `36` - clientOrderId validation failed
+          - `10` - insufficient balance to place the order
+          - `111` - resulting position would exceed the market maximum
+          - `112` - pending orders value would exceed the allowed maximum
+          - `113` - position side cannot be changed while open positions or orders exist
+          - `114` - hedge mode position side does not match (sent `BOTH` or omitted `positionSide` in hedge mode, or sent `LONG`/`SHORT` in one-way mode)
+          - `115` - order would open a position in the opposite direction (one-way mode)
+          - `116` - reduce-only validation failed (no position exists or order side matches position direction)
+        </Accordion>
+
         Parameters
         ----------
         market : str
+            Available margin [market](/glossary#market). Example: BTC_USDT
 
         side : CreateCollateralOcoOrderRequestSide
+            Order direction. Use `buy` to open or increase a long position and `sell` to open or increase a short position.
 
         amount : str
+            Amount of [stock](/glossary#stock) currency for both legs of the OCO order. Minimum and step values are market-dependent — query the [market info](/api-reference/market-data/market-info) endpoint for constraints.
 
         price : str
+            Limit order price in [money](/glossary#money) currency for the take-profit leg.
 
         activation_price : str
+            Trigger price in [money](/glossary#money) currency for the stop-loss leg. The stop-limit order activates when the market price reaches the specified value.
 
         stop_limit_price : str
+            Execution price in [money](/glossary#money) currency for the stop-loss leg. After activation, the stop-loss leg places a limit order at the specified price.
 
         request : str
 
-        nonce : str
+        nonce : int
 
         client_order_id : typing.Optional[str]
+            Custom client order identifier. Uniqueness is enforced only among the account's open (pending) orders on the same market — once a previous order is filled or canceled, the same identifier can be reused, including on the same market. Contains only letters, numbers, dashes, dots, or underscores.
+
+        reduce_only : typing.Optional[bool]
+            When `true`, both legs of the OCO order can only reduce or close an existing position — neither leg can increase the position or open a new one. If the order amount exceeds the current position size, the system reduces the order to match — the response returns the adjusted amount. The API returns error code `116` if no open position exists or the order side matches the position direction. See [reduce-only](/glossary#reduce-only).
+
+        position_side : typing.Optional[CreateCollateralOcoOrderRequestPositionSide]
+            Position direction. Optional at the request layer but functionally required when hedge mode is enabled. See [positionSide](/glossary#position-side). Both legs of the OCO inherit the value.
+
+            - **One-way mode** (default account mode): the field is ignored. Orders always use `BOTH`, and the response returns `positionSide: "BOTH"` on each leg whether the field is sent or omitted.
+            - **Hedge mode**: the field MUST be `LONG` or `SHORT`. Sending `BOTH`, omitting the field, or sending a value that does not match the account's mode causes the trade service to reject the order with error code `114` (`Hedge mode position side does not match`).
+
+        stp : typing.Optional[CreateCollateralOcoOrderRequestStp]
+            Self-trade prevention mode. The value applies to both legs of the OCO order. Allowed values: `no` (self-trades allowed), `cb` (cancel both the new and the existing order), `cn` (cancel the new order, keep the existing), `co` (cancel the existing order, place the new one). Default: `no`.
+
+            Legacy values `cancel_both`, `cancel_new`, `cancel_old` are deprecated: the API accepts the legacy values with identical behavior until a deprecation deadline is announced, then rejects the legacy values. Responses always return the abbreviated form, regardless of which variant the request used.
+
+            See [Self-Trade Prevention](/platform/self-trade-prevention).
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -4006,7 +4868,10 @@ class AsyncRawCollateralTradingClient:
                 "price": price,
                 "activation_price": activation_price,
                 "stop_limit_price": stop_limit_price,
-                "client_order_id": client_order_id,
+                "clientOrderId": client_order_id,
+                "reduceOnly": reduce_only,
+                "positionSide": position_side,
+                "stp": stp,
                 "request": request,
                 "nonce": nonce,
             },
@@ -4065,24 +4930,44 @@ class AsyncRawCollateralTradingClient:
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def cancel_conditional_order(
-        self, *, market: str, id: int, request: str, nonce: str, request_options: typing.Optional[RequestOptions] = None
+        self, *, market: str, id: int, request: str, nonce: int, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[None]:
         """
-        The endpoint cancels a conditional order.
+        The endpoint cancels an active conditional order ([OCO](/glossary#one-cancels-the-other-oco) or [OTO](/glossary#one-triggers-the-other-oto)) on the specified market. Both legs of the conditional order are cancelled. Use the [query unexecuted conditional orders](/api-reference/collateral-trading/query-unexecuted-conditional-orders) endpoint to obtain the conditional order `id` before cancellation.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
         </Warning>
 
+        <Accordion title="Error Codes">
+          - `30` - default validation error code
+          - `31` - market validation failed
+          - `2` - conditional order not found. Returned whether the `id` does not exist, or the order was already filled or already cancelled — these cases are not distinguished
+        </Accordion>
+
+        <Accordion title="Errors">
+        ```json
+        {
+          "code": 2,
+          "message": "Inner validation failed",
+          "errors": {
+            "id": ["Unexecuted order was not found."]
+          }
+        }
+        ```
+        </Accordion>
+
         Parameters
         ----------
         market : str
+            Market of the conditional order to cancel. Example: BTC_USDT
 
         id : int
+            Conditional order identifier. Obtain from the [query unexecuted conditional orders](/api-reference/collateral-trading/query-unexecuted-conditional-orders) endpoint.
 
         request : str
 
-        nonce : str
+        nonce : int
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -4154,7 +5039,7 @@ class AsyncRawCollateralTradingClient:
         market: str,
         order_id: int,
         request: str,
-        nonce: str,
+        nonce: int,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[CancelOcoOrderResponse]:
         """
@@ -4164,6 +5049,24 @@ class AsyncRawCollateralTradingClient:
         Rate limit: 10000 requests/10 sec.
         </Warning>
 
+        <Accordion title="Error Codes">
+          - `30` - default validation error code
+          - `31` - market validation failed
+          - `2` - OCO order not found. Returned whether the `orderId` does not exist, or the order was already filled or already cancelled — these cases are not distinguished
+        </Accordion>
+
+        <Accordion title="Errors">
+        ```json
+        {
+          "code": 2,
+          "message": "Inner validation failed",
+          "errors": {
+            "orderId": ["Unexecuted order was not found."]
+          }
+        }
+        ```
+        </Accordion>
+
         Parameters
         ----------
         market : str
@@ -4172,7 +5075,7 @@ class AsyncRawCollateralTradingClient:
 
         request : str
 
-        nonce : str
+        nonce : int
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -4188,7 +5091,7 @@ class AsyncRawCollateralTradingClient:
             method="POST",
             json={
                 "market": market,
-                "order_id": order_id,
+                "orderId": order_id,
                 "request": request,
                 "nonce": nonce,
             },
@@ -4252,7 +5155,7 @@ class AsyncRawCollateralTradingClient:
         market: str,
         oto_id: int,
         request: str,
-        nonce: str,
+        nonce: int,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[None]:
         """
@@ -4262,6 +5165,24 @@ class AsyncRawCollateralTradingClient:
         Rate limit: 10000 requests/10 sec.
         </Warning>
 
+        <Accordion title="Error Codes">
+          - `30` - default validation error code
+          - `31` - market validation failed
+          - `2` - OTO order not found. Returned whether the `otoId` does not exist, or the order was already filled or already cancelled — these cases are not distinguished
+        </Accordion>
+
+        <Accordion title="Errors">
+        ```json
+        {
+          "code": 2,
+          "message": "Inner validation failed",
+          "errors": {
+            "otoId": ["Unexecuted order was not found."]
+          }
+        }
+        ```
+        </Accordion>
+
         Parameters
         ----------
         market : str
@@ -4270,7 +5191,7 @@ class AsyncRawCollateralTradingClient:
 
         request : str
 
-        nonce : str
+        nonce : int
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.

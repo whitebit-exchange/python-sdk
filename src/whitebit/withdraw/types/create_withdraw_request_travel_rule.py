@@ -3,43 +3,46 @@
 import typing
 
 import pydantic
+import typing_extensions
 from ...core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
-from .create_withdraw_request_travel_rule_type import CreateWithdrawRequestTravelRuleType
+from ...core.serialization import FieldMetadata
+from .create_withdraw_request_travel_rule_beneficiary import CreateWithdrawRequestTravelRuleBeneficiary
+from .create_withdraw_request_travel_rule_vasp_data import CreateWithdrawRequestTravelRuleVaspData
+from .create_withdraw_request_travel_rule_wallet_type import CreateWithdrawRequestTravelRuleWalletType
 
 
 class CreateWithdrawRequestTravelRule(UniversalBaseModel):
     """
-    Travel Rule information data array.
+    Travel Rule information for regulatory compliance.
 
     ⚠️ Required if currency is crypto and the account is from [EEA](/glossary#european-economic-area-eea)
+
+    See [Travel Rule Overview](/api-reference/travel-rule/overview) for complete documentation.
+
+    **Legacy format:** The API still accepts the old flat format (`type`, `vasp`, `name`, `address` fields), but this format will not pass Travel Rule verification. To complete Travel Rule compliance, use the new structured format with `walletType`, `beneficiary`, and `vasp` objects.
     """
 
-    type: typing.Optional[CreateWithdrawRequestTravelRuleType] = pydantic.Field(default=None)
+    wallet_type: typing_extensions.Annotated[
+        typing.Optional[CreateWithdrawRequestTravelRuleWalletType], FieldMetadata(alias="walletType")
+    ] = pydantic.Field(default=None)
     """
-    Travel rule receiver type. Values: "individual" or "entity"
+    Destination wallet type:
+    - `hosted` - VASP-hosted wallet (exchange, custodian). Requires `vasp` object.
+    - `unhosted` - Self-custody wallet (hardware, software). No `vasp` required.
+    """
+
+    beneficiary: typing.Optional[CreateWithdrawRequestTravelRuleBeneficiary] = pydantic.Field(default=None)
+    """
+    Beneficiary information.
+    """
+
+    vasp_data: typing_extensions.Annotated[
+        typing.Optional[CreateWithdrawRequestTravelRuleVaspData], FieldMetadata(alias="vaspData")
+    ] = pydantic.Field(default=None)
+    """
+    VASP (Virtual Asset Service Provider) information. Required if `walletType` is `hosted`.
     
-    ⚠️ Required if currency is crypto and the account is from [EEA](/glossary#european-economic-area-eea)
-    """
-
-    vasp: typing.Optional[str] = pydantic.Field(default=None)
-    """
-    Travel rule destination platform (VASP) name.
-    
-    ⚠️ Required if currency is crypto and the account is from [EEA](/glossary#european-economic-area-eea)
-    """
-
-    name: typing.Optional[str] = pydantic.Field(default=None)
-    """
-    Travel rule. If individual - first_name ; if entity - entity_name
-    
-    ⚠️ Required if currency is crypto and the account is from [EEA](/glossary#european-economic-area-eea)
-    """
-
-    address: typing.Optional[str] = pydantic.Field(default=None)
-    """
-    Travel rule. If individual - last_name ; if entity - entity_address
-    
-    ⚠️ Required if currency is crypto and the account is from [EEA](/glossary#european-economic-area-eea)
+    Use `vaspId` if the destination VASP is in the list from [Get VASPs](/api-reference/travel-rule/get-vasps), otherwise use `vaspName`.
     """
 
     if IS_PYDANTIC_V2:

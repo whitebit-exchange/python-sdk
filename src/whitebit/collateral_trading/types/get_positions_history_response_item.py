@@ -8,7 +8,7 @@ from ...core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 from ...core.serialization import FieldMetadata
 from .get_positions_history_response_item_liquidation_state import GetPositionsHistoryResponseItemLiquidationState
 from .get_positions_history_response_item_order_detail import GetPositionsHistoryResponseItemOrderDetail
-from .get_positions_history_response_item_position_side import GetPositionsHistoryResponseItemPositionSide
+from .get_positions_history_response_item_side import GetPositionsHistoryResponseItemSide
 
 
 class GetPositionsHistoryResponseItem(UniversalBaseModel):
@@ -78,11 +78,16 @@ class GetPositionsHistoryResponseItem(UniversalBaseModel):
     Details of order which changes position
     """
 
-    position_side: typing_extensions.Annotated[
-        typing.Optional[GetPositionsHistoryResponseItemPositionSide], FieldMetadata(alias="positionSide")
-    ] = pydantic.Field(default=None)
+    side: typing.Optional[GetPositionsHistoryResponseItemSide] = pydantic.Field(default=None)
     """
-    Position side
+    Position direction. `BOTH` indicates a one-way mode position; `LONG` or `SHORT` indicates a hedge mode position. See [position side](/glossary#position-side).
+    """
+
+    is_hedge: typing_extensions.Annotated[typing.Optional[bool], FieldMetadata(alias="isHedge")] = pydantic.Field(
+        default=None
+    )
+    """
+    Indicates whether [hedge mode](/glossary#hedge-mode) was active when the position was opened. Hedge-mode toggling requires zero open positions, so the value also reflects the account mode at every event in the position's lifetime.
     """
 
     if IS_PYDANTIC_V2:

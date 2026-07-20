@@ -5,10 +5,11 @@ import typing
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2
 from .base_request import BaseRequest
+from .ping_request_method import PingRequestMethod
 
 
 class PingRequest(BaseRequest):
-    method: typing.Optional[typing.Literal["ping"]] = pydantic.Field(default=None)
+    method: typing.Optional[PingRequestMethod] = pydantic.Field(default=None)
     """
     Method name. Fixed value: `ping`.
     """

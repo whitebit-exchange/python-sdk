@@ -22,17 +22,17 @@ class GetApiV4PublicTradesMarketResponseItem(UniversalBaseModel):
 
     quote_volume: str = pydantic.Field()
     """
-    Transaction amount in quote pair volume.
+    Transaction amount in the quote (stock) currency. In a BTC_USDT market, the value is the BTC amount. Note: WhiteBIT uses a reversed naming convention compared to standard exchange terminology — the stock/asset currency is called 'quote' here.
     """
 
     base_volume: str = pydantic.Field()
     """
-    Transaction amount in base pair volume.
+    Transaction amount in the base (money) currency. In a BTC_USDT market, the value is the USDT amount. Note: WhiteBIT uses a reversed naming convention compared to standard exchange terminology — the settlement/pricing currency is called 'base' here.
     """
 
     trade_timestamp: int = pydantic.Field()
     """
-    Unix timestamp in milliseconds, identifies when the transaction occurred.
+    Unix timestamp in seconds (UTC). Identifies when the transaction occurred.
     """
 
     type: GetApiV4PublicTradesMarketResponseItemType = pydantic.Field()

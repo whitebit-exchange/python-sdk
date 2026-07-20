@@ -35,7 +35,7 @@ class CodesClient:
         ticker: str,
         amount: str,
         request: str,
-        nonce: str,
+        nonce: int,
         passphrase: typing.Optional[str] = OMIT,
         description: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
@@ -57,19 +57,19 @@ class CodesClient:
             Currency's [ticker](/glossary#ticker). Example: BTC
 
         amount : str
-            Amount to transfer. Max [precision](/glossary#precision) = 8, value must be greater than zero and less than or equal to the [main balance](/glossary#balance-main).
+            Amount to transfer. Up to 18 decimal places, value greater than zero and capped at 1e17 (10^17), and not exceeding the [main balance](/glossary#balance-main).
 
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         passphrase : typing.Optional[str]
             Passphrase for applying [WhiteBIT codes](/glossary#whitebit-codes). Passphrase must contain only latin letters, numbers and symbols (like !@#$%^, no whitespaces). Max: 25 symbols.
 
         description : typing.Optional[str]
-            Additional text description for [code](/glossary#whitebit-codes). Visible only for creator. Max: 75 symbols.
+            Additional text description for [code](/glossary#whitebit-codes). Visible only for creator. Max: 280 symbols.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -82,8 +82,8 @@ class CodesClient:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
-        client.codes.create_code(ticker='ETH', amount='0.002', passphrase='some passphrase', description='some description', request='{{request}}', nonce='{{nonce}}', )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
+        client.codes.create_code(ticker='ETH', amount='0.002', passphrase='some passphrase', description='some description', request='{{request}}', nonce=1594297865000, )
         """
         _response = self._raw_client.create_code(
             ticker=ticker,
@@ -101,7 +101,7 @@ class CodesClient:
         *,
         code: str,
         request: str,
-        nonce: str,
+        nonce: int,
         passphrase: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> ApplyCodeResponse:
@@ -116,6 +116,13 @@ class CodesClient:
         The API does not cache the response.
         </Note>
 
+        <Note>
+        To avoid leaking whether a code exists, most failure modes — invalid format, expired,
+        non-existent, or wrong passphrase — collapse to one generic rejection on field `code`.
+        Only two cases are distinguishable at the API surface: a code that has already been
+        applied, and a code created by the same account.
+        </Note>
+
         Parameters
         ----------
         code : str
@@ -124,7 +131,7 @@ class CodesClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         passphrase : typing.Optional[str]
@@ -141,8 +148,8 @@ class CodesClient:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
-        client.codes.apply_code(code='WBe11f4fce-2a53-4edc-b195-66b693bd77e3ETH', passphrase='some passphrase', request='{{request}}', nonce='{{nonce}}', )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
+        client.codes.apply_code(code='WBe11f4fce-2a53-4edc-b195-66b693bd77e3ETH', passphrase='some passphrase', request='{{request}}', nonce=1594297865000, )
         """
         _response = self._raw_client.apply_code(
             code=code, request=request, nonce=nonce, passphrase=passphrase, request_options=request_options
@@ -153,7 +160,7 @@ class CodesClient:
         self,
         *,
         request: str,
-        nonce: str,
+        nonce: int,
         limit: typing.Optional[int] = OMIT,
         offset: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
@@ -169,12 +176,16 @@ class CodesClient:
         The API does not cache the response.
         </Note>
 
+        <Note>
+        Results are sorted by creation date, newest first. Pagination is capped at `offset + limit ≤ 10000`; for a complete history export beyond the cap, use the Report on the History page.
+        </Note>
+
         Parameters
         ----------
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         limit : typing.Optional[int]
@@ -194,8 +205,8 @@ class CodesClient:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
-        client.codes.get_my_codes(request='{{request}}', nonce='{{nonce}}', )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
+        client.codes.get_my_codes(request='{{request}}', nonce=1594297865000, )
         """
         _response = self._raw_client.get_my_codes(
             request=request, nonce=nonce, limit=limit, offset=offset, request_options=request_options
@@ -206,7 +217,7 @@ class CodesClient:
         self,
         *,
         request: str,
-        nonce: str,
+        nonce: int,
         limit: typing.Optional[int] = OMIT,
         offset: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
@@ -222,12 +233,20 @@ class CodesClient:
         The API does not cache the response.
         </Note>
 
+        <Note>
+        Results are sorted by date, newest first.
+        </Note>
+
+        <Note>
+        **No date filtering:** the endpoint does not accept `startDate` / `endDate` parameters, and pagination is capped at `offset + limit ≤ 10000` (`limit` ≤ 100). For a complete history export beyond the cap, use the Report on the History page.
+        </Note>
+
         Parameters
         ----------
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         limit : typing.Optional[int]
@@ -247,8 +266,8 @@ class CodesClient:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
-        client.codes.get_codes_history(request='{{request}}', nonce='{{nonce}}', )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
+        client.codes.get_codes_history(request='{{request}}', nonce=1594297865000, )
         """
         _response = self._raw_client.get_codes_history(
             request=request, nonce=nonce, limit=limit, offset=offset, request_options=request_options
@@ -277,7 +296,7 @@ class AsyncCodesClient:
         ticker: str,
         amount: str,
         request: str,
-        nonce: str,
+        nonce: int,
         passphrase: typing.Optional[str] = OMIT,
         description: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
@@ -299,19 +318,19 @@ class AsyncCodesClient:
             Currency's [ticker](/glossary#ticker). Example: BTC
 
         amount : str
-            Amount to transfer. Max [precision](/glossary#precision) = 8, value must be greater than zero and less than or equal to the [main balance](/glossary#balance-main).
+            Amount to transfer. Up to 18 decimal places, value greater than zero and capped at 1e17 (10^17), and not exceeding the [main balance](/glossary#balance-main).
 
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         passphrase : typing.Optional[str]
             Passphrase for applying [WhiteBIT codes](/glossary#whitebit-codes). Passphrase must contain only latin letters, numbers and symbols (like !@#$%^, no whitespaces). Max: 25 symbols.
 
         description : typing.Optional[str]
-            Additional text description for [code](/glossary#whitebit-codes). Visible only for creator. Max: 75 symbols.
+            Additional text description for [code](/glossary#whitebit-codes). Visible only for creator. Max: 280 symbols.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -325,9 +344,9 @@ class AsyncCodesClient:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
-            await client.codes.create_code(ticker='ETH', amount='0.002', passphrase='some passphrase', description='some description', request='{{request}}', nonce='{{nonce}}', )
+            await client.codes.create_code(ticker='ETH', amount='0.002', passphrase='some passphrase', description='some description', request='{{request}}', nonce=1594297865000, )
         asyncio.run(main())
         """
         _response = await self._raw_client.create_code(
@@ -346,7 +365,7 @@ class AsyncCodesClient:
         *,
         code: str,
         request: str,
-        nonce: str,
+        nonce: int,
         passphrase: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> ApplyCodeResponse:
@@ -361,6 +380,13 @@ class AsyncCodesClient:
         The API does not cache the response.
         </Note>
 
+        <Note>
+        To avoid leaking whether a code exists, most failure modes — invalid format, expired,
+        non-existent, or wrong passphrase — collapse to one generic rejection on field `code`.
+        Only two cases are distinguishable at the API surface: a code that has already been
+        applied, and a code created by the same account.
+        </Note>
+
         Parameters
         ----------
         code : str
@@ -369,7 +395,7 @@ class AsyncCodesClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         passphrase : typing.Optional[str]
@@ -387,9 +413,9 @@ class AsyncCodesClient:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
-            await client.codes.apply_code(code='WBe11f4fce-2a53-4edc-b195-66b693bd77e3ETH', passphrase='some passphrase', request='{{request}}', nonce='{{nonce}}', )
+            await client.codes.apply_code(code='WBe11f4fce-2a53-4edc-b195-66b693bd77e3ETH', passphrase='some passphrase', request='{{request}}', nonce=1594297865000, )
         asyncio.run(main())
         """
         _response = await self._raw_client.apply_code(
@@ -401,7 +427,7 @@ class AsyncCodesClient:
         self,
         *,
         request: str,
-        nonce: str,
+        nonce: int,
         limit: typing.Optional[int] = OMIT,
         offset: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
@@ -417,12 +443,16 @@ class AsyncCodesClient:
         The API does not cache the response.
         </Note>
 
+        <Note>
+        Results are sorted by creation date, newest first. Pagination is capped at `offset + limit ≤ 10000`; for a complete history export beyond the cap, use the Report on the History page.
+        </Note>
+
         Parameters
         ----------
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         limit : typing.Optional[int]
@@ -443,9 +473,9 @@ class AsyncCodesClient:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
-            await client.codes.get_my_codes(request='{{request}}', nonce='{{nonce}}', )
+            await client.codes.get_my_codes(request='{{request}}', nonce=1594297865000, )
         asyncio.run(main())
         """
         _response = await self._raw_client.get_my_codes(
@@ -457,7 +487,7 @@ class AsyncCodesClient:
         self,
         *,
         request: str,
-        nonce: str,
+        nonce: int,
         limit: typing.Optional[int] = OMIT,
         offset: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
@@ -473,12 +503,20 @@ class AsyncCodesClient:
         The API does not cache the response.
         </Note>
 
+        <Note>
+        Results are sorted by date, newest first.
+        </Note>
+
+        <Note>
+        **No date filtering:** the endpoint does not accept `startDate` / `endDate` parameters, and pagination is capped at `offset + limit ≤ 10000` (`limit` ≤ 100). For a complete history export beyond the cap, use the Report on the History page.
+        </Note>
+
         Parameters
         ----------
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         limit : typing.Optional[int]
@@ -499,9 +537,9 @@ class AsyncCodesClient:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
-            await client.codes.get_codes_history(request='{{request}}', nonce='{{nonce}}', )
+            await client.codes.get_codes_history(request='{{request}}', nonce=1594297865000, )
         asyncio.run(main())
         """
         _response = await self._raw_client.get_codes_history(

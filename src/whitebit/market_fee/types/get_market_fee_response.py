@@ -4,6 +4,7 @@ import typing
 
 import pydantic
 from ...core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .get_market_fee_response_custom_fee_value import GetMarketFeeResponseCustomFeeValue
 
 
 class GetMarketFeeResponse(UniversalBaseModel):
@@ -20,12 +21,17 @@ class GetMarketFeeResponse(UniversalBaseModel):
 
     futures_taker: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Effective futures taker fee rate for the specified market. The system returns the lower value between the custom fee (if assigned) and the default market fee.
+    Default effective futures taker fee rate. The system returns the lower value between the custom fee (if assigned) and the default market fee.
     """
 
     futures_maker: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Effective futures maker fee rate for the specified market. The system returns the lower value between the custom fee (if assigned) and the default market fee.
+    Default effective futures maker fee rate. The system returns the lower value between the custom fee (if assigned) and the default market fee.
+    """
+
+    custom_fee: typing.Optional[typing.Dict[str, GetMarketFeeResponseCustomFeeValue]] = pydantic.Field(default=None)
+    """
+    Per-market fee overrides, keyed by market name. Each value contains the market's custom `taker` and `maker` rates.
     """
 
     if IS_PYDANTIC_V2:

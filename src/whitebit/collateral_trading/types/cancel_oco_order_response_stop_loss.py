@@ -6,6 +6,7 @@ import pydantic
 import typing_extensions
 from ...core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 from ...core.serialization import FieldMetadata
+from ...types.order_status import OrderStatus
 from .cancel_oco_order_response_stop_loss_activation_condition import CancelOcoOrderResponseStopLossActivationCondition
 from .cancel_oco_order_response_stop_loss_side import CancelOcoOrderResponseStopLossSide
 
@@ -15,12 +16,16 @@ class CancelOcoOrderResponseStopLoss(UniversalBaseModel):
     Cancelled stop loss order details
     """
 
-    order_id: typing.Optional[int] = pydantic.Field(default=None)
+    order_id: typing_extensions.Annotated[typing.Optional[int], FieldMetadata(alias="orderId")] = pydantic.Field(
+        default=None
+    )
     """
     Order identifier
     """
 
-    client_order_id: typing.Optional[str] = pydantic.Field(default=None)
+    client_order_id: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="clientOrderId")] = (
+        pydantic.Field(default=None)
+    )
     """
     Custom order identifier. Empty string if not specified
     """
@@ -42,15 +47,19 @@ class CancelOcoOrderResponseStopLoss(UniversalBaseModel):
 
     timestamp: typing.Optional[float] = pydantic.Field(default=None)
     """
-    Timestamp of order creation
+    Unix timestamp in seconds (UTC) of order creation, with microsecond precision.
     """
 
-    deal_money: typing.Optional[str] = pydantic.Field(default=None)
+    deal_money: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="dealMoney")] = pydantic.Field(
+        default=None
+    )
     """
     Executed amount in money
     """
 
-    deal_stock: typing.Optional[str] = pydantic.Field(default=None)
+    deal_stock: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="dealStock")] = pydantic.Field(
+        default=None
+    )
     """
     Executed amount in stock
     """
@@ -79,7 +88,9 @@ class CancelOcoOrderResponseStopLoss(UniversalBaseModel):
     Unexecuted amount in stock
     """
 
-    deal_fee: typing.Optional[str] = pydantic.Field(default=None)
+    deal_fee: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="dealFee")] = pydantic.Field(
+        default=None
+    )
     """
     Executed fee by deal
     """
@@ -108,7 +119,7 @@ class CancelOcoOrderResponseStopLoss(UniversalBaseModel):
         default=None
     )
     """
-    Activation condition
+    Trigger condition derived from `side` (response-only, cannot be overridden): `buy` → `gte`, `sell` → `lte`.
     """
 
     activated: typing.Optional[int] = pydantic.Field(default=None)
@@ -116,14 +127,10 @@ class CancelOcoOrderResponseStopLoss(UniversalBaseModel):
     Activation status (0 - not activated, 1 - activated)
     """
 
-    status: typing.Optional[str] = pydantic.Field(default=None)
-    """
-    Order status
-    """
-
+    status: typing.Optional[OrderStatus] = None
     stp: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Self trade prevention mode
+    Self-trade prevention mode. Possible values: `no`, `cb`, `cn`, `co`. Always returned in abbreviated form, even when the request used a legacy value.
     """
 
     if IS_PYDANTIC_V2:

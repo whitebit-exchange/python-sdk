@@ -8,7 +8,7 @@ from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 
 class AssetProviders(UniversalBaseModel):
     """
-    Fiat currency providers
+    Payment provider identifiers for fiat assets (e.g., VISAMASTER, ADVCASH, GEOPAY). Use these identifiers as the network parameter value when making fiat deposits or withdrawals via the API — equivalent to network codes such as ERC20 or TRC20 for crypto assets.
     """
 
     deposits: typing.Optional[typing.List[str]] = None

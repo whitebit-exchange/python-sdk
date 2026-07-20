@@ -5,11 +5,12 @@ import typing
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 from .book_ticker_update_data import BookTickerUpdateData
+from .book_ticker_update_method import BookTickerUpdateMethod
 
 
 class BookTickerUpdate(UniversalBaseModel):
     id: typing.Optional[typing.Optional[typing.Any]] = None
-    method: typing.Literal["bookTicker_update"] = pydantic.Field(default="bookTicker_update")
+    method: BookTickerUpdateMethod = pydantic.Field()
     """
     Method name. Fixed value: `bookTicker_update`.
     """

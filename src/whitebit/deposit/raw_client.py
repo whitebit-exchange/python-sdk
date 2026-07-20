@@ -33,12 +33,18 @@ class RawDepositClient:
         *,
         ticker: str,
         request: str,
-        nonce: str,
+        nonce: int,
         network: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[GetDepositAddressResponse]:
         """
         The endpoint retrieves a deposit address of the cryptocurrency.
+
+        <Note>
+        Sub-accounts use this endpoint with their own API key once deposits are enabled for the
+        account. Crypto deposits are disabled by default — to enable them, contact your assigned
+        Account Manager or email institutional@whitebit.com.
+        </Note>
 
         <Accordion title="Errors">
         ```json
@@ -88,7 +94,7 @@ class RawDepositClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         network : typing.Optional[str]
@@ -161,9 +167,9 @@ class RawDepositClient:
         ticker: str,
         provider: str,
         amount: str,
+        unique_id: str,
         request: str,
-        nonce: str,
-        unique_id: typing.Optional[str] = OMIT,
+        nonce: int,
         customer: typing.Optional[GetFiatDepositUrlRequestCustomer] = OMIT,
         success_link: typing.Optional[str] = OMIT,
         failure_link: typing.Optional[str] = OMIT,
@@ -266,8 +272,78 @@ class RawDepositClient:
           "code": 0,
           "message": "Validation failed",
           "errors": {
-            "successLink": ["Uri domain must have only https scheme"],
-            "failureLink": ["Uri domain must have only https scheme"]
+            "successLink": ["Your domain scheme incorrect. Use https only"],
+            "failureLink": ["Your domain scheme incorrect. Use https only"]
+          }
+        }
+        ```
+
+        ```json
+        {
+          "code": 0,
+          "message": "Validation failed",
+          "errors": {
+            "ticker": ["Currency is not depositable via API"]
+          }
+        }
+        ```
+
+        ```json
+        {
+          "code": 0,
+          "message": "Validation failed",
+          "errors": {
+            "user": ["User not verified"]
+          }
+        }
+        ```
+
+        ```json
+        {
+          "code": 0,
+          "message": "Validation failed",
+          "errors": {
+            "amount": ["Amount is too big for deposit"]
+          }
+        }
+        ```
+
+        ```json
+        {
+          "code": 0,
+          "message": "Validation failed",
+          "errors": {
+            "amount": ["Daily limit reached"]
+          }
+        }
+        ```
+
+        ```json
+        {
+          "code": 0,
+          "message": "Validation failed",
+          "errors": {
+            "amount": ["Expiration date cannot be used for this provider"]
+          }
+        }
+        ```
+
+        ```json
+        {
+          "code": 0,
+          "message": "Validation failed",
+          "errors": {
+            "customer.birthDate": ["You must be at least 18 years old"]
+          }
+        }
+        ```
+
+        ```json
+        {
+          "code": 0,
+          "message": "Validation failed",
+          "errors": {
+            "address": ["Invalid credit card number"]
           }
         }
         ```
@@ -296,14 +372,14 @@ class RawDepositClient:
         amount : str
             Deposit amount
 
+        unique_id : str
+            Unique transaction identifier on client's side. Any string up to 255 characters; not validated as a UUID.
+
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
-
-        unique_id : typing.Optional[str]
-            Unique transaction identifier on client's side
 
         customer : typing.Optional[GetFiatDepositUrlRequestCustomer]
             Customer information (required for USD/EUR with VISAMASTER [provider](/glossary#provider))
@@ -333,7 +409,7 @@ class RawDepositClient:
                 "ticker": ticker,
                 "provider": provider,
                 "amount": amount,
-                "unique_id": unique_id,
+                "uniqueId": unique_id,
                 "customer": convert_and_respect_annotation_metadata(
                     object_=customer, annotation=GetFiatDepositUrlRequestCustomer, direction="write"
                 ),
@@ -464,10 +540,10 @@ class RawDepositClient:
     def refund_deposit(
         self,
         *,
+        transaction_id: str,
         address: str,
         request: str,
-        nonce: str,
-        transaction_id: typing.Optional[str] = OMIT,
+        nonce: int,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[RefundDepositResponse]:
         """
@@ -513,17 +589,17 @@ class RawDepositClient:
 
         Parameters
         ----------
+        transaction_id : str
+            Transaction UUID of the deposit. Obtain from the [deposit.canceled](/platform/webhook) webhook (`uniqueId` field) or from the deposit/withdraw history in the WhiteBIT interface.
+
         address : str
             Destination wallet address for the refund. The address must support the same network and asset as the original deposit. Cannot be a WhiteBIT address. Does not have to match the original deposit address.
 
         request : str
             Base64-encoded request body. See the [authentication guide](/private/http-auth) for signature generation details.
 
-        nonce : str
+        nonce : int
             A unique identifier for the request. Use a monotonically increasing value such as a Unix timestamp in milliseconds.
-
-        transaction_id : typing.Optional[str]
-            Transaction UUID of the deposit. Obtain from the [deposit.canceled](/platform/webhook) webhook (`uniqueId` field) or from the deposit/withdraw history in the WhiteBIT interface.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -538,7 +614,7 @@ class RawDepositClient:
             base_url=self._client_wrapper.get_environment().base,
             method="POST",
             json={
-                "transaction_id": transaction_id,
+                "transactionId": transaction_id,
                 "address": address,
                 "request": request,
                 "nonce": nonce,
@@ -580,13 +656,18 @@ class RawDepositClient:
         *,
         ticker: str,
         request: str,
-        nonce: str,
+        nonce: int,
         network: typing.Optional[str] = OMIT,
         type: typing.Optional[CreateNewAddressRequestType] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[CreateNewAddressResponse]:
         """
         The endpoint creates a new address even when the last created address is not used. The endpoint is not available by default, contact support@whitebit.com to get permissions to use the endpoint.
+
+        <Note>
+        For sub-accounts, crypto deposits must also be enabled for the account (disabled by
+        default). To enable them, contact your assigned Account Manager or email institutional@whitebit.com.
+        </Note>
 
         **Address types:**
 
@@ -611,7 +692,7 @@ class RawDepositClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         network : typing.Optional[str]
@@ -692,12 +773,18 @@ class AsyncRawDepositClient:
         *,
         ticker: str,
         request: str,
-        nonce: str,
+        nonce: int,
         network: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[GetDepositAddressResponse]:
         """
         The endpoint retrieves a deposit address of the cryptocurrency.
+
+        <Note>
+        Sub-accounts use this endpoint with their own API key once deposits are enabled for the
+        account. Crypto deposits are disabled by default — to enable them, contact your assigned
+        Account Manager or email institutional@whitebit.com.
+        </Note>
 
         <Accordion title="Errors">
         ```json
@@ -747,7 +834,7 @@ class AsyncRawDepositClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         network : typing.Optional[str]
@@ -820,9 +907,9 @@ class AsyncRawDepositClient:
         ticker: str,
         provider: str,
         amount: str,
+        unique_id: str,
         request: str,
-        nonce: str,
-        unique_id: typing.Optional[str] = OMIT,
+        nonce: int,
         customer: typing.Optional[GetFiatDepositUrlRequestCustomer] = OMIT,
         success_link: typing.Optional[str] = OMIT,
         failure_link: typing.Optional[str] = OMIT,
@@ -925,8 +1012,78 @@ class AsyncRawDepositClient:
           "code": 0,
           "message": "Validation failed",
           "errors": {
-            "successLink": ["Uri domain must have only https scheme"],
-            "failureLink": ["Uri domain must have only https scheme"]
+            "successLink": ["Your domain scheme incorrect. Use https only"],
+            "failureLink": ["Your domain scheme incorrect. Use https only"]
+          }
+        }
+        ```
+
+        ```json
+        {
+          "code": 0,
+          "message": "Validation failed",
+          "errors": {
+            "ticker": ["Currency is not depositable via API"]
+          }
+        }
+        ```
+
+        ```json
+        {
+          "code": 0,
+          "message": "Validation failed",
+          "errors": {
+            "user": ["User not verified"]
+          }
+        }
+        ```
+
+        ```json
+        {
+          "code": 0,
+          "message": "Validation failed",
+          "errors": {
+            "amount": ["Amount is too big for deposit"]
+          }
+        }
+        ```
+
+        ```json
+        {
+          "code": 0,
+          "message": "Validation failed",
+          "errors": {
+            "amount": ["Daily limit reached"]
+          }
+        }
+        ```
+
+        ```json
+        {
+          "code": 0,
+          "message": "Validation failed",
+          "errors": {
+            "amount": ["Expiration date cannot be used for this provider"]
+          }
+        }
+        ```
+
+        ```json
+        {
+          "code": 0,
+          "message": "Validation failed",
+          "errors": {
+            "customer.birthDate": ["You must be at least 18 years old"]
+          }
+        }
+        ```
+
+        ```json
+        {
+          "code": 0,
+          "message": "Validation failed",
+          "errors": {
+            "address": ["Invalid credit card number"]
           }
         }
         ```
@@ -955,14 +1112,14 @@ class AsyncRawDepositClient:
         amount : str
             Deposit amount
 
+        unique_id : str
+            Unique transaction identifier on client's side. Any string up to 255 characters; not validated as a UUID.
+
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
-
-        unique_id : typing.Optional[str]
-            Unique transaction identifier on client's side
 
         customer : typing.Optional[GetFiatDepositUrlRequestCustomer]
             Customer information (required for USD/EUR with VISAMASTER [provider](/glossary#provider))
@@ -992,7 +1149,7 @@ class AsyncRawDepositClient:
                 "ticker": ticker,
                 "provider": provider,
                 "amount": amount,
-                "unique_id": unique_id,
+                "uniqueId": unique_id,
                 "customer": convert_and_respect_annotation_metadata(
                     object_=customer, annotation=GetFiatDepositUrlRequestCustomer, direction="write"
                 ),
@@ -1123,10 +1280,10 @@ class AsyncRawDepositClient:
     async def refund_deposit(
         self,
         *,
+        transaction_id: str,
         address: str,
         request: str,
-        nonce: str,
-        transaction_id: typing.Optional[str] = OMIT,
+        nonce: int,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[RefundDepositResponse]:
         """
@@ -1172,17 +1329,17 @@ class AsyncRawDepositClient:
 
         Parameters
         ----------
+        transaction_id : str
+            Transaction UUID of the deposit. Obtain from the [deposit.canceled](/platform/webhook) webhook (`uniqueId` field) or from the deposit/withdraw history in the WhiteBIT interface.
+
         address : str
             Destination wallet address for the refund. The address must support the same network and asset as the original deposit. Cannot be a WhiteBIT address. Does not have to match the original deposit address.
 
         request : str
             Base64-encoded request body. See the [authentication guide](/private/http-auth) for signature generation details.
 
-        nonce : str
+        nonce : int
             A unique identifier for the request. Use a monotonically increasing value such as a Unix timestamp in milliseconds.
-
-        transaction_id : typing.Optional[str]
-            Transaction UUID of the deposit. Obtain from the [deposit.canceled](/platform/webhook) webhook (`uniqueId` field) or from the deposit/withdraw history in the WhiteBIT interface.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1197,7 +1354,7 @@ class AsyncRawDepositClient:
             base_url=self._client_wrapper.get_environment().base,
             method="POST",
             json={
-                "transaction_id": transaction_id,
+                "transactionId": transaction_id,
                 "address": address,
                 "request": request,
                 "nonce": nonce,
@@ -1239,13 +1396,18 @@ class AsyncRawDepositClient:
         *,
         ticker: str,
         request: str,
-        nonce: str,
+        nonce: int,
         network: typing.Optional[str] = OMIT,
         type: typing.Optional[CreateNewAddressRequestType] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[CreateNewAddressResponse]:
         """
         The endpoint creates a new address even when the last created address is not used. The endpoint is not available by default, contact support@whitebit.com to get permissions to use the endpoint.
+
+        <Note>
+        For sub-accounts, crypto deposits must also be enabled for the account (disabled by
+        default). To enable them, contact your assigned Account Manager or email institutional@whitebit.com.
+        </Note>
 
         **Address types:**
 
@@ -1270,7 +1432,7 @@ class AsyncRawDepositClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         network : typing.Optional[str]

@@ -4,11 +4,12 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .depth_update_method import DepthUpdateMethod
 
 
 class DepthUpdate(UniversalBaseModel):
     id: typing.Optional[typing.Optional[typing.Any]] = None
-    method: typing.Literal["depth_update"] = pydantic.Field(default="depth_update")
+    method: DepthUpdateMethod = pydantic.Field()
     """
     Method name. Fixed value: `depth_update`.
     """

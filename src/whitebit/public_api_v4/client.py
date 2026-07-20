@@ -5,13 +5,13 @@ import typing
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
 from ..types.asset import Asset
+from ..types.fee_info import FeeInfo
 from ..types.orderbook_response import OrderbookResponse
 from .raw_client import AsyncRawPublicApiV4Client, RawPublicApiV4Client
 from .types.get_api_v4public_collateral_markets_response import GetApiV4PublicCollateralMarketsResponse
 from .types.get_api_v4public_funding_history_market_response_item import GetApiV4PublicFundingHistoryMarketResponseItem
 from .types.get_api_v4public_futures_response import GetApiV4PublicFuturesResponse
 from .types.get_api_v4public_markets_response_item import GetApiV4PublicMarketsResponseItem
-from .types.get_api_v4public_mining_pool_response import GetApiV4PublicMiningPoolResponse
 from .types.get_api_v4public_platform_status_response import GetApiV4PublicPlatformStatusResponse
 from .types.get_api_v4public_ticker_response_value import GetApiV4PublicTickerResponseValue
 from .types.get_api_v4public_time_response import GetApiV4PublicTimeResponse
@@ -38,7 +38,7 @@ class PublicApiV4Client:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> GetApiV4PublicPlatformStatusResponse:
         """
-        The endpoint retrieves maintenance status
+        The endpoint retrieves the current maintenance status of the WhiteBIT platform. Use the response to detect scheduled downtime and pause trading automation during maintenance windows. The `status` field returns `"system operational"` when all platform services are available, or `"system maintenance"` when the platform is undergoing planned maintenance.
 
         Parameters
         ----------
@@ -53,7 +53,7 @@ class PublicApiV4Client:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.public_api_v4.maintenance_status()
         """
         _response = self._raw_client.maintenance_status(request_options=request_options)
@@ -63,10 +63,14 @@ class PublicApiV4Client:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> typing.List[GetApiV4PublicMarketsResponseItem]:
         """
-        The endpoint retrieves all information about available spot and futures markets.
+        The endpoint retrieves configuration and trading rules for all available spot, futures, and TradFi futures markets. Use the response to discover tradeable pairs, check minimum order sizes, and read fee schedules. Each entry includes precision settings, fee ratios, and order-size constraints for the market.
 
         <Note>
-        The API caches the response for 1 second
+        Market configuration is reference data, re-synced from the database approximately every 10 seconds. Polling more frequently returns identical data. The cache is shared across all callers.
+        </Note>
+
+        <Note>
+        TradFi futures markets are region-gated. Markets not available in a given region are omitted from the response entirely and do not appear under any other market type.
         </Note>
 
         <Warning>
@@ -86,7 +90,7 @@ class PublicApiV4Client:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.public_api_v4.market_info()
         """
         _response = self._raw_client.market_info(request_options=request_options)
@@ -119,7 +123,7 @@ class PublicApiV4Client:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.public_api_v4.market_activity()
         """
         _response = self._raw_client.market_activity(request_options=request_options)
@@ -127,10 +131,10 @@ class PublicApiV4Client:
 
     def asset_status_list(self, *, request_options: typing.Optional[RequestOptions] = None) -> typing.Dict[str, Asset]:
         """
-        The endpoint retrieves the assets status.
+        The endpoint retrieves the deposit and withdrawal status for every supported asset. Use the response to check whether deposits and withdrawals are enabled, read per-network fee and limit details, and determine required blockchain confirmation counts. The response includes crypto assets, fiat currencies, and fiat payment methods.
 
         <Note>
-        The API caches the response for 1 second
+        Asset status is reference data, re-synced approximately once per minute. Polling more frequently returns identical data. The cache is shared across all callers.
         </Note>
 
         <Warning>
@@ -150,7 +154,7 @@ class PublicApiV4Client:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.public_api_v4.asset_status_list()
         """
         _response = self._raw_client.asset_status_list(request_options=request_options)
@@ -184,7 +188,7 @@ class PublicApiV4Client:
             Orders depth quantity: 0 - 100. Not defined or 0 will return 100 entries.
 
         level : typing.Optional[int]
-            Optional parameter that controls the aggregation level. Level 0 – default, no aggregation. Levels 1–5 provide increasing aggregation of the order book.
+            Aggregation level for price grouping. Level 0 applies no aggregation. Levels 1–5 provide increasing aggregation of the order book.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -197,7 +201,7 @@ class PublicApiV4Client:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.public_api_v4.orderbook(market='BTC_USDT', limit=100, level=2, )
         """
         _response = self._raw_client.orderbook(market, limit=limit, level=level, request_options=request_options)
@@ -231,7 +235,7 @@ class PublicApiV4Client:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.public_api_v4.depth(market='BTC_USDT', )
         """
         _response = self._raw_client.depth(market, request_options=request_options)
@@ -266,7 +270,7 @@ class PublicApiV4Client:
             Market pair name
 
         type : typing.Optional[GetApiV4PublicTradesMarketRequestType]
-            Can be buy or sell
+            Filter by trade side. Omit to return both buy and sell trades.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -279,20 +283,18 @@ class PublicApiV4Client:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.public_api_v4.recent_trades(market='BTC_USDT', )
         """
         _response = self._raw_client.recent_trades(market, type=type, request_options=request_options)
         return _response.data
 
-    def fee(
-        self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Optional[typing.Any]]:
+    def fee(self, *, request_options: typing.Optional[RequestOptions] = None) -> typing.Dict[str, FeeInfo]:
         """
-        The endpoint retrieves the list of [fees](/glossary#fee) and min/max amounts for deposits and withdrawals
+        The endpoint retrieves the [fee](/glossary#fee) schedule and deposit/withdrawal limits for every supported asset. Use the response to display fee estimates before a user initiates a deposit or withdrawal. The response is keyed by currency ticker; each entry contains deposit and withdrawal fee amounts and min/max transfer limits.
 
         <Note>
-        The API caches the response for 1 second
+        The fee schedule is reference data, re-synced approximately once per minute. Polling more frequently returns identical data. The cache is shared across all callers.
         </Note>
 
         <Warning>
@@ -306,13 +308,13 @@ class PublicApiV4Client:
 
         Returns
         -------
-        typing.Dict[str, typing.Optional[typing.Any]]
+        typing.Dict[str, FeeInfo]
             Successful response
 
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.public_api_v4.fee()
         """
         _response = self._raw_client.fee(request_options=request_options)
@@ -320,10 +322,10 @@ class PublicApiV4Client:
 
     def server_time(self, *, request_options: typing.Optional[RequestOptions] = None) -> GetApiV4PublicTimeResponse:
         """
-        The endpoint retrieves the current server time.
+        The endpoint retrieves the current server time as a Unix timestamp. Use the response to synchronize local clocks before generating HMAC signatures for authenticated requests. The endpoint takes no parameters and has no request-validation errors; it returns HTTP 200 on success and fails only at the infrastructure level (see the API description).
 
         <Note>
-        The API caches the response for 1 second
+        The server time is computed per request and is not cached.
         </Note>
 
         <Warning>
@@ -343,7 +345,7 @@ class PublicApiV4Client:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.public_api_v4.server_time()
         """
         _response = self._raw_client.server_time(request_options=request_options)
@@ -351,10 +353,10 @@ class PublicApiV4Client:
 
     def server_status(self, *, request_options: typing.Optional[RequestOptions] = None) -> typing.List[str]:
         """
-        The endpoint retrieves the current API life-state.
+        The endpoint checks API availability by returning a simple health-check response. Use the endpoint to verify network connectivity and confirm the API server is reachable. A successful response contains the string `"pong"`. The endpoint takes no parameters and has no request-validation errors; it returns HTTP 200 on success and fails only at the infrastructure level (see the API description).
 
         <Note>
-        The API caches the response for 1 second
+        The health-check response is generated per request and is not cached.
         </Note>
 
         <Warning>
@@ -374,7 +376,7 @@ class PublicApiV4Client:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.public_api_v4.server_status()
         """
         _response = self._raw_client.server_status(request_options=request_options)
@@ -384,10 +386,10 @@ class PublicApiV4Client:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> GetApiV4PublicCollateralMarketsResponse:
         """
-        The endpoint returns the list of [markets](/glossary#market) that are available for [collateral](/glossary#collateral) trading
+        The endpoint returns the list of [market](/glossary#market) pair names available for [collateral](/glossary#collateral) trading. Use the response to determine which markets support margin positions. Each item in the result array is a market pair name in `BASE_QUOTE` format (e.g., `BTC_USDT`).
 
         <Note>
-        The API caches the response for 1 second
+        The collateral market list is reference data, re-synced approximately every 10 seconds. Polling more frequently returns identical data. The cache is shared across all callers.
         </Note>
 
         <Warning>
@@ -407,7 +409,7 @@ class PublicApiV4Client:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.public_api_v4.collateral_markets_list()
         """
         _response = self._raw_client.collateral_markets_list(request_options=request_options)
@@ -417,7 +419,7 @@ class PublicApiV4Client:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> GetApiV4PublicFuturesResponse:
         """
-        The endpoint returns the list of available futures markets.
+        The endpoint returns detailed information for all available futures markets. Use the response to read current pricing, open interest, funding rates, and leverage bracket configuration. Each entry includes the predicted next funding rate, settlement timestamps, and maximum allowed position sizes per leverage level.
 
         <Note>
         The API caches the response for 1 second
@@ -440,7 +442,7 @@ class PublicApiV4Client:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.public_api_v4.available_futures_markets_list()
         """
         _response = self._raw_client.available_futures_markets_list(request_options=request_options)
@@ -457,11 +459,23 @@ class PublicApiV4Client:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> typing.List[GetApiV4PublicFundingHistoryMarketResponseItem]:
         """
-        The endpoint returns the funding rate history for a specified futures market.
+        The endpoint returns the funding rate history for a specified futures market. Use the response to analyze historical funding rate trends and settlement prices. Results are sorted by funding time in descending order and support offset-based pagination via `limit` and `offset` parameters.
 
         <Warning>
         Rate limit 2000 requests/10 sec.
         </Warning>
+
+        <Note>
+        This endpoint supports pagination. Use `limit` (default: 100, max: 100) and `offset` (default: 0, max: 1000000) to page through results.
+        </Note>
+
+        <Note>
+        The response is a plain array with no `total`, `has_more`, or cursor — a returned count below `limit` marks the last page (an empty array means no further records).
+        </Note>
+
+        <Note>
+        Funding history is served per request at the API layer, with no application-level cache.
+        </Note>
 
         Parameters
         ----------
@@ -475,10 +489,10 @@ class PublicApiV4Client:
             End timestamp in seconds
 
         limit : typing.Optional[int]
-            Number of records to return. Default: 100, Maximum: 1000
+            Number of records to return. Default: 100, Maximum: 100
 
         offset : typing.Optional[int]
-            Number of records to skip
+            Number of records to skip. Maximum: 1000000
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -491,7 +505,7 @@ class PublicApiV4Client:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.public_api_v4.funding_history(market='BTC_PERP', start_date=1752480000, end_date=1752537600, limit=100, offset=0, )
         """
         _response = self._raw_client.funding_history(
@@ -502,37 +516,6 @@ class PublicApiV4Client:
             offset=offset,
             request_options=request_options,
         )
-        return _response.data
-
-    def mining_pool_overview(
-        self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> GetApiV4PublicMiningPoolResponse:
-        """
-        The endpoint returns overall information about the current mining pool state.
-
-        Hash rate is expressed in H units.
-
-        <Warning>
-        Rate limit 1000 requests/10 sec.
-        </Warning>
-
-        Parameters
-        ----------
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        GetApiV4PublicMiningPoolResponse
-            Successful response
-
-        Examples
-        --------
-        from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
-        client.public_api_v4.mining_pool_overview()
-        """
-        _response = self._raw_client.mining_pool_overview(request_options=request_options)
         return _response.data
 
 
@@ -555,7 +538,7 @@ class AsyncPublicApiV4Client:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> GetApiV4PublicPlatformStatusResponse:
         """
-        The endpoint retrieves maintenance status
+        The endpoint retrieves the current maintenance status of the WhiteBIT platform. Use the response to detect scheduled downtime and pause trading automation during maintenance windows. The `status` field returns `"system operational"` when all platform services are available, or `"system maintenance"` when the platform is undergoing planned maintenance.
 
         Parameters
         ----------
@@ -571,7 +554,7 @@ class AsyncPublicApiV4Client:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.public_api_v4.maintenance_status()
         asyncio.run(main())
@@ -583,10 +566,14 @@ class AsyncPublicApiV4Client:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> typing.List[GetApiV4PublicMarketsResponseItem]:
         """
-        The endpoint retrieves all information about available spot and futures markets.
+        The endpoint retrieves configuration and trading rules for all available spot, futures, and TradFi futures markets. Use the response to discover tradeable pairs, check minimum order sizes, and read fee schedules. Each entry includes precision settings, fee ratios, and order-size constraints for the market.
 
         <Note>
-        The API caches the response for 1 second
+        Market configuration is reference data, re-synced from the database approximately every 10 seconds. Polling more frequently returns identical data. The cache is shared across all callers.
+        </Note>
+
+        <Note>
+        TradFi futures markets are region-gated. Markets not available in a given region are omitted from the response entirely and do not appear under any other market type.
         </Note>
 
         <Warning>
@@ -607,7 +594,7 @@ class AsyncPublicApiV4Client:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.public_api_v4.market_info()
         asyncio.run(main())
@@ -643,7 +630,7 @@ class AsyncPublicApiV4Client:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.public_api_v4.market_activity()
         asyncio.run(main())
@@ -655,10 +642,10 @@ class AsyncPublicApiV4Client:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> typing.Dict[str, Asset]:
         """
-        The endpoint retrieves the assets status.
+        The endpoint retrieves the deposit and withdrawal status for every supported asset. Use the response to check whether deposits and withdrawals are enabled, read per-network fee and limit details, and determine required blockchain confirmation counts. The response includes crypto assets, fiat currencies, and fiat payment methods.
 
         <Note>
-        The API caches the response for 1 second
+        Asset status is reference data, re-synced approximately once per minute. Polling more frequently returns identical data. The cache is shared across all callers.
         </Note>
 
         <Warning>
@@ -679,7 +666,7 @@ class AsyncPublicApiV4Client:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.public_api_v4.asset_status_list()
         asyncio.run(main())
@@ -715,7 +702,7 @@ class AsyncPublicApiV4Client:
             Orders depth quantity: 0 - 100. Not defined or 0 will return 100 entries.
 
         level : typing.Optional[int]
-            Optional parameter that controls the aggregation level. Level 0 – default, no aggregation. Levels 1–5 provide increasing aggregation of the order book.
+            Aggregation level for price grouping. Level 0 applies no aggregation. Levels 1–5 provide increasing aggregation of the order book.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -729,7 +716,7 @@ class AsyncPublicApiV4Client:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.public_api_v4.orderbook(market='BTC_USDT', limit=100, level=2, )
         asyncio.run(main())
@@ -766,7 +753,7 @@ class AsyncPublicApiV4Client:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.public_api_v4.depth(market='BTC_USDT', )
         asyncio.run(main())
@@ -803,7 +790,7 @@ class AsyncPublicApiV4Client:
             Market pair name
 
         type : typing.Optional[GetApiV4PublicTradesMarketRequestType]
-            Can be buy or sell
+            Filter by trade side. Omit to return both buy and sell trades.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -817,7 +804,7 @@ class AsyncPublicApiV4Client:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.public_api_v4.recent_trades(market='BTC_USDT', )
         asyncio.run(main())
@@ -825,14 +812,12 @@ class AsyncPublicApiV4Client:
         _response = await self._raw_client.recent_trades(market, type=type, request_options=request_options)
         return _response.data
 
-    async def fee(
-        self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> typing.Dict[str, typing.Optional[typing.Any]]:
+    async def fee(self, *, request_options: typing.Optional[RequestOptions] = None) -> typing.Dict[str, FeeInfo]:
         """
-        The endpoint retrieves the list of [fees](/glossary#fee) and min/max amounts for deposits and withdrawals
+        The endpoint retrieves the [fee](/glossary#fee) schedule and deposit/withdrawal limits for every supported asset. Use the response to display fee estimates before a user initiates a deposit or withdrawal. The response is keyed by currency ticker; each entry contains deposit and withdrawal fee amounts and min/max transfer limits.
 
         <Note>
-        The API caches the response for 1 second
+        The fee schedule is reference data, re-synced approximately once per minute. Polling more frequently returns identical data. The cache is shared across all callers.
         </Note>
 
         <Warning>
@@ -846,14 +831,14 @@ class AsyncPublicApiV4Client:
 
         Returns
         -------
-        typing.Dict[str, typing.Optional[typing.Any]]
+        typing.Dict[str, FeeInfo]
             Successful response
 
         Examples
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.public_api_v4.fee()
         asyncio.run(main())
@@ -865,10 +850,10 @@ class AsyncPublicApiV4Client:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> GetApiV4PublicTimeResponse:
         """
-        The endpoint retrieves the current server time.
+        The endpoint retrieves the current server time as a Unix timestamp. Use the response to synchronize local clocks before generating HMAC signatures for authenticated requests. The endpoint takes no parameters and has no request-validation errors; it returns HTTP 200 on success and fails only at the infrastructure level (see the API description).
 
         <Note>
-        The API caches the response for 1 second
+        The server time is computed per request and is not cached.
         </Note>
 
         <Warning>
@@ -889,7 +874,7 @@ class AsyncPublicApiV4Client:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.public_api_v4.server_time()
         asyncio.run(main())
@@ -899,10 +884,10 @@ class AsyncPublicApiV4Client:
 
     async def server_status(self, *, request_options: typing.Optional[RequestOptions] = None) -> typing.List[str]:
         """
-        The endpoint retrieves the current API life-state.
+        The endpoint checks API availability by returning a simple health-check response. Use the endpoint to verify network connectivity and confirm the API server is reachable. A successful response contains the string `"pong"`. The endpoint takes no parameters and has no request-validation errors; it returns HTTP 200 on success and fails only at the infrastructure level (see the API description).
 
         <Note>
-        The API caches the response for 1 second
+        The health-check response is generated per request and is not cached.
         </Note>
 
         <Warning>
@@ -923,7 +908,7 @@ class AsyncPublicApiV4Client:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.public_api_v4.server_status()
         asyncio.run(main())
@@ -935,10 +920,10 @@ class AsyncPublicApiV4Client:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> GetApiV4PublicCollateralMarketsResponse:
         """
-        The endpoint returns the list of [markets](/glossary#market) that are available for [collateral](/glossary#collateral) trading
+        The endpoint returns the list of [market](/glossary#market) pair names available for [collateral](/glossary#collateral) trading. Use the response to determine which markets support margin positions. Each item in the result array is a market pair name in `BASE_QUOTE` format (e.g., `BTC_USDT`).
 
         <Note>
-        The API caches the response for 1 second
+        The collateral market list is reference data, re-synced approximately every 10 seconds. Polling more frequently returns identical data. The cache is shared across all callers.
         </Note>
 
         <Warning>
@@ -959,7 +944,7 @@ class AsyncPublicApiV4Client:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.public_api_v4.collateral_markets_list()
         asyncio.run(main())
@@ -971,7 +956,7 @@ class AsyncPublicApiV4Client:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> GetApiV4PublicFuturesResponse:
         """
-        The endpoint returns the list of available futures markets.
+        The endpoint returns detailed information for all available futures markets. Use the response to read current pricing, open interest, funding rates, and leverage bracket configuration. Each entry includes the predicted next funding rate, settlement timestamps, and maximum allowed position sizes per leverage level.
 
         <Note>
         The API caches the response for 1 second
@@ -995,7 +980,7 @@ class AsyncPublicApiV4Client:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.public_api_v4.available_futures_markets_list()
         asyncio.run(main())
@@ -1014,11 +999,23 @@ class AsyncPublicApiV4Client:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> typing.List[GetApiV4PublicFundingHistoryMarketResponseItem]:
         """
-        The endpoint returns the funding rate history for a specified futures market.
+        The endpoint returns the funding rate history for a specified futures market. Use the response to analyze historical funding rate trends and settlement prices. Results are sorted by funding time in descending order and support offset-based pagination via `limit` and `offset` parameters.
 
         <Warning>
         Rate limit 2000 requests/10 sec.
         </Warning>
+
+        <Note>
+        This endpoint supports pagination. Use `limit` (default: 100, max: 100) and `offset` (default: 0, max: 1000000) to page through results.
+        </Note>
+
+        <Note>
+        The response is a plain array with no `total`, `has_more`, or cursor — a returned count below `limit` marks the last page (an empty array means no further records).
+        </Note>
+
+        <Note>
+        Funding history is served per request at the API layer, with no application-level cache.
+        </Note>
 
         Parameters
         ----------
@@ -1032,10 +1029,10 @@ class AsyncPublicApiV4Client:
             End timestamp in seconds
 
         limit : typing.Optional[int]
-            Number of records to return. Default: 100, Maximum: 1000
+            Number of records to return. Default: 100, Maximum: 100
 
         offset : typing.Optional[int]
-            Number of records to skip
+            Number of records to skip. Maximum: 1000000
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1049,7 +1046,7 @@ class AsyncPublicApiV4Client:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.public_api_v4.funding_history(market='BTC_PERP', start_date=1752480000, end_date=1752537600, limit=100, offset=0, )
         asyncio.run(main())
@@ -1062,38 +1059,4 @@ class AsyncPublicApiV4Client:
             offset=offset,
             request_options=request_options,
         )
-        return _response.data
-
-    async def mining_pool_overview(
-        self, *, request_options: typing.Optional[RequestOptions] = None
-    ) -> GetApiV4PublicMiningPoolResponse:
-        """
-        The endpoint returns overall information about the current mining pool state.
-
-        Hash rate is expressed in H units.
-
-        <Warning>
-        Rate limit 1000 requests/10 sec.
-        </Warning>
-
-        Parameters
-        ----------
-        request_options : typing.Optional[RequestOptions]
-            Request-specific configuration.
-
-        Returns
-        -------
-        GetApiV4PublicMiningPoolResponse
-            Successful response
-
-        Examples
-        --------
-        from whitebit import AsyncWhitebitApi
-        import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
-        async def main() -> None:
-            await client.public_api_v4.mining_pool_overview()
-        asyncio.run(main())
-        """
-        _response = await self._raw_client.mining_pool_overview(request_options=request_options)
         return _response.data

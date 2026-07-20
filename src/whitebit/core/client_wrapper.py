@@ -11,13 +11,15 @@ class BaseClientWrapper:
     def __init__(
         self,
         *,
-        txc_apikey: str,
-        token: typing.Union[str, typing.Callable[[], str]],
+        txc_payload: str,
+        txc_signature: str,
+        api_key: str,
         environment: WhitebitApiEnvironment,
         timeout: typing.Optional[float] = None,
     ):
-        self._txc_apikey = txc_apikey
-        self._token = token
+        self._txc_payload = txc_payload
+        self._txc_signature = txc_signature
+        self.api_key = api_key
         self._environment = environment
         self._timeout = timeout
 
@@ -25,15 +27,10 @@ class BaseClientWrapper:
         headers: typing.Dict[str, str] = {
             "X-Fern-Language": "Python",
         }
-        headers["X-TXC-APIKEY"] = self._txc_apikey
-        headers["Authorization"] = f"Bearer {self._get_token()}"
+        headers["X-TXC-PAYLOAD"] = self._txc_payload
+        headers["X-TXC-SIGNATURE"] = self._txc_signature
+        headers["X-TXC-APIKEY"] = self.api_key
         return headers
-
-    def _get_token(self) -> str:
-        if isinstance(self._token, str):
-            return self._token
-        else:
-            return self._token()
 
     def get_environment(self) -> WhitebitApiEnvironment:
         return self._environment
@@ -46,13 +43,20 @@ class SyncClientWrapper(BaseClientWrapper):
     def __init__(
         self,
         *,
-        txc_apikey: str,
-        token: typing.Union[str, typing.Callable[[], str]],
+        txc_payload: str,
+        txc_signature: str,
+        api_key: str,
         environment: WhitebitApiEnvironment,
         timeout: typing.Optional[float] = None,
         httpx_client: httpx.Client,
     ):
-        super().__init__(txc_apikey=txc_apikey, token=token, environment=environment, timeout=timeout)
+        super().__init__(
+            txc_payload=txc_payload,
+            txc_signature=txc_signature,
+            api_key=api_key,
+            environment=environment,
+            timeout=timeout,
+        )
         self.httpx_client = HttpClient(
             httpx_client=httpx_client, base_headers=self.get_headers, base_timeout=self.get_timeout
         )
@@ -62,13 +66,20 @@ class AsyncClientWrapper(BaseClientWrapper):
     def __init__(
         self,
         *,
-        txc_apikey: str,
-        token: typing.Union[str, typing.Callable[[], str]],
+        txc_payload: str,
+        txc_signature: str,
+        api_key: str,
         environment: WhitebitApiEnvironment,
         timeout: typing.Optional[float] = None,
         httpx_client: httpx.AsyncClient,
     ):
-        super().__init__(txc_apikey=txc_apikey, token=token, environment=environment, timeout=timeout)
+        super().__init__(
+            txc_payload=txc_payload,
+            txc_signature=txc_signature,
+            api_key=api_key,
+            environment=environment,
+            timeout=timeout,
+        )
         self.httpx_client = AsyncHttpClient(
             httpx_client=httpx_client, base_headers=self.get_headers, base_timeout=self.get_timeout
         )

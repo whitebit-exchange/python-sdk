@@ -36,16 +36,9 @@ class GetOpenPositionsResponseItem(UniversalBaseModel):
     Base price of position
     """
 
-    liq_price: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="liqPrice")] = pydantic.Field(
-        default=None
-    )
-    """
-    Liquidation price according to current state of position
-    """
-
     pnl: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Unrealized profit and loss in money
+    Realized profit and loss accumulated from partial position closes, in money currency. Zero for newly opened positions that have not been partially closed.
     """
 
     pnl_percent: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="pnlPercent")] = pydantic.Field(
@@ -69,14 +62,14 @@ class GetOpenPositionsResponseItem(UniversalBaseModel):
 
     funding: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Funding that will be paid on next position stage change
+    Cumulative funding fees paid over the entire lifetime of the position, in money currency. For futures markets (e.g., BTC_PERP and other _PERP pairs), the value is always "0" — futures funding is applied via periodic balance updates rather than being tracked per position.
     """
 
     unrealized_pnl: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="unrealizedPnl")] = (
         pydantic.Field(default=None)
     )
     """
-    Unrealized profit and loss
+    Floating (mark-to-market) unrealized profit and loss in money currency. Updates continuously as the market price changes.
     """
 
     position_side: typing_extensions.Annotated[
@@ -123,7 +116,7 @@ class GetOpenPositionsResponseItem(UniversalBaseModel):
         pydantic.Field(default=None)
     )
     """
-    Funding that will be paid on next position stage change
+    Funding fees accrued since the last position state change and not yet realized. For margin positions, the value accumulates continuously and is settled into the funding field when the position state changes (e.g., on partial or full close). For futures markets (BTC_PERP and other _PERP pairs), always "0" — futures funding is applied via periodic balance updates, not tracked per position.
     """
 
     if IS_PYDANTIC_V2:

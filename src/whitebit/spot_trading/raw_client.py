@@ -12,20 +12,27 @@ from ..core.serialization import convert_and_respect_annotation_metadata
 from ..errors.bad_request_error import BadRequestError
 from ..errors.service_unavailable_error import ServiceUnavailableError
 from ..errors.unprocessable_entity_error import UnprocessableEntityError
+from ..types.bulk_cancel_order_item import BulkCancelOrderItem
+from ..types.bulk_cancel_order_response import BulkCancelOrderResponse
 from ..types.bulk_limit_order_response import BulkLimitOrderResponse
 from ..types.bulk_order_item import BulkOrderItem
-from ..types.market_order_request_side import MarketOrderRequestSide
-from ..types.market_order_request_stp import MarketOrderRequestStp
 from ..types.order_response import OrderResponse
 from .types.cancel_all_orders_request_type_item import CancelAllOrdersRequestTypeItem
-from .types.get_executed_order_history_response_item import GetExecutedOrderHistoryResponseItem
+from .types.get_delisting_order_history_request_status import GetDelistingOrderHistoryRequestStatus
+from .types.get_delisting_order_history_response_item import GetDelistingOrderHistoryResponseItem
+from .types.get_executed_order_history_response import GetExecutedOrderHistoryResponse
 from .types.get_kill_switch_status_response_item import GetKillSwitchStatusResponseItem
 from .types.get_order_deals_response import GetOrderDealsResponse
+from .types.get_order_history_request_status import GetOrderHistoryRequestStatus
 from .types.get_order_history_response_value_item import GetOrderHistoryResponseValueItem
 from .types.limit_order_request_side import LimitOrderRequestSide
 from .types.limit_order_request_stp import LimitOrderRequestStp
+from .types.market_order_request_side import MarketOrderRequestSide
+from .types.market_order_request_stp import MarketOrderRequestStp
 from .types.set_kill_switch_request_types_item import SetKillSwitchRequestTypesItem
 from .types.set_kill_switch_response import SetKillSwitchResponse
+from .types.stock_market_order_request_side import StockMarketOrderRequestSide
+from .types.stock_market_order_request_stp import StockMarketOrderRequestStp
 from .types.stop_limit_order_request_side import StopLimitOrderRequestSide
 from .types.stop_limit_order_request_stp import StopLimitOrderRequestStp
 from .types.stop_market_order_request_side import StopMarketOrderRequestSide
@@ -45,11 +52,11 @@ class RawSpotTradingClient:
         *,
         ticker: typing.Optional[str] = OMIT,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[typing.Dict[str, TradeAccountBalanceResponseValue]]:
         """
-        The endpoint retrieves the [trade balance](/glossary#balance-spotbalance-trade) by currency [ticker](/glossary#ticker) or all balances.
+        The endpoint retrieves the [trade balance](/glossary#balance-spotbalance-trade) by currency [ticker](/glossary#ticker) or all balances. When the `ticker` parameter is provided, the response contains a single currency entry. When omitted, the response contains all currencies with non-zero balances. Each entry includes the `available` balance (funds ready to trade) and the `freeze` balance (funds locked in open orders).
 
         <Warning>
         Rate limit: 12000 requests/10 sec.
@@ -94,7 +101,7 @@ class RawSpotTradingClient:
 
         request : typing.Optional[str]
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -175,17 +182,25 @@ class RawSpotTradingClient:
         amount: str,
         price: str,
         request: str,
-        nonce: str,
+        nonce: int,
         client_order_id: typing.Optional[str] = OMIT,
         post_only: typing.Optional[bool] = OMIT,
         ioc: typing.Optional[bool] = OMIT,
         bbo_role: typing.Optional[int] = OMIT,
         stp: typing.Optional[LimitOrderRequestStp] = OMIT,
         rpi: typing.Optional[bool] = OMIT,
+        retail: typing.Optional[bool] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[OrderResponse]:
         """
-        The endpoint creates [limit trading order](/glossary#limit-order).
+        The endpoint creates a [limit trading order](/glossary#limit-order). The order remains on the order book until filled, cancelled, or expired. Minimum and maximum values for `amount` and `price` are market-dependent — query `GET /api/v4/public/markets` for per-market constraints.
+
+        **Order validation rules** (per-market, from `GET /api/v4/public/markets`):
+        - `amount` must have at most `stockPrec` decimal places
+        - `price` must have at most `moneyPrec` decimal places
+        - `amount` must be ≥ `minAmount`
+        - `amount × price` must be ≥ `minTotal`
+        - `amount × price` must be ≤ `maxTotal` (when `maxTotal` is not `"0"`)
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
@@ -193,7 +208,10 @@ class RawSpotTradingClient:
 
         <Note>
           - RPI orders do not appear in public order book feeds (`depth`, `bookTicker`). RPI orders are visible only in private active orders and in the exchange UI order book (web/mobile).
-          - RPI orders are post-only by design and cannot be used with the IOC flag. The API returns error code `37` when both `rpi=true` and `ioc=true` are used.
+          - RPI orders are post-only by design and cannot be used with the IOC flag. The API returns error code `40` when both `rpi=true` and `ioc=true` are used.
+          - `retail=true` marks the order as a retail-source taker eligible to match RPI-maker liquidity. The Retail flag must be enabled on the account; contact the account manager to enable it.
+          - `retail=true` and `rpi=true` cannot be combined. The API returns error code `41` when both flags are set.
+          - `retail=true` has no effect on a `postOnly=true` order. Post-only orders are makers and cannot be retail takers.
         </Note>
 
         <Accordion title="Error Codes">
@@ -201,8 +219,12 @@ class RawSpotTradingClient:
           - `31` - market validation failed
           - `32` - amount validation failed
           - `33` - price validation failed
-          - `36` - client_order_id validation failed
-          - `37` - `ioc=true` cannot be used with `postOnly=true` or `rpi=true`
+          - `36` - clientOrderId validation failed
+          - `37` - `ioc=true` cannot be combined with `postOnly=true`
+          - `40` - `ioc=true` cannot be combined with `rpi=true`
+          - `41` - `retail=true` cannot be combined with `rpi=true`
+          - `42` - `retail=true` is not allowed for the account
+          - `43` - `rpi=true` is not allowed for the account
         </Accordion>
 
         <Accordion title="Errors">
@@ -287,7 +309,7 @@ class RawSpotTradingClient:
           "code": 36,
           "message": "Validation failed",
           "errors": {
-            "client_order_id": ["ClientOrderId field should be a string."]
+            "clientOrderId": ["ClientOrderId field should be a string."]
           }
         }
         ```
@@ -297,7 +319,7 @@ class RawSpotTradingClient:
           "code": 36,
           "message": "Validation failed",
           "errors": {
-            "client_order_id": [
+            "clientOrderId": [
               "ClientOrderId field should contain only latin letters, numbers and dashes."
             ]
           }
@@ -309,7 +331,7 @@ class RawSpotTradingClient:
           "code": 36,
           "message": "Validation failed",
           "errors": {
-            "client_order_id": [
+            "clientOrderId": [
               "This client order id is already used by the current account."
             ]
           }
@@ -377,55 +399,90 @@ class RawSpotTradingClient:
           }
         }
         ```
+
+        ```json
+        {
+          "code": 41,
+          "message": "Validation failed",
+          "errors": {
+            "retail": ["api.tradeErrors.flagsCantBeCombined.rpiRetail"]
+          }
+        }
+        ```
+
+        ```json
+        {
+          "code": 42,
+          "message": "Validation failed",
+          "errors": {
+            "retail": ["api.validation.retail.not_allowed"]
+          }
+        }
+        ```
         </Accordion>
 
         Parameters
         ----------
         market : str
-            Available [market](/glossary#market). Example: BTC_USDT
+            Trading pair. Format: `BASE_QUOTE` (e.g., `BTC_USDT`). Query `GET /api/v4/public/markets` for available markets.
 
         side : LimitOrderRequestSide
-            Order type. Variables: 'buy' / 'sell' Example: 'buy'
+            Order side. Allowed values: `buy`, `sell`.
 
         amount : str
-            Amount of [stock](/glossary#stock) currency to buy or sell. Example: '0.001' or 0.001
+            Order quantity in base (stock) currency. Minimum and maximum values are market-dependent. Query `GET /api/v4/public/markets` for `minAmount`, `minTotal`, `maxTotal`. Precision: `stockPrec`.
 
         price : str
-            Price in money currency. Example: '9800' or 9800
+            Limit price per unit in quote (money) currency. Minimum and maximum values are market-dependent. Precision: `moneyPrec`.
 
         request : str
 
-        nonce : str
+        nonce : int
 
         client_order_id : typing.Optional[str]
-            Identifier should be unique and contain letters, dashes, numbers, dots or underscores. The identifier must be unique.
+            Custom client order identifier. Uniqueness is enforced only among the account's open (pending) orders on the same market — once a previous order is filled or canceled, the same identifier can be reused, including on the same market. Contains only letters, numbers, dashes, dots, or underscores.
 
         post_only : typing.Optional[bool]
-            [Orders](/glossary#orders) are guaranteed to be the [maker](/glossary#maker) order when [executed](/glossary#finished-orders). Variables: 'true' / 'false' Example: 'false'.
+            Post-only flag. When `true`, the order executes only as a [maker](/glossary#maker) order and the system rejects the order if it would match immediately. Default: `false`.
 
         ioc : typing.Optional[bool]
-            Immediate-or-cancel (IOC) executes all or part of an order immediately and cancels any unfilled portion.
+            Immediate-or-cancel (IOC) flag. When `true`, the matching engine executes all or part of the order immediately and cancels any unfilled portion. Default: `false`.
 
             IOC does not support `rpi=true` because RPI uses post-only behavior by design.
-            The API returns error code `37` when a request sets both `ioc=true` and `rpi=true`.
+            The API returns error code `40` when a request sets both `ioc=true` and `rpi=true`.
 
             Refer to [Order Parameter Rules](/guides/order-parameter-rules) for unsupported parameter combinations.
 
         bbo_role : typing.Optional[int]
-            When the [BBO](/glossary#bbo) option is activated for Limit orders, the system selects the best market prices for execution. Variables: 1 - Queue Method / 2 - Counterparty Method. Use method 2 with ioc flag. Example: 2.
+            Best Bid/Offer ([BBO](/glossary#bbo)) execution method. The system selects the best market price for execution. `1` = Queue method, `2` = Counterparty method. Use method `2` with the `ioc` flag.
 
         stp : typing.Optional[LimitOrderRequestStp]
-            Self trade prevention mode. Variables: 'no' / 'cancel_both' / 'cancel_new' / 'cancel_old'. Example: 'no'.
+            Self-trade prevention mode. Allowed values: `no` (self-trades allowed), `cb` (cancel both the new and the existing order), `cn` (cancel the new order, keep the existing), `co` (cancel the existing order, place the new one). Default: `no`.
+
+            Legacy values `cancel_both`, `cancel_new`, `cancel_old` are deprecated: the API accepts the legacy values with identical behavior until a deprecation deadline is announced, then rejects the legacy values. Responses always return the abbreviated form, regardless of which variant the request used.
+
+            See [Self-Trade Prevention](/platform/self-trade-prevention).
 
         rpi : typing.Optional[bool]
-            Enables Retail Price Improvement (RPI) mode.
+            Enables Retail Price Improvement (RPI) mode. Default: `false`.
 
             RPI orders use post-only behavior by design. An RPI order does not support `ioc=true`.
-            The API returns error code `37` when a request sets both `rpi=true` and `ioc=true`.
+            The API returns error code `40` when a request sets both `rpi=true` and `ioc=true`.
             RPI orders do not appear in public order book feeds (`depth`, `bookTicker`). RPI orders are visible only in private active orders and in the exchange UI order book (web/mobile).
-            RPI executions may apply custom fees or rebates, especially when trading via sub-accounts. Use Query Market Fee / Query All Market Fees to verify effective fees.
+            RPI executions may apply custom fees or rebates, especially when trading via sub-accounts. Use Query Market Fees to verify effective fees.
 
             Refer to [Order Parameter Rules](/guides/order-parameter-rules) for unsupported parameter combinations.
+
+        retail : typing.Optional[bool]
+            Retail-source taker flag. When `true`, the order is eligible to match against orders submitted by RPI makers and may receive price improvement at execution. Default: `false`.
+
+            The Retail flag must be enabled on the account before a private-API request can set `retail=true`. Contact the account manager to enable the Retail flag.
+
+            The Retail flag cannot be combined with `rpi`. The API returns error code `41` when a request sets both `retail=true` and `rpi=true`.
+
+            The flag has no effect on a `postOnly=true` order. Post-only orders are [makers](/glossary#maker); only takers carry the retail designation.
+
+            Refer to [Retail flag](/glossary#retail-flag) and [Order Parameter Rules](/guides/order-parameter-rules) for unsupported parameter combinations.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -444,12 +501,13 @@ class RawSpotTradingClient:
                 "side": side,
                 "amount": amount,
                 "price": price,
-                "client_order_id": client_order_id,
+                "clientOrderId": client_order_id,
                 "postOnly": post_only,
                 "ioc": ioc,
                 "bboRole": bbo_role,
                 "stp": stp,
                 "rpi": rpi,
+                "retail": retail,
                 "request": request,
                 "nonce": nonce,
             },
@@ -513,11 +571,11 @@ class RawSpotTradingClient:
         orders: typing.Optional[typing.Sequence[BulkOrderItem]] = OMIT,
         stop_on_fail: typing.Optional[bool] = OMIT,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[BulkLimitOrderResponse]:
         """
-        The endpoint creates bulk [limit trading orders](/glossary#limit-order).
+        The endpoint creates bulk [limit trading orders](/glossary#limit-order). Each order in the batch follows the same validation rules as a single limit order. The `stopOnFail` parameter controls whether processing stops at the first failure or continues through all orders. The response contains a result-or-error pair for each submitted order.
 
         <Warning>
           Limit: From 1 to 20 orders per request.
@@ -525,7 +583,10 @@ class RawSpotTradingClient:
 
         <Note>
           - RPI orders do not appear in public order book feeds (`depth`, `bookTicker`). RPI orders are visible only in private active orders and in the exchange UI order book (web/mobile).
-          - RPI orders are post-only by design and cannot be used with the IOC flag. The API returns error code `37` when both `rpi=true` and `ioc=true` are used.
+          - RPI orders are post-only by design and cannot be used with the IOC flag. The API returns error code `40` when both `rpi=true` and `ioc=true` are used.
+          - `retail=true` marks the order as a retail-source taker eligible to match RPI-maker liquidity. The Retail flag must be enabled on the account; contact the account manager to enable it.
+          - `retail=true` and `rpi=true` cannot be combined. The API returns error code `41` when both flags are set on an item.
+          - `retail=true` has no effect on a `postOnly=true` item. Post-only orders are makers and cannot be retail takers.
         </Note>
 
 
@@ -534,8 +595,12 @@ class RawSpotTradingClient:
           - `31` - market validation failed
           - `32` - amount validation failed
           - `33` - price validation failed
-          - `36` - client_order_id validation failed
-          - `37` - `ioc=true` cannot be used with `postOnly=true` or `rpi=true`
+          - `36` - clientOrderId validation failed
+          - `37` - `ioc=true` cannot be combined with `postOnly=true`
+          - `40` - `ioc=true` cannot be combined with `rpi=true`
+          - `41` - `retail=true` cannot be combined with `rpi=true`
+          - `42` - `retail=true` is not allowed for the account
+          - `43` - `rpi=true` is not allowed for the account
         </Accordion>
 
         <Accordion title="Errors">
@@ -593,6 +658,26 @@ class RawSpotTradingClient:
           }
         }
         ```
+
+        ```json
+        {
+          "code": 41,
+          "message": "Validation failed",
+          "errors": {
+            "retail": ["api.tradeErrors.flagsCantBeCombined.rpiRetail"]
+          }
+        }
+        ```
+
+        ```json
+        {
+          "code": 42,
+          "message": "Validation failed",
+          "errors": {
+            "retail": ["api.validation.retail.not_allowed"]
+          }
+        }
+        ```
         </Accordion>
 
         Parameters
@@ -609,7 +694,7 @@ class RawSpotTradingClient:
 
         request : typing.Optional[str]
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -692,13 +777,13 @@ class RawSpotTradingClient:
         side: MarketOrderRequestSide,
         amount: str,
         request: str,
-        nonce: str,
+        nonce: int,
         client_order_id: typing.Optional[str] = OMIT,
         stp: typing.Optional[MarketOrderRequestStp] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[OrderResponse]:
         """
-        The endpoint creates [market trading order](/glossary#market-order).
+        The endpoint creates a [market trading order](/glossary#market-order). The matching engine executes the order immediately at the best available price. For buy orders, `amount` represents the total in quote (money) currency to spend. For sell orders, `amount` represents the quantity in base (stock) currency to sell. Minimum and maximum values are market-dependent. Query `GET /api/v4/public/markets` for `minAmount`, `minTotal`, and `maxTotal`.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
@@ -708,7 +793,7 @@ class RawSpotTradingClient:
         - `30` - default validation error code
         - `31` - market validation failed
         - `32` - amount validation failed
-        - `36` - client_order_id validation failed
+        - `36` - clientOrderId validation failed
         </Accordion>
 
         <Accordion title="Errors">
@@ -792,7 +877,7 @@ class RawSpotTradingClient:
           "code": 36,
           "message": "Validation failed",
           "errors": {
-            "client_order_id": ["ClientOrderId field should be a string."]
+            "clientOrderId": ["ClientOrderId field should be a string."]
           }
         }
         ```
@@ -802,7 +887,7 @@ class RawSpotTradingClient:
           "code": 36,
           "message": "Validation failed",
           "errors": {
-            "client_order_id": [
+            "clientOrderId": [
               "ClientOrderId field should contain only latin letters, numbers and dashes."
             ]
           }
@@ -813,23 +898,27 @@ class RawSpotTradingClient:
         Parameters
         ----------
         market : str
-            Available [market](/glossary#market). Example: BTC_USDT
+            Trading pair. Format: `BASE_QUOTE` (e.g., `BTC_USDT`). Query `GET /api/v4/public/markets` for available markets.
 
         side : MarketOrderRequestSide
-            Order type. Variables: 'buy' / 'sell' Example: 'buy'
+            Order side. Allowed values: `buy`, `sell`.
 
         amount : str
-            Amount of [money](/glossary#money) currency to buy or amount in [stock](/glossary#stock) currency to sell. Example: '5 USDT' for buy (min total) and '0.001 BTC' for sell (min amount).
+            For buy orders: total in quote (money) currency to spend. For sell orders: quantity in base (stock) currency to sell. Minimum and maximum values are market-dependent. Query `GET /api/v4/public/markets` for `minAmount`, `minTotal`, `maxTotal`.
 
         request : str
 
-        nonce : str
+        nonce : int
 
         client_order_id : typing.Optional[str]
-            Identifier should be unique and contain letters, dashes, numbers, dots or underscores. The identifier must be unique.
+            Custom client order identifier. Uniqueness is enforced only among the account's open (pending) orders on the same market — once a previous order is filled or canceled, the same identifier can be reused, including on the same market. Contains only letters, numbers, dashes, dots, or underscores.
 
         stp : typing.Optional[MarketOrderRequestStp]
-            Self trade prevention mode. Variables: 'no' / 'cancel_both' / 'cancel_new' / 'cancel_old'. Example: 'no'.
+            Self-trade prevention mode. Allowed values: `no` (self-trades allowed), `cb` (cancel both the new and the existing order), `cn` (cancel the new order, keep the existing), `co` (cancel the existing order, place the new one). Default: `no`.
+
+            Legacy values `cancel_both`, `cancel_new`, `cancel_old` are deprecated: the API accepts the legacy values with identical behavior until a deprecation deadline is announced, then rejects the legacy values. Responses always return the abbreviated form, regardless of which variant the request used.
+
+            See [Self-Trade Prevention](/platform/self-trade-prevention).
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -847,7 +936,7 @@ class RawSpotTradingClient:
                 "market": market,
                 "side": side,
                 "amount": amount,
-                "client_order_id": client_order_id,
+                "clientOrderId": client_order_id,
                 "stp": stp,
                 "request": request,
                 "nonce": nonce,
@@ -910,16 +999,16 @@ class RawSpotTradingClient:
         self,
         *,
         market: str,
-        side: MarketOrderRequestSide,
+        side: StockMarketOrderRequestSide,
         amount: str,
         request: str,
-        nonce: str,
+        nonce: int,
         client_order_id: typing.Optional[str] = OMIT,
-        stp: typing.Optional[MarketOrderRequestStp] = OMIT,
+        stp: typing.Optional[StockMarketOrderRequestStp] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[OrderResponse]:
         """
-        The endpoint creates buy [stock](/glossary#stock) market trading [order](/glossary#orders).
+        The endpoint creates a [stock](/glossary#stock) market trading [order](/glossary#orders). Unlike `POST /api/v4/order/market`, the `amount` parameter always represents the quantity in the base (stock) currency for both buy and sell sides. The matching engine executes the order immediately at the best available price. Minimum and maximum values are market-dependent. Query `GET /api/v4/public/markets` for `minAmount`, `minTotal`, and `maxTotal`.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
@@ -929,7 +1018,7 @@ class RawSpotTradingClient:
         - `30` - default validation error code
         - `31` - market validation failed
         - `32` - amount validation failed
-        - `36` - client_order_id validation failed
+        - `36` - clientOrderId validation failed
         </Accordion>
 
         <Accordion title="Errors">
@@ -1013,7 +1102,7 @@ class RawSpotTradingClient:
           "code": 36,
           "message": "Validation failed",
           "errors": {
-            "client_order_id": ["ClientOrderId field should be a string."]
+            "clientOrderId": ["ClientOrderId field should be a string."]
           }
         }
         ```
@@ -1022,23 +1111,27 @@ class RawSpotTradingClient:
         Parameters
         ----------
         market : str
-            Available [market](/glossary#market). Example: BTC_USDT
+            Trading pair. Format: `BASE_QUOTE` (e.g., `BTC_USDT`). Query `GET /api/v4/public/markets` for available markets.
 
-        side : MarketOrderRequestSide
-            Order type. Variables: 'buy' / 'sell' Example: 'buy'
+        side : StockMarketOrderRequestSide
+            Order side. Allowed values: `buy`, `sell`.
 
         amount : str
-            Amount of [money](/glossary#money) currency to buy or amount in [stock](/glossary#stock) currency to sell. Example: '5 USDT' for buy (min total) and '0.001 BTC' for sell (min amount).
+            Order quantity in base (stock) currency for both buy and sell sides. To place a market order specifying the quote (money) currency amount instead, use `POST /api/v4/order/market`. Minimum and maximum values are market-dependent. Query `GET /api/v4/public/markets` for `minAmount`, `minTotal`, `maxTotal`.
 
         request : str
 
-        nonce : str
+        nonce : int
 
         client_order_id : typing.Optional[str]
-            Identifier should be unique and contain letters, dashes, numbers, dots or underscores. The identifier must be unique.
+            Custom client order identifier. Uniqueness is enforced only among the account's open (pending) orders on the same market — once a previous order is filled or canceled, the same identifier can be reused, including on the same market. Contains only letters, numbers, dashes, dots, or underscores.
 
-        stp : typing.Optional[MarketOrderRequestStp]
-            Self trade prevention mode. Variables: 'no' / 'cancel_both' / 'cancel_new' / 'cancel_old'. Example: 'no'.
+        stp : typing.Optional[StockMarketOrderRequestStp]
+            Self-trade prevention mode. Allowed values: `no` (self-trades allowed), `cb` (cancel both the new and the existing order), `cn` (cancel the new order, keep the existing), `co` (cancel the existing order, place the new one). Default: `no`.
+
+            Legacy values `cancel_both`, `cancel_new`, `cancel_old` are deprecated: the API accepts the legacy values with identical behavior until a deprecation deadline is announced, then rejects the legacy values. Responses always return the abbreviated form, regardless of which variant the request used.
+
+            See [Self-Trade Prevention](/platform/self-trade-prevention).
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1056,7 +1149,7 @@ class RawSpotTradingClient:
                 "market": market,
                 "side": side,
                 "amount": amount,
-                "client_order_id": client_order_id,
+                "clientOrderId": client_order_id,
                 "stp": stp,
                 "request": request,
                 "nonce": nonce,
@@ -1124,14 +1217,14 @@ class RawSpotTradingClient:
         price: str,
         activation_price: str,
         request: str,
-        nonce: str,
+        nonce: int,
         client_order_id: typing.Optional[str] = OMIT,
         bbo_role: typing.Optional[int] = OMIT,
         stp: typing.Optional[StopLimitOrderRequestStp] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[OrderResponse]:
         """
-        The endpoint creates [stop-limit trading order](/glossary#stop-limit-order).
+        The endpoint creates a [stop-limit trading order](/glossary#stop-limit-order). The order remains inactive until the market price reaches the `activation_price`, at which point the system places a limit order at the specified `price`. For buy orders, activation triggers when the market price rises to or above `activation_price`. For sell orders, activation triggers when the market price falls to or below `activation_price`. Minimum and maximum values for `amount`, `price`, and `activation_price` are market-dependent. Query `GET /api/v4/public/markets` for `minAmount`, `minTotal`, `maxTotal`, `stockPrec` (amount precision), and `moneyPrec` (price precision).
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
@@ -1142,7 +1235,7 @@ class RawSpotTradingClient:
         - `31` - market validation failed
         - `32` - amount validation failed
         - `33` - price validation failed
-        - `36` - client_order_id validation failed
+        - `36` - clientOrderId validation failed
         </Accordion>
 
         <Accordion title="Errors">
@@ -1248,7 +1341,7 @@ class RawSpotTradingClient:
           "code": 36,
           "message": "Validation failed",
           "errors": {
-            "client_order_id": ["ClientOrderId field should be a string."]
+            "clientOrderId": ["ClientOrderId field should be a string."]
           }
         }
         ```
@@ -1258,7 +1351,7 @@ class RawSpotTradingClient:
           "code": 36,
           "message": "Validation failed",
           "errors": {
-            "client_order_id": [
+            "clientOrderId": [
               "ClientOrderId field should contain only latin letters, numbers and dashes."
             ]
           }
@@ -1269,32 +1362,36 @@ class RawSpotTradingClient:
         Parameters
         ----------
         market : str
-            Available [market](/glossary#market). Example: BTC_USDT
+            Trading pair. Format: `BASE_QUOTE` (e.g., `BTC_USDT`). Query `GET /api/v4/public/markets` for available markets.
 
         side : StopLimitOrderRequestSide
-            Order type. Variables: 'buy' / 'sell' Example: 'buy'
+            Order side. Allowed values: `buy`, `sell`.
 
         amount : str
-            Amount of [stock](/glossary#stock) currency to buy or sell. Example: '0.001' or 0.001
+            Order quantity in base (stock) currency. Minimum and maximum values are market-dependent. Query `GET /api/v4/public/markets` for `minAmount`, `minTotal`, `maxTotal`. Precision: `stockPrec`.
 
         price : str
-            Price in [money](/glossary#money) currency. Example: '9800' or 9800
+            Limit price per unit in quote (money) currency applied after the stop triggers. Minimum and maximum values are market-dependent. Precision: `moneyPrec`.
 
         activation_price : str
-            Activation price in [money](/glossary#money) currency. Example: '10000' or 10000
+            Trigger price in quote (money) currency. For buy orders, the stop triggers when the market price rises to or above the specified price. For sell orders, the stop triggers when the market price falls to or below the specified price. Precision: `moneyPrec`.
 
         request : str
 
-        nonce : str
+        nonce : int
 
         client_order_id : typing.Optional[str]
-            Identifier should be unique and contain letters, dashes, numbers, dots or underscores. The identifier must be unique.
+            Custom client order identifier. Uniqueness is enforced only among the account's open (pending) orders on the same market — once a previous order is filled or canceled, the same identifier can be reused, including on the same market. Contains only letters, numbers, dashes, dots, or underscores.
 
         bbo_role : typing.Optional[int]
-            When the [BBO](/glossary#bbo) option is activated for Limit orders, the system selects the best market prices for execution. Variables: 1 - Queue Method / 2 - Counterparty Method.
+            Best Bid/Offer ([BBO](/glossary#bbo)) execution method. The system selects the best market price for execution after the stop triggers. `1` = Queue method, `2` = Counterparty method.
 
         stp : typing.Optional[StopLimitOrderRequestStp]
-            Self trade prevention mode. Variables: 'no' / 'cancel_both' / 'cancel_new' / 'cancel_old'. Example: 'no'.
+            Self-trade prevention mode. Allowed values: `no` (self-trades allowed), `cb` (cancel both the new and the existing order), `cn` (cancel the new order, keep the existing), `co` (cancel the existing order, place the new one). Default: `no`.
+
+            Legacy values `cancel_both`, `cancel_new`, `cancel_old` are deprecated: the API accepts the legacy values with identical behavior until a deprecation deadline is announced, then rejects the legacy values. Responses always return the abbreviated form, regardless of which variant the request used.
+
+            See [Self-Trade Prevention](/platform/self-trade-prevention).
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1314,7 +1411,7 @@ class RawSpotTradingClient:
                 "amount": amount,
                 "price": price,
                 "activation_price": activation_price,
-                "client_order_id": client_order_id,
+                "clientOrderId": client_order_id,
                 "bboRole": bbo_role,
                 "stp": stp,
                 "request": request,
@@ -1382,13 +1479,13 @@ class RawSpotTradingClient:
         amount: str,
         activation_price: str,
         request: str,
-        nonce: str,
+        nonce: int,
         client_order_id: typing.Optional[str] = OMIT,
         stp: typing.Optional[StopMarketOrderRequestStp] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[OrderResponse]:
         """
-        The endpoint creates [stop-market trading order](/glossary#stop-market-order).
+        The endpoint creates a [stop-market trading order](/glossary#stop-market-order). The order remains inactive until the market price reaches the `activation_price`, at which point the system executes a market order immediately at the best available price. For buy orders, `amount` represents the total in quote currency and activation triggers when the market price rises to or above `activation_price`. For sell orders, `amount` represents the quantity in base currency and activation triggers when the market price falls to or below `activation_price`. Minimum and maximum values are market-dependent. Query `GET /api/v4/public/markets` for `minAmount`, `minTotal`, and `maxTotal`.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
@@ -1398,7 +1495,7 @@ class RawSpotTradingClient:
         - `30` - default validation error code
         - `31` - market validation failed
         - `32` - amount validation failed
-        - `36` - client_order_id validation failed
+        - `36` - clientOrderId validation failed
         </Accordion>
 
         <Accordion title="Errors">
@@ -1483,7 +1580,7 @@ class RawSpotTradingClient:
           "code": 36,
           "message": "Validation failed",
           "errors": {
-            "client_order_id": ["ClientOrderId field should be a string."]
+            "clientOrderId": ["ClientOrderId field should be a string."]
           }
         }
         ```
@@ -1493,7 +1590,7 @@ class RawSpotTradingClient:
           "code": 36,
           "message": "Validation failed",
           "errors": {
-            "client_order_id": [
+            "clientOrderId": [
               "ClientOrderId field should contain only latin letters, numbers and dashes."
             ]
           }
@@ -1505,7 +1602,7 @@ class RawSpotTradingClient:
           "code": 36,
           "message": "Validation failed",
           "errors": {
-            "client_order_id": [
+            "clientOrderId": [
               "This client order id is already used by the current account."
             ]
           }
@@ -1526,26 +1623,30 @@ class RawSpotTradingClient:
         Parameters
         ----------
         market : str
-            Available [market](/glossary#market). Example: BTC_USDT
+            Trading pair. Format: `BASE_QUOTE` (e.g., `BTC_USDT`). Query `GET /api/v4/public/markets` for available markets.
 
         side : StopMarketOrderRequestSide
-            Order type. Variables: 'buy' / 'sell' Example: 'buy'
+            Order side. Allowed values: `buy`, `sell`.
 
         amount : str
-            Amount of [money](/glossary#money) currency to buy or amount in [stock](/glossary#stock) currency to sell. Example: '0.01' or 0.01 for buy and '0.0001' for sell.
+            For buy orders: total in quote (money) currency to spend. For sell orders: quantity in base (stock) currency to sell. Minimum and maximum values are market-dependent. Query `GET /api/v4/public/markets` for `minAmount`, `minTotal`, `maxTotal`.
 
         activation_price : str
-            Activation price in [money](/glossary#money) currency. Example: '10000' or 10000
+            Trigger price in quote (money) currency. For buy orders, the stop triggers when the market price rises to or above the specified price. For sell orders, the stop triggers when the market price falls to or below the specified price. Precision: `moneyPrec`.
 
         request : str
 
-        nonce : str
+        nonce : int
 
         client_order_id : typing.Optional[str]
-            Identifier should be unique and contain letters, dashes, numbers, dots or underscores. The identifier must be unique.
+            Custom client order identifier. Uniqueness is enforced only among the account's open (pending) orders on the same market — once a previous order is filled or canceled, the same identifier can be reused, including on the same market. Contains only letters, numbers, dashes, dots, or underscores.
 
         stp : typing.Optional[StopMarketOrderRequestStp]
-            Self trade prevention mode. Variables: 'no' / 'cancel_both' / 'cancel_new' / 'cancel_old'. Example: 'no'.
+            Self-trade prevention mode. Allowed values: `no` (self-trades allowed), `cb` (cancel both the new and the existing order), `cn` (cancel the new order, keep the existing), `co` (cancel the existing order, place the new one). Default: `no`.
+
+            Legacy values `cancel_both`, `cancel_new`, `cancel_old` are deprecated: the API accepts the legacy values with identical behavior until a deprecation deadline is announced, then rejects the legacy values. Responses always return the abbreviated form, regardless of which variant the request used.
+
+            See [Self-Trade Prevention](/platform/self-trade-prevention).
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1564,7 +1665,7 @@ class RawSpotTradingClient:
                 "side": side,
                 "amount": amount,
                 "activation_price": activation_price,
-                "client_order_id": client_order_id,
+                "clientOrderId": client_order_id,
                 "stp": stp,
                 "request": request,
                 "nonce": nonce,
@@ -1617,21 +1718,21 @@ class RawSpotTradingClient:
         *,
         market: str,
         request: str,
-        nonce: str,
+        nonce: int,
         order_id: typing.Optional[int] = OMIT,
         client_order_id: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[OrderResponse]:
         """
-        Cancel existing [order](/glossary#orders).
+        The endpoint cancels an existing [order](/glossary#orders). Provide either `orderId` or `clientOrderId` to identify the target order. The response returns the final state of the cancelled order.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
         </Warning>
 
         <Note>
-        - Modification by client_order_id takes priority over order_id.
-        - The request supports working only with order_id or only with client_order_id.
+        - Cancellation by clientOrderId takes priority over orderId.
+        - The request supports working only with orderId or only with clientOrderId.
         - Do not pass both values at the same time.
         </Note>
 
@@ -1647,7 +1748,7 @@ class RawSpotTradingClient:
           "message": "Validation failed",
           "errors": {
             "market": ["Market field is required."],
-            "order_id": ["OrderId field is required."]
+            "orderId": ["OrderId field is required."]
           }
         }
         ```
@@ -1677,7 +1778,7 @@ class RawSpotTradingClient:
           "code": 30,
           "message": "Validation failed",
           "errors": {
-            "order_id": ["OrderId field should be an integer."]
+            "orderId": ["OrderId field should be an integer."]
           }
         }
         ```
@@ -1700,7 +1801,7 @@ class RawSpotTradingClient:
           "code": 2,
           "message": "Inner validation failed",
           "errors": {
-            "order_id": ["Unexecuted order was not found."]
+            "orderId": ["Unexecuted order was not found."]
           }
         }
         ```
@@ -1713,13 +1814,13 @@ class RawSpotTradingClient:
 
         request : str
 
-        nonce : str
+        nonce : int
 
         order_id : typing.Optional[int]
-            Order Id. Example: 4180284841. Required if client_order_id is not set.
+            Order Id. Example: 4180284841. Required if clientOrderId is not set.
 
         client_order_id : typing.Optional[str]
-            Custom client order id. Example: 'customId11'. Required if order_id is not set.
+            Custom client order id. Example: 'customId11'. Required if orderId is not set.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1735,8 +1836,8 @@ class RawSpotTradingClient:
             method="POST",
             json={
                 "market": market,
-                "order_id": order_id,
-                "client_order_id": client_order_id,
+                "orderId": order_id,
+                "clientOrderId": client_order_id,
                 "request": request,
                 "nonce": nonce,
             },
@@ -1794,17 +1895,240 @@ class RawSpotTradingClient:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
+    def cancel_bulk_orders(
+        self,
+        *,
+        orders: typing.Sequence[BulkCancelOrderItem],
+        request: str,
+        nonce: int,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[BulkCancelOrderResponse]:
+        """
+        The endpoint cancels up to 100 [orders](/glossary#orders) in a single request. Each item identifies a target order by `market` plus exactly one of `orderId` or `clientOrderId`. The response is an array whose items match the input order one-to-one — `response[i]` corresponds to `request.orders[i]`.
+
+        <Warning>
+        Rate limit: 10000 requests/10 sec.
+        </Warning>
+
+        <Warning>
+        Limit: From 1 to 100 orders per request.
+        </Warning>
+
+        <Note>
+        - Provide exactly one of `orderId` or `clientOrderId` per item. Sending both, or neither, returns a per-item validation error.
+        - The endpoint always processes every item independently. There is no `stopOnFail`-style switch.
+        - When the caller is not authenticated, the API returns the standard authorization error and skips per-item validation.
+        </Note>
+
+        <Accordion title="Error Codes">
+        - `30` — validation failure (per-item)
+        - `404` — order not found (per-item)
+        - `500` — trade service unavailable (per-item)
+        </Accordion>
+
+        <Accordion title="Errors">
+        **Per-item errors (returned inside the response array):**
+
+        Element is not a valid object:
+        ```json
+        {
+          "result": null,
+          "error": {
+            "code": 30,
+            "message": "Validation failed",
+            "errors": { "request": ["Invalid order format"] }
+          }
+        }
+        ```
+
+        `market` field is missing:
+        ```json
+        {
+          "result": null,
+          "error": {
+            "code": 30,
+            "message": "Validation failed",
+            "errors": { "market": ["validation.required"] }
+          }
+        }
+        ```
+
+        Specified market does not exist:
+        ```json
+        {
+          "result": null,
+          "error": {
+            "code": 30,
+            "message": "Validation failed",
+            "errors": { "market": ["validation.market_not_exist"] }
+          }
+        }
+        ```
+
+        Neither `orderId` nor `clientOrderId` provided:
+        ```json
+        {
+          "result": null,
+          "error": {
+            "code": 30,
+            "message": "Validation failed",
+            "errors": { "request": ["validation.required"] }
+          }
+        }
+        ```
+
+        Both `orderId` and `clientOrderId` provided:
+        ```json
+        {
+          "result": null,
+          "error": {
+            "code": 30,
+            "message": "Validation failed",
+            "errors": { "request": ["api.validation.order.chooseOneId"] }
+          }
+        }
+        ```
+
+        Order not found (returned for both `orderId` and `clientOrderId` lookups):
+        ```json
+        {
+          "result": null,
+          "error": {
+            "code": 404,
+            "message": "Order not found",
+            "errors": {
+              "orderId": ["Order does not exist or already cancelled"]
+            }
+          }
+        }
+        ```
+
+        Trade service unavailable (returned when the trade service is unreachable or returns an unparseable response):
+        ```json
+        {
+          "result": null,
+          "error": {
+            "code": 500,
+            "message": "Service temporary unavailable",
+            "errors": { "error": ["Service temporary unavailable"] }
+          }
+        }
+        ```
+
+        **Request-level errors (HTTP 422, returned as a standard error envelope, not as an array):**
+
+        `orders` field is missing or is not an array:
+        ```json
+        {
+          "code": 30,
+          "message": "Validation failed",
+          "errors": { "orders": ["validation.required"] }
+        }
+        ```
+
+        `orders` contains more than 100 elements:
+        ```json
+        {
+          "code": 30,
+          "message": "Validation failed",
+          "errors": { "orders": ["validation.between"] }
+        }
+        ```
+        </Accordion>
+
+        Parameters
+        ----------
+        orders : typing.Sequence[BulkCancelOrderItem]
+            Array of orders to cancel. From 1 to 100 items per request.
+
+        request : str
+
+        nonce : int
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[BulkCancelOrderResponse]
+            Bulk cancel result. The response is an array — `response[i]` corresponds to `request.orders[i]`. Each item contains either a `result` (cancellation succeeded) or an `error` (cancellation failed for that item). Partial failures within the array are normal; the request itself returns HTTP 200.
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "api/v4/order/cancel/bulk",
+            base_url=self._client_wrapper.get_environment().base,
+            method="POST",
+            json={
+                "orders": convert_and_respect_annotation_metadata(
+                    object_=orders, annotation=typing.Sequence[BulkCancelOrderItem], direction="write"
+                ),
+                "request": request,
+                "nonce": nonce,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    BulkCancelOrderResponse,
+                    parse_obj_as(
+                        type_=BulkCancelOrderResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 400:
+                raise BadRequestError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 503:
+                raise ServiceUnavailableError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
     def cancel_all_orders(
         self,
         *,
         market: typing.Optional[str] = OMIT,
         type: typing.Optional[typing.Sequence[CancelAllOrdersRequestTypeItem]] = OMIT,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[None]:
         """
-        Cancels all orders that meet the conditions [order](/glossary#orders).
+        The endpoint cancels all open [orders](/glossary#orders) that match the specified filters. Use the `market` parameter to target a single trading pair, or omit the parameter to cancel across all markets. The `type` parameter filters by order type (`spot`, `margin`, `futures`). When omitted, the endpoint targets all order types.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
@@ -1856,11 +2180,11 @@ class RawSpotTradingClient:
             Available [market](/glossary#market). Example: BTC_USDT
 
         type : typing.Optional[typing.Sequence[CancelAllOrdersRequestTypeItem]]
-            Order types value. Example: 'spot', 'margin', 'futures'
+            Order types to target. Valid values: "spot" — standard spot orders. "margin" — marginal orders placed on spot markets. Note: the "margin" value is not the same as the collateral account balance; "collateral" in other endpoints refers to the funding account, whereas "margin" here refers specifically to the order type. "futures" — marginal orders placed on futures markets (e.g., BTC_PERP). If omitted, the API targets all order types.
 
         request : typing.Optional[str]
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1935,18 +2259,22 @@ class RawSpotTradingClient:
         offset: typing.Optional[int] = OMIT,
         limit: typing.Optional[int] = OMIT,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[typing.List[OrderResponse]]:
         """
-        The endpoint retrieves [active orders](/glossary#active-orders) (orders not yet executed).
+        The endpoint retrieves [active orders](/glossary#active-orders) (orders not yet executed). The response includes limit, stop-limit, and stop-market orders that remain open on the order book. Use the `market` parameter to filter by trading pair, or omit the parameter to retrieve orders across all markets. The endpoint supports pagination with `limit` and `offset` parameters.
 
         <Warning>
         Rate limit: 12000 requests/10 sec.
         </Warning>
 
         <Note>
-        Search across all markets is available only if client_order_id and order_id are not provided.
+        Search across all markets is available only if clientOrderId and orderId are not provided.
+        </Note>
+
+        <Note>
+        This endpoint supports pagination. Use `limit` (default: 50, max: 100) and `offset` (default: 0, max: 4294967295) to page through results. The response does not include a `total` field — detect the last page when fewer than `limit` orders are returned. An empty array means you have paged past the end; receiving exactly `limit` orders does not guarantee that another page exists.
         </Note>
 
         <Accordion title="Errors">
@@ -1966,7 +2294,7 @@ class RawSpotTradingClient:
           "message": "Validation failed",
           "errors": {
             "limit": ["The limit may not be greater than 100."],
-            "offset": ["The offset may not be greater than 10000."]
+            "offset": ["The offset may not be greater than 4294967295."]
           }
         }
         ```
@@ -1975,23 +2303,23 @@ class RawSpotTradingClient:
         Parameters
         ----------
         market : typing.Optional[str]
-            Available [market](/glossary#market). Example: BTC_USDT
+            Trading pair to filter by. Format: `BASE_QUOTE` (e.g., `BTC_USDT`). Omit to retrieve orders across all markets.
 
         order_id : typing.Optional[int]
-            Available order_id. Example: 3134995325
+            Filter by a specific order identifier. Returns only the matching active order.
 
         client_order_id : typing.Optional[str]
-            Available client_order_id. Example: customId11
+            Filter by custom client order identifier. Returns only the matching active order.
 
         offset : typing.Optional[int]
-            Starting line index (OFFSET). Default: 0, Min: 0
+            Number of records to skip. Default: `0`. Maximum: `4294967295`.
 
         limit : typing.Optional[int]
-            LIMIT is a special clause used to limit records a particular query can return. Default: 50, Min: 1, Max: 100
+            Maximum number of records to return. Default: `50`. Minimum: `1`. Maximum: `100`.
 
         request : typing.Optional[str]
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -2007,8 +2335,8 @@ class RawSpotTradingClient:
             method="POST",
             json={
                 "market": market,
-                "order_id": order_id,
-                "client_order_id": client_order_id,
+                "orderId": order_id,
+                "clientOrderId": client_order_id,
                 "offset": offset,
                 "limit": limit,
                 "request": request,
@@ -2078,18 +2406,30 @@ class RawSpotTradingClient:
         offset: typing.Optional[int] = OMIT,
         limit: typing.Optional[int] = OMIT,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> HttpResponse[typing.List[GetExecutedOrderHistoryResponseItem]]:
+    ) -> HttpResponse[GetExecutedOrderHistoryResponse]:
         """
-        The endpoint retrieves all deals for all markets. Can be filtered by single market if needed.
+        The endpoint retrieves executed order history for all trading types — spot, margin, and futures — across all markets. Can be filtered by a single market if needed. Results are ordered by trade time, newest first.
 
         <Warning>
         Rate limit: 12000 requests/10 sec.
         </Warning>
 
+        <Warning>
+        Requests with `limit` values above 100 return large payloads. Use high limits only when necessary and ensure the client application can handle large response sizes.
+        </Warning>
+
         <Note>
-        The endpoint can retrieve data not older than 6 months from current month. For older data, use the Report on the History page.
+        The endpoint can retrieve data not older than 6 months from the current month. For older data, use the Report on the History page.
+        </Note>
+
+        <Note>
+        This endpoint supports pagination. Use `limit` (default: 50, max: 500) and `offset` (default: 0) to page through results. The response does not include a `total` field — detect the last page when fewer than `limit` records are returned (sum the records across all markets when no `market` filter is set). An empty response means you have paged past the end; receiving exactly `limit` records does not guarantee that another page exists.
+        </Note>
+
+        <Note>
+        For B2B accounts, canceled orders are not recorded in the history. To obtain canceled-order data, contact support or the assigned account manager.
         </Note>
 
         <Accordion title="Errors">
@@ -2113,6 +2453,17 @@ class RawSpotTradingClient:
           }
         }
         ```
+
+        ```json
+        {
+          "code": 30,
+          "message": "Validation failed",
+          "errors": {
+            "orderHistory": ["OrderHistory was not found."]
+          }
+        }
+        ```
+        Returned when `clientOrderId` is supplied but no order matches it on the calling account.
         </Accordion>
 
         Parameters
@@ -2121,7 +2472,7 @@ class RawSpotTradingClient:
             Requested [market](/glossary#market). Example: BTC_USDT
 
         client_order_id : typing.Optional[str]
-            Filter by custom order identifier
+            Look up by custom client order identifier. When supplied, the endpoint switches to single-order lookup mode and returns the matching order's deal history. Returns `422` with `"OrderHistory was not found."` if no order matches on the calling account.
 
         start_date : typing.Optional[int]
             Start date in Unix-time format
@@ -2133,19 +2484,19 @@ class RawSpotTradingClient:
             Starting line index (OFFSET). Default: 0, Min: 0
 
         limit : typing.Optional[int]
-            LIMIT is a special clause used to limit records a particular query can return. Default: 50, Min: 1, Max: 100
+            LIMIT is a special clause used to limit records a particular query can return. Default: 50, Min: 1, Max: 500
 
         request : typing.Optional[str]
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        HttpResponse[typing.List[GetExecutedOrderHistoryResponseItem]]
-            Executed order history
+        HttpResponse[GetExecutedOrderHistoryResponse]
+            Executed order history. Response shape depends on whether the market filter is provided: with market filter returns a flat array; without market filter returns an object keyed by market name.
         """
         _response = self._client_wrapper.httpx_client.request(
             "api/v4/trade-account/executed-history",
@@ -2153,7 +2504,7 @@ class RawSpotTradingClient:
             method="POST",
             json={
                 "market": market,
-                "client_order_id": client_order_id,
+                "clientOrderId": client_order_id,
                 "startDate": start_date,
                 "endDate": end_date,
                 "offset": offset,
@@ -2170,9 +2521,9 @@ class RawSpotTradingClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.List[GetExecutedOrderHistoryResponseItem],
+                    GetExecutedOrderHistoryResponse,
                     parse_obj_as(
-                        type_=typing.List[GetExecutedOrderHistoryResponseItem],  # type: ignore
+                        type_=GetExecutedOrderHistoryResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -2220,29 +2571,48 @@ class RawSpotTradingClient:
         *,
         order_id: int,
         request: str,
-        nonce: str,
+        nonce: int,
         offset: typing.Optional[int] = OMIT,
         limit: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[GetOrderDealsResponse]:
         """
-        The endpoint retrieves deals for a specific order.
+        The endpoint retrieves individual trade fills (deals) for a specific order. Each deal represents a partial or full execution of the order against a counterparty. The response includes pagination and returns deal details such as price, amount, fee, and execution role (maker or taker).
 
         <Warning>
         Rate limit: 12000 requests/10 sec.
         </Warning>
 
+        <Note>
+        This endpoint supports pagination. Use `limit` (default: 50) and `offset` (default: 0) to page through results. The response does not include a `total` field — detect the last page when `records.length < limit`. An empty `records` array means you have paged past the end; receiving exactly `limit` records does not guarantee that another page exists.
+        </Note>
+
+        <Note>
+        An unknown or not-owned `orderId` is **not** an error. The endpoint always returns HTTP 200 with the paged-list envelope; a non-matching `orderId` simply filters down to an empty `records` array.
+        </Note>
+
+        <Note>
+        The endpoint can retrieve data not older than 6 months from the current month. For older data, use the Report on the History page. An order older than this window returns an empty `records` array even when the order was filled.
+        </Note>
+
+        <Accordion title="Error Codes">
+          - `30` - default validation error code (for example, a missing or malformed `orderId`, or invalid pagination)
+        </Accordion>
+
         Parameters
         ----------
         order_id : int
+            Identifier of the order to retrieve deals for.
 
         request : str
 
-        nonce : str
+        nonce : int
 
         offset : typing.Optional[int]
+            Number of records to skip. Default: `0`.
 
         limit : typing.Optional[int]
+            Maximum number of records to return. Default: `50`.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -2257,7 +2627,7 @@ class RawSpotTradingClient:
             base_url=self._client_wrapper.get_environment().base,
             method="POST",
             json={
-                "order_id": order_id,
+                "orderId": order_id,
                 "offset": offset,
                 "limit": limit,
                 "request": request,
@@ -2321,30 +2691,82 @@ class RawSpotTradingClient:
         self,
         *,
         market: typing.Optional[str] = OMIT,
+        client_order_id: typing.Optional[str] = OMIT,
+        order_id: typing.Optional[int] = OMIT,
+        status: typing.Optional[GetOrderHistoryRequestStatus] = OMIT,
+        start_date: typing.Optional[int] = OMIT,
+        end_date: typing.Optional[int] = OMIT,
         offset: typing.Optional[int] = OMIT,
         limit: typing.Optional[int] = OMIT,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[typing.Dict[str, typing.List[GetOrderHistoryResponseValueItem]]]:
         """
-        The endpoint retrieves order history.
+        The endpoint retrieves the history of executed and cancelled orders. The response groups orders by market name. Use the `market` parameter to filter by a single trading pair, or omit the parameter to retrieve orders across all markets. The endpoint supports pagination with `limit` (default 50, max 500) and `offset` parameters. Results are ordered by time, newest first.
 
         <Warning>
         Rate limit: 12000 requests/10 sec.
         </Warning>
 
+        <Warning>
+        Requests with `limit` values above 100 return large payloads. Use high limits only when necessary and ensure the client application can handle large response sizes.
+        </Warning>
+
+        <Note>
+        This endpoint supports pagination. Use `limit` (default: 50, max: 500) and `offset` (default: 0) to page through results. The response does not include a `total` field — detect the last page when fewer than `limit` records are returned (sum the records across all markets when no `market` filter is set). An empty response means you have paged past the end; receiving exactly `limit` records does not guarantee that another page exists.
+        </Note>
+
+        <Note>
+        **Date filter window:** the maximum span between `startDate` and `endDate` is **31 days**, and the earliest reachable date is **6 months ago (00:00 UTC)**. Requests that exceed the 31-day window or fall below the 6-month floor are rejected with a validation error. `endDate` values greater than the current time are silently clamped to `now`.
+        </Note>
+
+        <Note>
+        For B2B accounts, canceled orders are not recorded in the history. To obtain canceled-order data, contact support or the assigned account manager.
+        </Note>
+
+        <Accordion title="Errors">
+        ```json
+        {
+          "code": 30,
+          "message": "Validation failed",
+          "errors": {
+            "orderHistory": ["OrderHistory was not found."]
+          }
+        }
+        ```
+        Returned when `clientOrderId` is supplied but no order matches it on the calling account.
+        </Accordion>
+
         Parameters
         ----------
         market : typing.Optional[str]
+            Trading pair to filter by. Format: `BASE_QUOTE` (e.g., `BTC_USDT`). Omit to retrieve orders across all markets.
+
+        client_order_id : typing.Optional[str]
+            Look up a specific order by the custom client identifier. When supplied, the endpoint switches to single-order lookup mode and the `startDate`, `endDate`, and `status` filters are ignored. Returns `422` with `"OrderHistory was not found."` if no order matches. Ignored when `orderId` is also provided.
+
+        order_id : typing.Optional[int]
+            Look up a specific order by the exchange-assigned identifier. When supplied, the endpoint switches to single-order lookup mode and the `startDate`, `endDate`, and `status` filters are ignored. Returns an empty result on no match (no `422`). Takes precedence over `clientOrderId` when both are supplied.
+
+        status : typing.Optional[GetOrderHistoryRequestStatus]
+            Filter list-mode results by order status. Ignored when `orderId` or `clientOrderId` is supplied.
+
+        start_date : typing.Optional[int]
+            Start of the query window as a Unix timestamp in seconds. Default: `now - 1 month`. The earliest reachable date is 6 months ago (00:00 UTC) — requests with an older `startDate` are rejected with a validation error.
+
+        end_date : typing.Optional[int]
+            End of the query window as a Unix timestamp in seconds. Default: `now`. Values greater than the current time are silently clamped to `now`. The maximum span between `startDate` and `endDate` is 31 days.
 
         offset : typing.Optional[int]
+            Number of records to skip. Default: `0`.
 
         limit : typing.Optional[int]
+            Maximum number of records to return. Default: `50`. Minimum: `1`. Maximum: `500`.
 
         request : typing.Optional[str]
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -2360,6 +2782,11 @@ class RawSpotTradingClient:
             method="POST",
             json={
                 "market": market,
+                "clientOrderId": client_order_id,
+                "orderId": order_id,
+                "status": status,
+                "startDate": start_date,
+                "endDate": end_date,
                 "offset": offset,
                 "limit": limit,
                 "request": request,
@@ -2419,12 +2846,142 @@ class RawSpotTradingClient:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
+    def get_delisting_order_history(
+        self,
+        *,
+        market: typing.Optional[str] = OMIT,
+        status: typing.Optional[GetDelistingOrderHistoryRequestStatus] = OMIT,
+        start_date: typing.Optional[int] = OMIT,
+        end_date: typing.Optional[int] = OMIT,
+        offset: typing.Optional[int] = OMIT,
+        limit: typing.Optional[int] = OMIT,
+        request: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[typing.List[GetDelistingOrderHistoryResponseItem]]:
+        """
+        The endpoint returns the authenticated account's delisting-related order history from the order-history index. The response combines two categories of orders, each identified by the `delistingKind` field: reverse close orders that the platform generates when a market is delisted (`delistingKind` = `reverse`, `clientOrderId` prefixed with `delisting-`), and active orders canceled at the moment of delisting (`delistingKind` = `canceled`). The endpoint returns a flat array sorted by `finishAt` descending, then `id` descending.
+
+        Set the `status` parameter to narrow the response: `filled` returns only reverse close orders that reached the `filled` outcome, and `delisting` returns only orders canceled during delisting. Omit `status` to return both categories merged in a single array.
+
+        <Note>
+        The endpoint supports pagination via `limit` (default: 500, max: 500) and `offset` (default: 0); the sum of `offset` and `limit` must not exceed 10000. A response that returns fewer than `limit` records indicates the last page.
+        </Note>
+
+        <Note>
+        **Date filter window:** the date range filters orders by the `finishAt` timestamp. The maximum span between `startDate` and `endDate` is **31 days**. `endDate` values greater than the current time are clamped to `now`.
+        </Note>
+
+        <Warning>
+        Rate limit: 10000 requests/10 sec.
+        </Warning>
+
+        Parameters
+        ----------
+        market : typing.Optional[str]
+            Trading pair to filter by. Format: `BASE_QUOTE` (e.g., `BTC_USDT`), matching the pattern `^[A-Z0-9]+_[A-Z0-9]+$`. Omit to retrieve delisting orders across all markets.
+
+        status : typing.Optional[GetDelistingOrderHistoryRequestStatus]
+            Category filter — distinct from the response `status` field. `filled` returns only reverse close orders (`clientOrderId` prefixed with `delisting-`), which carry `delistingKind` = `reverse` and response `status` = `filled`. `delisting` returns only orders canceled at delisting, which carry `delistingKind` = `canceled` and response `status` = `canceled`. Omit to return both categories merged.
+
+        start_date : typing.Optional[int]
+            Start of the query window as a Unix timestamp in seconds. Default: `now - 30 days`. Must not be later than `endDate`.
+
+        end_date : typing.Optional[int]
+            End of the query window as a Unix timestamp in seconds. Default: `now`. Values greater than the current time are clamped to `now`. The maximum span between `startDate` and `endDate` is 31 days.
+
+        offset : typing.Optional[int]
+            Number of records to skip. Default: `0`. The sum of `offset` and `limit` must not exceed 10000.
+
+        limit : typing.Optional[int]
+            Maximum number of records to return. Default: `500`. Minimum: `1`. Maximum: `500`.
+
+        request : typing.Optional[str]
+
+        nonce : typing.Optional[int]
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[typing.List[GetDelistingOrderHistoryResponseItem]]
+            Successful response - returns a flat array of delisting-related orders sorted by `finishAt` descending, then `id` descending. Returns an empty array when no delisting orders match the filters.
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "api/v4/trade-account/order/history/query",
+            base_url=self._client_wrapper.get_environment().base,
+            method="POST",
+            json={
+                "market": market,
+                "status": status,
+                "startDate": start_date,
+                "endDate": end_date,
+                "offset": offset,
+                "limit": limit,
+                "request": request,
+                "nonce": nonce,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.List[GetDelistingOrderHistoryResponseItem],
+                    parse_obj_as(
+                        type_=typing.List[GetDelistingOrderHistoryResponseItem],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 400:
+                raise BadRequestError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 503:
+                raise ServiceUnavailableError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
     def modify_order(
         self,
         *,
         market: str,
         request: str,
-        nonce: str,
+        nonce: int,
         order_id: typing.Optional[int] = OMIT,
         client_order_id: typing.Optional[str] = OMIT,
         amount: typing.Optional[str] = OMIT,
@@ -2446,9 +3003,20 @@ class RawSpotTradingClient:
 
         <Note>
         - Use total parameter instead of amount for modify buy stop market order.
-        - Modification by client_order_id takes priority.
-        - The request supports working only with order_id or only with client_order_id.
+        - Modification by clientOrderId takes priority.
+        - The request supports working only with orderId or only with clientOrderId.
         - Do not pass both values at the same time.
+        </Note>
+
+        <Note>
+        **WebSocket impact:** Each call to the endpoint cancels the original order and
+        creates a replacement with a **new `orderId`**. Clients subscribed to the
+        `ordersPending_update` WebSocket channel will receive:
+        - `event_id=3` (cancel) for the old order
+        - `event_id=1` (new) for the replacement
+
+        Update any `orderId` references after a successful modify response.
+        Use `clientOrderId` for stable order tracking across modifications.
         </Note>
 
         <Accordion title="Error Codes">
@@ -2473,7 +3041,7 @@ class RawSpotTradingClient:
           "code": 2,
           "message": "Inner validation failed",
           "errors": {
-            "order_id": ["Unexecuted order was not found."]
+            "orderId": ["Unexecuted order was not found."]
           }
         }
         ```
@@ -2496,13 +3064,13 @@ class RawSpotTradingClient:
 
         request : str
 
-        nonce : str
+        nonce : int
 
         order_id : typing.Optional[int]
-            Active order id. Required if client_order_id is not set.
+            Active order id. Required if clientOrderId is not set.
 
         client_order_id : typing.Optional[str]
-            Identifier should be unique and contain letters, dashes, numbers, dots or underscores. Required if order_id is not set.
+            Identifier should be unique and contain letters, dashes, numbers, dots or underscores. Required if orderId is not set.
 
         amount : typing.Optional[str]
             Amount of [stock](/glossary#stock) currency to buy or sell. Example: '0.001' or 0.001
@@ -2529,8 +3097,8 @@ class RawSpotTradingClient:
             base_url=self._client_wrapper.get_environment().base,
             method="POST",
             json={
-                "order_id": order_id,
-                "client_order_id": client_order_id,
+                "orderId": order_id,
+                "clientOrderId": client_order_id,
                 "market": market,
                 "amount": amount,
                 "total": total,
@@ -2600,11 +3168,11 @@ class RawSpotTradingClient:
         timeout: str,
         types: typing.Optional[typing.Sequence[SetKillSwitchRequestTypesItem]] = OMIT,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[SetKillSwitchResponse]:
         """
-        The endpoint creates, updates, deletes [kill-switch timer](/glossary#kill-switch-timer).
+        The endpoint creates, updates, or deletes a [kill-switch timer](/glossary#kill-switch-timer). The kill-switch acts as a safety mechanism for automated trading systems — the timer automatically cancels all open orders for the specified market if the client fails to reset the timer before expiration. Set `timeout` to a value between `5` and `600` (seconds) to create or update a timer. Set `timeout` to `null` to delete an existing timer.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
@@ -2662,11 +3230,11 @@ class RawSpotTradingClient:
             Timer value. Example: '5'-'600' or null
 
         types : typing.Optional[typing.Sequence[SetKillSwitchRequestTypesItem]]
-            Order types value. Example: 'spot', 'margin', 'futures' or null
+            Order types to target. Valid values: "spot" — standard spot orders. "margin" — marginal orders placed on spot markets. Note: the "margin" value is not the same as the collateral account balance; "collateral" in other endpoints refers to the funding account, whereas "margin" here refers specifically to the order type. "futures" — marginal orders placed on futures markets (e.g., BTC_PERP). If omitted, the API targets all order types.
 
         request : typing.Optional[str]
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -2735,11 +3303,11 @@ class RawSpotTradingClient:
         *,
         market: typing.Optional[str] = OMIT,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[typing.List[GetKillSwitchStatusResponseItem]]:
         """
-        The endpoint retrieves the status of [kill-switch timer](/glossary#kill-switch-timer).
+        The endpoint retrieves the status of active [kill-switch timers](/glossary#kill-switch-timer). The response returns an array of timer objects for the specified market, or for all markets if the `market` parameter is omitted. Each timer object includes the start time, scheduled cancellation time, and targeted order types.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
@@ -2769,7 +3337,7 @@ class RawSpotTradingClient:
 
         request : typing.Optional[str]
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -2841,11 +3409,11 @@ class AsyncRawSpotTradingClient:
         *,
         ticker: typing.Optional[str] = OMIT,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[typing.Dict[str, TradeAccountBalanceResponseValue]]:
         """
-        The endpoint retrieves the [trade balance](/glossary#balance-spotbalance-trade) by currency [ticker](/glossary#ticker) or all balances.
+        The endpoint retrieves the [trade balance](/glossary#balance-spotbalance-trade) by currency [ticker](/glossary#ticker) or all balances. When the `ticker` parameter is provided, the response contains a single currency entry. When omitted, the response contains all currencies with non-zero balances. Each entry includes the `available` balance (funds ready to trade) and the `freeze` balance (funds locked in open orders).
 
         <Warning>
         Rate limit: 12000 requests/10 sec.
@@ -2890,7 +3458,7 @@ class AsyncRawSpotTradingClient:
 
         request : typing.Optional[str]
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -2971,17 +3539,25 @@ class AsyncRawSpotTradingClient:
         amount: str,
         price: str,
         request: str,
-        nonce: str,
+        nonce: int,
         client_order_id: typing.Optional[str] = OMIT,
         post_only: typing.Optional[bool] = OMIT,
         ioc: typing.Optional[bool] = OMIT,
         bbo_role: typing.Optional[int] = OMIT,
         stp: typing.Optional[LimitOrderRequestStp] = OMIT,
         rpi: typing.Optional[bool] = OMIT,
+        retail: typing.Optional[bool] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[OrderResponse]:
         """
-        The endpoint creates [limit trading order](/glossary#limit-order).
+        The endpoint creates a [limit trading order](/glossary#limit-order). The order remains on the order book until filled, cancelled, or expired. Minimum and maximum values for `amount` and `price` are market-dependent — query `GET /api/v4/public/markets` for per-market constraints.
+
+        **Order validation rules** (per-market, from `GET /api/v4/public/markets`):
+        - `amount` must have at most `stockPrec` decimal places
+        - `price` must have at most `moneyPrec` decimal places
+        - `amount` must be ≥ `minAmount`
+        - `amount × price` must be ≥ `minTotal`
+        - `amount × price` must be ≤ `maxTotal` (when `maxTotal` is not `"0"`)
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
@@ -2989,7 +3565,10 @@ class AsyncRawSpotTradingClient:
 
         <Note>
           - RPI orders do not appear in public order book feeds (`depth`, `bookTicker`). RPI orders are visible only in private active orders and in the exchange UI order book (web/mobile).
-          - RPI orders are post-only by design and cannot be used with the IOC flag. The API returns error code `37` when both `rpi=true` and `ioc=true` are used.
+          - RPI orders are post-only by design and cannot be used with the IOC flag. The API returns error code `40` when both `rpi=true` and `ioc=true` are used.
+          - `retail=true` marks the order as a retail-source taker eligible to match RPI-maker liquidity. The Retail flag must be enabled on the account; contact the account manager to enable it.
+          - `retail=true` and `rpi=true` cannot be combined. The API returns error code `41` when both flags are set.
+          - `retail=true` has no effect on a `postOnly=true` order. Post-only orders are makers and cannot be retail takers.
         </Note>
 
         <Accordion title="Error Codes">
@@ -2997,8 +3576,12 @@ class AsyncRawSpotTradingClient:
           - `31` - market validation failed
           - `32` - amount validation failed
           - `33` - price validation failed
-          - `36` - client_order_id validation failed
-          - `37` - `ioc=true` cannot be used with `postOnly=true` or `rpi=true`
+          - `36` - clientOrderId validation failed
+          - `37` - `ioc=true` cannot be combined with `postOnly=true`
+          - `40` - `ioc=true` cannot be combined with `rpi=true`
+          - `41` - `retail=true` cannot be combined with `rpi=true`
+          - `42` - `retail=true` is not allowed for the account
+          - `43` - `rpi=true` is not allowed for the account
         </Accordion>
 
         <Accordion title="Errors">
@@ -3083,7 +3666,7 @@ class AsyncRawSpotTradingClient:
           "code": 36,
           "message": "Validation failed",
           "errors": {
-            "client_order_id": ["ClientOrderId field should be a string."]
+            "clientOrderId": ["ClientOrderId field should be a string."]
           }
         }
         ```
@@ -3093,7 +3676,7 @@ class AsyncRawSpotTradingClient:
           "code": 36,
           "message": "Validation failed",
           "errors": {
-            "client_order_id": [
+            "clientOrderId": [
               "ClientOrderId field should contain only latin letters, numbers and dashes."
             ]
           }
@@ -3105,7 +3688,7 @@ class AsyncRawSpotTradingClient:
           "code": 36,
           "message": "Validation failed",
           "errors": {
-            "client_order_id": [
+            "clientOrderId": [
               "This client order id is already used by the current account."
             ]
           }
@@ -3173,55 +3756,90 @@ class AsyncRawSpotTradingClient:
           }
         }
         ```
+
+        ```json
+        {
+          "code": 41,
+          "message": "Validation failed",
+          "errors": {
+            "retail": ["api.tradeErrors.flagsCantBeCombined.rpiRetail"]
+          }
+        }
+        ```
+
+        ```json
+        {
+          "code": 42,
+          "message": "Validation failed",
+          "errors": {
+            "retail": ["api.validation.retail.not_allowed"]
+          }
+        }
+        ```
         </Accordion>
 
         Parameters
         ----------
         market : str
-            Available [market](/glossary#market). Example: BTC_USDT
+            Trading pair. Format: `BASE_QUOTE` (e.g., `BTC_USDT`). Query `GET /api/v4/public/markets` for available markets.
 
         side : LimitOrderRequestSide
-            Order type. Variables: 'buy' / 'sell' Example: 'buy'
+            Order side. Allowed values: `buy`, `sell`.
 
         amount : str
-            Amount of [stock](/glossary#stock) currency to buy or sell. Example: '0.001' or 0.001
+            Order quantity in base (stock) currency. Minimum and maximum values are market-dependent. Query `GET /api/v4/public/markets` for `minAmount`, `minTotal`, `maxTotal`. Precision: `stockPrec`.
 
         price : str
-            Price in money currency. Example: '9800' or 9800
+            Limit price per unit in quote (money) currency. Minimum and maximum values are market-dependent. Precision: `moneyPrec`.
 
         request : str
 
-        nonce : str
+        nonce : int
 
         client_order_id : typing.Optional[str]
-            Identifier should be unique and contain letters, dashes, numbers, dots or underscores. The identifier must be unique.
+            Custom client order identifier. Uniqueness is enforced only among the account's open (pending) orders on the same market — once a previous order is filled or canceled, the same identifier can be reused, including on the same market. Contains only letters, numbers, dashes, dots, or underscores.
 
         post_only : typing.Optional[bool]
-            [Orders](/glossary#orders) are guaranteed to be the [maker](/glossary#maker) order when [executed](/glossary#finished-orders). Variables: 'true' / 'false' Example: 'false'.
+            Post-only flag. When `true`, the order executes only as a [maker](/glossary#maker) order and the system rejects the order if it would match immediately. Default: `false`.
 
         ioc : typing.Optional[bool]
-            Immediate-or-cancel (IOC) executes all or part of an order immediately and cancels any unfilled portion.
+            Immediate-or-cancel (IOC) flag. When `true`, the matching engine executes all or part of the order immediately and cancels any unfilled portion. Default: `false`.
 
             IOC does not support `rpi=true` because RPI uses post-only behavior by design.
-            The API returns error code `37` when a request sets both `ioc=true` and `rpi=true`.
+            The API returns error code `40` when a request sets both `ioc=true` and `rpi=true`.
 
             Refer to [Order Parameter Rules](/guides/order-parameter-rules) for unsupported parameter combinations.
 
         bbo_role : typing.Optional[int]
-            When the [BBO](/glossary#bbo) option is activated for Limit orders, the system selects the best market prices for execution. Variables: 1 - Queue Method / 2 - Counterparty Method. Use method 2 with ioc flag. Example: 2.
+            Best Bid/Offer ([BBO](/glossary#bbo)) execution method. The system selects the best market price for execution. `1` = Queue method, `2` = Counterparty method. Use method `2` with the `ioc` flag.
 
         stp : typing.Optional[LimitOrderRequestStp]
-            Self trade prevention mode. Variables: 'no' / 'cancel_both' / 'cancel_new' / 'cancel_old'. Example: 'no'.
+            Self-trade prevention mode. Allowed values: `no` (self-trades allowed), `cb` (cancel both the new and the existing order), `cn` (cancel the new order, keep the existing), `co` (cancel the existing order, place the new one). Default: `no`.
+
+            Legacy values `cancel_both`, `cancel_new`, `cancel_old` are deprecated: the API accepts the legacy values with identical behavior until a deprecation deadline is announced, then rejects the legacy values. Responses always return the abbreviated form, regardless of which variant the request used.
+
+            See [Self-Trade Prevention](/platform/self-trade-prevention).
 
         rpi : typing.Optional[bool]
-            Enables Retail Price Improvement (RPI) mode.
+            Enables Retail Price Improvement (RPI) mode. Default: `false`.
 
             RPI orders use post-only behavior by design. An RPI order does not support `ioc=true`.
-            The API returns error code `37` when a request sets both `rpi=true` and `ioc=true`.
+            The API returns error code `40` when a request sets both `rpi=true` and `ioc=true`.
             RPI orders do not appear in public order book feeds (`depth`, `bookTicker`). RPI orders are visible only in private active orders and in the exchange UI order book (web/mobile).
-            RPI executions may apply custom fees or rebates, especially when trading via sub-accounts. Use Query Market Fee / Query All Market Fees to verify effective fees.
+            RPI executions may apply custom fees or rebates, especially when trading via sub-accounts. Use Query Market Fees to verify effective fees.
 
             Refer to [Order Parameter Rules](/guides/order-parameter-rules) for unsupported parameter combinations.
+
+        retail : typing.Optional[bool]
+            Retail-source taker flag. When `true`, the order is eligible to match against orders submitted by RPI makers and may receive price improvement at execution. Default: `false`.
+
+            The Retail flag must be enabled on the account before a private-API request can set `retail=true`. Contact the account manager to enable the Retail flag.
+
+            The Retail flag cannot be combined with `rpi`. The API returns error code `41` when a request sets both `retail=true` and `rpi=true`.
+
+            The flag has no effect on a `postOnly=true` order. Post-only orders are [makers](/glossary#maker); only takers carry the retail designation.
+
+            Refer to [Retail flag](/glossary#retail-flag) and [Order Parameter Rules](/guides/order-parameter-rules) for unsupported parameter combinations.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -3240,12 +3858,13 @@ class AsyncRawSpotTradingClient:
                 "side": side,
                 "amount": amount,
                 "price": price,
-                "client_order_id": client_order_id,
+                "clientOrderId": client_order_id,
                 "postOnly": post_only,
                 "ioc": ioc,
                 "bboRole": bbo_role,
                 "stp": stp,
                 "rpi": rpi,
+                "retail": retail,
                 "request": request,
                 "nonce": nonce,
             },
@@ -3309,11 +3928,11 @@ class AsyncRawSpotTradingClient:
         orders: typing.Optional[typing.Sequence[BulkOrderItem]] = OMIT,
         stop_on_fail: typing.Optional[bool] = OMIT,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[BulkLimitOrderResponse]:
         """
-        The endpoint creates bulk [limit trading orders](/glossary#limit-order).
+        The endpoint creates bulk [limit trading orders](/glossary#limit-order). Each order in the batch follows the same validation rules as a single limit order. The `stopOnFail` parameter controls whether processing stops at the first failure or continues through all orders. The response contains a result-or-error pair for each submitted order.
 
         <Warning>
           Limit: From 1 to 20 orders per request.
@@ -3321,7 +3940,10 @@ class AsyncRawSpotTradingClient:
 
         <Note>
           - RPI orders do not appear in public order book feeds (`depth`, `bookTicker`). RPI orders are visible only in private active orders and in the exchange UI order book (web/mobile).
-          - RPI orders are post-only by design and cannot be used with the IOC flag. The API returns error code `37` when both `rpi=true` and `ioc=true` are used.
+          - RPI orders are post-only by design and cannot be used with the IOC flag. The API returns error code `40` when both `rpi=true` and `ioc=true` are used.
+          - `retail=true` marks the order as a retail-source taker eligible to match RPI-maker liquidity. The Retail flag must be enabled on the account; contact the account manager to enable it.
+          - `retail=true` and `rpi=true` cannot be combined. The API returns error code `41` when both flags are set on an item.
+          - `retail=true` has no effect on a `postOnly=true` item. Post-only orders are makers and cannot be retail takers.
         </Note>
 
 
@@ -3330,8 +3952,12 @@ class AsyncRawSpotTradingClient:
           - `31` - market validation failed
           - `32` - amount validation failed
           - `33` - price validation failed
-          - `36` - client_order_id validation failed
-          - `37` - `ioc=true` cannot be used with `postOnly=true` or `rpi=true`
+          - `36` - clientOrderId validation failed
+          - `37` - `ioc=true` cannot be combined with `postOnly=true`
+          - `40` - `ioc=true` cannot be combined with `rpi=true`
+          - `41` - `retail=true` cannot be combined with `rpi=true`
+          - `42` - `retail=true` is not allowed for the account
+          - `43` - `rpi=true` is not allowed for the account
         </Accordion>
 
         <Accordion title="Errors">
@@ -3389,6 +4015,26 @@ class AsyncRawSpotTradingClient:
           }
         }
         ```
+
+        ```json
+        {
+          "code": 41,
+          "message": "Validation failed",
+          "errors": {
+            "retail": ["api.tradeErrors.flagsCantBeCombined.rpiRetail"]
+          }
+        }
+        ```
+
+        ```json
+        {
+          "code": 42,
+          "message": "Validation failed",
+          "errors": {
+            "retail": ["api.validation.retail.not_allowed"]
+          }
+        }
+        ```
         </Accordion>
 
         Parameters
@@ -3405,7 +4051,7 @@ class AsyncRawSpotTradingClient:
 
         request : typing.Optional[str]
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -3488,13 +4134,13 @@ class AsyncRawSpotTradingClient:
         side: MarketOrderRequestSide,
         amount: str,
         request: str,
-        nonce: str,
+        nonce: int,
         client_order_id: typing.Optional[str] = OMIT,
         stp: typing.Optional[MarketOrderRequestStp] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[OrderResponse]:
         """
-        The endpoint creates [market trading order](/glossary#market-order).
+        The endpoint creates a [market trading order](/glossary#market-order). The matching engine executes the order immediately at the best available price. For buy orders, `amount` represents the total in quote (money) currency to spend. For sell orders, `amount` represents the quantity in base (stock) currency to sell. Minimum and maximum values are market-dependent. Query `GET /api/v4/public/markets` for `minAmount`, `minTotal`, and `maxTotal`.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
@@ -3504,7 +4150,7 @@ class AsyncRawSpotTradingClient:
         - `30` - default validation error code
         - `31` - market validation failed
         - `32` - amount validation failed
-        - `36` - client_order_id validation failed
+        - `36` - clientOrderId validation failed
         </Accordion>
 
         <Accordion title="Errors">
@@ -3588,7 +4234,7 @@ class AsyncRawSpotTradingClient:
           "code": 36,
           "message": "Validation failed",
           "errors": {
-            "client_order_id": ["ClientOrderId field should be a string."]
+            "clientOrderId": ["ClientOrderId field should be a string."]
           }
         }
         ```
@@ -3598,7 +4244,7 @@ class AsyncRawSpotTradingClient:
           "code": 36,
           "message": "Validation failed",
           "errors": {
-            "client_order_id": [
+            "clientOrderId": [
               "ClientOrderId field should contain only latin letters, numbers and dashes."
             ]
           }
@@ -3609,23 +4255,27 @@ class AsyncRawSpotTradingClient:
         Parameters
         ----------
         market : str
-            Available [market](/glossary#market). Example: BTC_USDT
+            Trading pair. Format: `BASE_QUOTE` (e.g., `BTC_USDT`). Query `GET /api/v4/public/markets` for available markets.
 
         side : MarketOrderRequestSide
-            Order type. Variables: 'buy' / 'sell' Example: 'buy'
+            Order side. Allowed values: `buy`, `sell`.
 
         amount : str
-            Amount of [money](/glossary#money) currency to buy or amount in [stock](/glossary#stock) currency to sell. Example: '5 USDT' for buy (min total) and '0.001 BTC' for sell (min amount).
+            For buy orders: total in quote (money) currency to spend. For sell orders: quantity in base (stock) currency to sell. Minimum and maximum values are market-dependent. Query `GET /api/v4/public/markets` for `minAmount`, `minTotal`, `maxTotal`.
 
         request : str
 
-        nonce : str
+        nonce : int
 
         client_order_id : typing.Optional[str]
-            Identifier should be unique and contain letters, dashes, numbers, dots or underscores. The identifier must be unique.
+            Custom client order identifier. Uniqueness is enforced only among the account's open (pending) orders on the same market — once a previous order is filled or canceled, the same identifier can be reused, including on the same market. Contains only letters, numbers, dashes, dots, or underscores.
 
         stp : typing.Optional[MarketOrderRequestStp]
-            Self trade prevention mode. Variables: 'no' / 'cancel_both' / 'cancel_new' / 'cancel_old'. Example: 'no'.
+            Self-trade prevention mode. Allowed values: `no` (self-trades allowed), `cb` (cancel both the new and the existing order), `cn` (cancel the new order, keep the existing), `co` (cancel the existing order, place the new one). Default: `no`.
+
+            Legacy values `cancel_both`, `cancel_new`, `cancel_old` are deprecated: the API accepts the legacy values with identical behavior until a deprecation deadline is announced, then rejects the legacy values. Responses always return the abbreviated form, regardless of which variant the request used.
+
+            See [Self-Trade Prevention](/platform/self-trade-prevention).
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -3643,7 +4293,7 @@ class AsyncRawSpotTradingClient:
                 "market": market,
                 "side": side,
                 "amount": amount,
-                "client_order_id": client_order_id,
+                "clientOrderId": client_order_id,
                 "stp": stp,
                 "request": request,
                 "nonce": nonce,
@@ -3706,16 +4356,16 @@ class AsyncRawSpotTradingClient:
         self,
         *,
         market: str,
-        side: MarketOrderRequestSide,
+        side: StockMarketOrderRequestSide,
         amount: str,
         request: str,
-        nonce: str,
+        nonce: int,
         client_order_id: typing.Optional[str] = OMIT,
-        stp: typing.Optional[MarketOrderRequestStp] = OMIT,
+        stp: typing.Optional[StockMarketOrderRequestStp] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[OrderResponse]:
         """
-        The endpoint creates buy [stock](/glossary#stock) market trading [order](/glossary#orders).
+        The endpoint creates a [stock](/glossary#stock) market trading [order](/glossary#orders). Unlike `POST /api/v4/order/market`, the `amount` parameter always represents the quantity in the base (stock) currency for both buy and sell sides. The matching engine executes the order immediately at the best available price. Minimum and maximum values are market-dependent. Query `GET /api/v4/public/markets` for `minAmount`, `minTotal`, and `maxTotal`.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
@@ -3725,7 +4375,7 @@ class AsyncRawSpotTradingClient:
         - `30` - default validation error code
         - `31` - market validation failed
         - `32` - amount validation failed
-        - `36` - client_order_id validation failed
+        - `36` - clientOrderId validation failed
         </Accordion>
 
         <Accordion title="Errors">
@@ -3809,7 +4459,7 @@ class AsyncRawSpotTradingClient:
           "code": 36,
           "message": "Validation failed",
           "errors": {
-            "client_order_id": ["ClientOrderId field should be a string."]
+            "clientOrderId": ["ClientOrderId field should be a string."]
           }
         }
         ```
@@ -3818,23 +4468,27 @@ class AsyncRawSpotTradingClient:
         Parameters
         ----------
         market : str
-            Available [market](/glossary#market). Example: BTC_USDT
+            Trading pair. Format: `BASE_QUOTE` (e.g., `BTC_USDT`). Query `GET /api/v4/public/markets` for available markets.
 
-        side : MarketOrderRequestSide
-            Order type. Variables: 'buy' / 'sell' Example: 'buy'
+        side : StockMarketOrderRequestSide
+            Order side. Allowed values: `buy`, `sell`.
 
         amount : str
-            Amount of [money](/glossary#money) currency to buy or amount in [stock](/glossary#stock) currency to sell. Example: '5 USDT' for buy (min total) and '0.001 BTC' for sell (min amount).
+            Order quantity in base (stock) currency for both buy and sell sides. To place a market order specifying the quote (money) currency amount instead, use `POST /api/v4/order/market`. Minimum and maximum values are market-dependent. Query `GET /api/v4/public/markets` for `minAmount`, `minTotal`, `maxTotal`.
 
         request : str
 
-        nonce : str
+        nonce : int
 
         client_order_id : typing.Optional[str]
-            Identifier should be unique and contain letters, dashes, numbers, dots or underscores. The identifier must be unique.
+            Custom client order identifier. Uniqueness is enforced only among the account's open (pending) orders on the same market — once a previous order is filled or canceled, the same identifier can be reused, including on the same market. Contains only letters, numbers, dashes, dots, or underscores.
 
-        stp : typing.Optional[MarketOrderRequestStp]
-            Self trade prevention mode. Variables: 'no' / 'cancel_both' / 'cancel_new' / 'cancel_old'. Example: 'no'.
+        stp : typing.Optional[StockMarketOrderRequestStp]
+            Self-trade prevention mode. Allowed values: `no` (self-trades allowed), `cb` (cancel both the new and the existing order), `cn` (cancel the new order, keep the existing), `co` (cancel the existing order, place the new one). Default: `no`.
+
+            Legacy values `cancel_both`, `cancel_new`, `cancel_old` are deprecated: the API accepts the legacy values with identical behavior until a deprecation deadline is announced, then rejects the legacy values. Responses always return the abbreviated form, regardless of which variant the request used.
+
+            See [Self-Trade Prevention](/platform/self-trade-prevention).
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -3852,7 +4506,7 @@ class AsyncRawSpotTradingClient:
                 "market": market,
                 "side": side,
                 "amount": amount,
-                "client_order_id": client_order_id,
+                "clientOrderId": client_order_id,
                 "stp": stp,
                 "request": request,
                 "nonce": nonce,
@@ -3920,14 +4574,14 @@ class AsyncRawSpotTradingClient:
         price: str,
         activation_price: str,
         request: str,
-        nonce: str,
+        nonce: int,
         client_order_id: typing.Optional[str] = OMIT,
         bbo_role: typing.Optional[int] = OMIT,
         stp: typing.Optional[StopLimitOrderRequestStp] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[OrderResponse]:
         """
-        The endpoint creates [stop-limit trading order](/glossary#stop-limit-order).
+        The endpoint creates a [stop-limit trading order](/glossary#stop-limit-order). The order remains inactive until the market price reaches the `activation_price`, at which point the system places a limit order at the specified `price`. For buy orders, activation triggers when the market price rises to or above `activation_price`. For sell orders, activation triggers when the market price falls to or below `activation_price`. Minimum and maximum values for `amount`, `price`, and `activation_price` are market-dependent. Query `GET /api/v4/public/markets` for `minAmount`, `minTotal`, `maxTotal`, `stockPrec` (amount precision), and `moneyPrec` (price precision).
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
@@ -3938,7 +4592,7 @@ class AsyncRawSpotTradingClient:
         - `31` - market validation failed
         - `32` - amount validation failed
         - `33` - price validation failed
-        - `36` - client_order_id validation failed
+        - `36` - clientOrderId validation failed
         </Accordion>
 
         <Accordion title="Errors">
@@ -4044,7 +4698,7 @@ class AsyncRawSpotTradingClient:
           "code": 36,
           "message": "Validation failed",
           "errors": {
-            "client_order_id": ["ClientOrderId field should be a string."]
+            "clientOrderId": ["ClientOrderId field should be a string."]
           }
         }
         ```
@@ -4054,7 +4708,7 @@ class AsyncRawSpotTradingClient:
           "code": 36,
           "message": "Validation failed",
           "errors": {
-            "client_order_id": [
+            "clientOrderId": [
               "ClientOrderId field should contain only latin letters, numbers and dashes."
             ]
           }
@@ -4065,32 +4719,36 @@ class AsyncRawSpotTradingClient:
         Parameters
         ----------
         market : str
-            Available [market](/glossary#market). Example: BTC_USDT
+            Trading pair. Format: `BASE_QUOTE` (e.g., `BTC_USDT`). Query `GET /api/v4/public/markets` for available markets.
 
         side : StopLimitOrderRequestSide
-            Order type. Variables: 'buy' / 'sell' Example: 'buy'
+            Order side. Allowed values: `buy`, `sell`.
 
         amount : str
-            Amount of [stock](/glossary#stock) currency to buy or sell. Example: '0.001' or 0.001
+            Order quantity in base (stock) currency. Minimum and maximum values are market-dependent. Query `GET /api/v4/public/markets` for `minAmount`, `minTotal`, `maxTotal`. Precision: `stockPrec`.
 
         price : str
-            Price in [money](/glossary#money) currency. Example: '9800' or 9800
+            Limit price per unit in quote (money) currency applied after the stop triggers. Minimum and maximum values are market-dependent. Precision: `moneyPrec`.
 
         activation_price : str
-            Activation price in [money](/glossary#money) currency. Example: '10000' or 10000
+            Trigger price in quote (money) currency. For buy orders, the stop triggers when the market price rises to or above the specified price. For sell orders, the stop triggers when the market price falls to or below the specified price. Precision: `moneyPrec`.
 
         request : str
 
-        nonce : str
+        nonce : int
 
         client_order_id : typing.Optional[str]
-            Identifier should be unique and contain letters, dashes, numbers, dots or underscores. The identifier must be unique.
+            Custom client order identifier. Uniqueness is enforced only among the account's open (pending) orders on the same market — once a previous order is filled or canceled, the same identifier can be reused, including on the same market. Contains only letters, numbers, dashes, dots, or underscores.
 
         bbo_role : typing.Optional[int]
-            When the [BBO](/glossary#bbo) option is activated for Limit orders, the system selects the best market prices for execution. Variables: 1 - Queue Method / 2 - Counterparty Method.
+            Best Bid/Offer ([BBO](/glossary#bbo)) execution method. The system selects the best market price for execution after the stop triggers. `1` = Queue method, `2` = Counterparty method.
 
         stp : typing.Optional[StopLimitOrderRequestStp]
-            Self trade prevention mode. Variables: 'no' / 'cancel_both' / 'cancel_new' / 'cancel_old'. Example: 'no'.
+            Self-trade prevention mode. Allowed values: `no` (self-trades allowed), `cb` (cancel both the new and the existing order), `cn` (cancel the new order, keep the existing), `co` (cancel the existing order, place the new one). Default: `no`.
+
+            Legacy values `cancel_both`, `cancel_new`, `cancel_old` are deprecated: the API accepts the legacy values with identical behavior until a deprecation deadline is announced, then rejects the legacy values. Responses always return the abbreviated form, regardless of which variant the request used.
+
+            See [Self-Trade Prevention](/platform/self-trade-prevention).
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -4110,7 +4768,7 @@ class AsyncRawSpotTradingClient:
                 "amount": amount,
                 "price": price,
                 "activation_price": activation_price,
-                "client_order_id": client_order_id,
+                "clientOrderId": client_order_id,
                 "bboRole": bbo_role,
                 "stp": stp,
                 "request": request,
@@ -4178,13 +4836,13 @@ class AsyncRawSpotTradingClient:
         amount: str,
         activation_price: str,
         request: str,
-        nonce: str,
+        nonce: int,
         client_order_id: typing.Optional[str] = OMIT,
         stp: typing.Optional[StopMarketOrderRequestStp] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[OrderResponse]:
         """
-        The endpoint creates [stop-market trading order](/glossary#stop-market-order).
+        The endpoint creates a [stop-market trading order](/glossary#stop-market-order). The order remains inactive until the market price reaches the `activation_price`, at which point the system executes a market order immediately at the best available price. For buy orders, `amount` represents the total in quote currency and activation triggers when the market price rises to or above `activation_price`. For sell orders, `amount` represents the quantity in base currency and activation triggers when the market price falls to or below `activation_price`. Minimum and maximum values are market-dependent. Query `GET /api/v4/public/markets` for `minAmount`, `minTotal`, and `maxTotal`.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
@@ -4194,7 +4852,7 @@ class AsyncRawSpotTradingClient:
         - `30` - default validation error code
         - `31` - market validation failed
         - `32` - amount validation failed
-        - `36` - client_order_id validation failed
+        - `36` - clientOrderId validation failed
         </Accordion>
 
         <Accordion title="Errors">
@@ -4279,7 +4937,7 @@ class AsyncRawSpotTradingClient:
           "code": 36,
           "message": "Validation failed",
           "errors": {
-            "client_order_id": ["ClientOrderId field should be a string."]
+            "clientOrderId": ["ClientOrderId field should be a string."]
           }
         }
         ```
@@ -4289,7 +4947,7 @@ class AsyncRawSpotTradingClient:
           "code": 36,
           "message": "Validation failed",
           "errors": {
-            "client_order_id": [
+            "clientOrderId": [
               "ClientOrderId field should contain only latin letters, numbers and dashes."
             ]
           }
@@ -4301,7 +4959,7 @@ class AsyncRawSpotTradingClient:
           "code": 36,
           "message": "Validation failed",
           "errors": {
-            "client_order_id": [
+            "clientOrderId": [
               "This client order id is already used by the current account."
             ]
           }
@@ -4322,26 +4980,30 @@ class AsyncRawSpotTradingClient:
         Parameters
         ----------
         market : str
-            Available [market](/glossary#market). Example: BTC_USDT
+            Trading pair. Format: `BASE_QUOTE` (e.g., `BTC_USDT`). Query `GET /api/v4/public/markets` for available markets.
 
         side : StopMarketOrderRequestSide
-            Order type. Variables: 'buy' / 'sell' Example: 'buy'
+            Order side. Allowed values: `buy`, `sell`.
 
         amount : str
-            Amount of [money](/glossary#money) currency to buy or amount in [stock](/glossary#stock) currency to sell. Example: '0.01' or 0.01 for buy and '0.0001' for sell.
+            For buy orders: total in quote (money) currency to spend. For sell orders: quantity in base (stock) currency to sell. Minimum and maximum values are market-dependent. Query `GET /api/v4/public/markets` for `minAmount`, `minTotal`, `maxTotal`.
 
         activation_price : str
-            Activation price in [money](/glossary#money) currency. Example: '10000' or 10000
+            Trigger price in quote (money) currency. For buy orders, the stop triggers when the market price rises to or above the specified price. For sell orders, the stop triggers when the market price falls to or below the specified price. Precision: `moneyPrec`.
 
         request : str
 
-        nonce : str
+        nonce : int
 
         client_order_id : typing.Optional[str]
-            Identifier should be unique and contain letters, dashes, numbers, dots or underscores. The identifier must be unique.
+            Custom client order identifier. Uniqueness is enforced only among the account's open (pending) orders on the same market — once a previous order is filled or canceled, the same identifier can be reused, including on the same market. Contains only letters, numbers, dashes, dots, or underscores.
 
         stp : typing.Optional[StopMarketOrderRequestStp]
-            Self trade prevention mode. Variables: 'no' / 'cancel_both' / 'cancel_new' / 'cancel_old'. Example: 'no'.
+            Self-trade prevention mode. Allowed values: `no` (self-trades allowed), `cb` (cancel both the new and the existing order), `cn` (cancel the new order, keep the existing), `co` (cancel the existing order, place the new one). Default: `no`.
+
+            Legacy values `cancel_both`, `cancel_new`, `cancel_old` are deprecated: the API accepts the legacy values with identical behavior until a deprecation deadline is announced, then rejects the legacy values. Responses always return the abbreviated form, regardless of which variant the request used.
+
+            See [Self-Trade Prevention](/platform/self-trade-prevention).
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -4360,7 +5022,7 @@ class AsyncRawSpotTradingClient:
                 "side": side,
                 "amount": amount,
                 "activation_price": activation_price,
-                "client_order_id": client_order_id,
+                "clientOrderId": client_order_id,
                 "stp": stp,
                 "request": request,
                 "nonce": nonce,
@@ -4413,21 +5075,21 @@ class AsyncRawSpotTradingClient:
         *,
         market: str,
         request: str,
-        nonce: str,
+        nonce: int,
         order_id: typing.Optional[int] = OMIT,
         client_order_id: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[OrderResponse]:
         """
-        Cancel existing [order](/glossary#orders).
+        The endpoint cancels an existing [order](/glossary#orders). Provide either `orderId` or `clientOrderId` to identify the target order. The response returns the final state of the cancelled order.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
         </Warning>
 
         <Note>
-        - Modification by client_order_id takes priority over order_id.
-        - The request supports working only with order_id or only with client_order_id.
+        - Cancellation by clientOrderId takes priority over orderId.
+        - The request supports working only with orderId or only with clientOrderId.
         - Do not pass both values at the same time.
         </Note>
 
@@ -4443,7 +5105,7 @@ class AsyncRawSpotTradingClient:
           "message": "Validation failed",
           "errors": {
             "market": ["Market field is required."],
-            "order_id": ["OrderId field is required."]
+            "orderId": ["OrderId field is required."]
           }
         }
         ```
@@ -4473,7 +5135,7 @@ class AsyncRawSpotTradingClient:
           "code": 30,
           "message": "Validation failed",
           "errors": {
-            "order_id": ["OrderId field should be an integer."]
+            "orderId": ["OrderId field should be an integer."]
           }
         }
         ```
@@ -4496,7 +5158,7 @@ class AsyncRawSpotTradingClient:
           "code": 2,
           "message": "Inner validation failed",
           "errors": {
-            "order_id": ["Unexecuted order was not found."]
+            "orderId": ["Unexecuted order was not found."]
           }
         }
         ```
@@ -4509,13 +5171,13 @@ class AsyncRawSpotTradingClient:
 
         request : str
 
-        nonce : str
+        nonce : int
 
         order_id : typing.Optional[int]
-            Order Id. Example: 4180284841. Required if client_order_id is not set.
+            Order Id. Example: 4180284841. Required if clientOrderId is not set.
 
         client_order_id : typing.Optional[str]
-            Custom client order id. Example: 'customId11'. Required if order_id is not set.
+            Custom client order id. Example: 'customId11'. Required if orderId is not set.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -4531,8 +5193,8 @@ class AsyncRawSpotTradingClient:
             method="POST",
             json={
                 "market": market,
-                "order_id": order_id,
-                "client_order_id": client_order_id,
+                "orderId": order_id,
+                "clientOrderId": client_order_id,
                 "request": request,
                 "nonce": nonce,
             },
@@ -4590,17 +5252,240 @@ class AsyncRawSpotTradingClient:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
+    async def cancel_bulk_orders(
+        self,
+        *,
+        orders: typing.Sequence[BulkCancelOrderItem],
+        request: str,
+        nonce: int,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[BulkCancelOrderResponse]:
+        """
+        The endpoint cancels up to 100 [orders](/glossary#orders) in a single request. Each item identifies a target order by `market` plus exactly one of `orderId` or `clientOrderId`. The response is an array whose items match the input order one-to-one — `response[i]` corresponds to `request.orders[i]`.
+
+        <Warning>
+        Rate limit: 10000 requests/10 sec.
+        </Warning>
+
+        <Warning>
+        Limit: From 1 to 100 orders per request.
+        </Warning>
+
+        <Note>
+        - Provide exactly one of `orderId` or `clientOrderId` per item. Sending both, or neither, returns a per-item validation error.
+        - The endpoint always processes every item independently. There is no `stopOnFail`-style switch.
+        - When the caller is not authenticated, the API returns the standard authorization error and skips per-item validation.
+        </Note>
+
+        <Accordion title="Error Codes">
+        - `30` — validation failure (per-item)
+        - `404` — order not found (per-item)
+        - `500` — trade service unavailable (per-item)
+        </Accordion>
+
+        <Accordion title="Errors">
+        **Per-item errors (returned inside the response array):**
+
+        Element is not a valid object:
+        ```json
+        {
+          "result": null,
+          "error": {
+            "code": 30,
+            "message": "Validation failed",
+            "errors": { "request": ["Invalid order format"] }
+          }
+        }
+        ```
+
+        `market` field is missing:
+        ```json
+        {
+          "result": null,
+          "error": {
+            "code": 30,
+            "message": "Validation failed",
+            "errors": { "market": ["validation.required"] }
+          }
+        }
+        ```
+
+        Specified market does not exist:
+        ```json
+        {
+          "result": null,
+          "error": {
+            "code": 30,
+            "message": "Validation failed",
+            "errors": { "market": ["validation.market_not_exist"] }
+          }
+        }
+        ```
+
+        Neither `orderId` nor `clientOrderId` provided:
+        ```json
+        {
+          "result": null,
+          "error": {
+            "code": 30,
+            "message": "Validation failed",
+            "errors": { "request": ["validation.required"] }
+          }
+        }
+        ```
+
+        Both `orderId` and `clientOrderId` provided:
+        ```json
+        {
+          "result": null,
+          "error": {
+            "code": 30,
+            "message": "Validation failed",
+            "errors": { "request": ["api.validation.order.chooseOneId"] }
+          }
+        }
+        ```
+
+        Order not found (returned for both `orderId` and `clientOrderId` lookups):
+        ```json
+        {
+          "result": null,
+          "error": {
+            "code": 404,
+            "message": "Order not found",
+            "errors": {
+              "orderId": ["Order does not exist or already cancelled"]
+            }
+          }
+        }
+        ```
+
+        Trade service unavailable (returned when the trade service is unreachable or returns an unparseable response):
+        ```json
+        {
+          "result": null,
+          "error": {
+            "code": 500,
+            "message": "Service temporary unavailable",
+            "errors": { "error": ["Service temporary unavailable"] }
+          }
+        }
+        ```
+
+        **Request-level errors (HTTP 422, returned as a standard error envelope, not as an array):**
+
+        `orders` field is missing or is not an array:
+        ```json
+        {
+          "code": 30,
+          "message": "Validation failed",
+          "errors": { "orders": ["validation.required"] }
+        }
+        ```
+
+        `orders` contains more than 100 elements:
+        ```json
+        {
+          "code": 30,
+          "message": "Validation failed",
+          "errors": { "orders": ["validation.between"] }
+        }
+        ```
+        </Accordion>
+
+        Parameters
+        ----------
+        orders : typing.Sequence[BulkCancelOrderItem]
+            Array of orders to cancel. From 1 to 100 items per request.
+
+        request : str
+
+        nonce : int
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[BulkCancelOrderResponse]
+            Bulk cancel result. The response is an array — `response[i]` corresponds to `request.orders[i]`. Each item contains either a `result` (cancellation succeeded) or an `error` (cancellation failed for that item). Partial failures within the array are normal; the request itself returns HTTP 200.
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "api/v4/order/cancel/bulk",
+            base_url=self._client_wrapper.get_environment().base,
+            method="POST",
+            json={
+                "orders": convert_and_respect_annotation_metadata(
+                    object_=orders, annotation=typing.Sequence[BulkCancelOrderItem], direction="write"
+                ),
+                "request": request,
+                "nonce": nonce,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    BulkCancelOrderResponse,
+                    parse_obj_as(
+                        type_=BulkCancelOrderResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 400:
+                raise BadRequestError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 503:
+                raise ServiceUnavailableError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
     async def cancel_all_orders(
         self,
         *,
         market: typing.Optional[str] = OMIT,
         type: typing.Optional[typing.Sequence[CancelAllOrdersRequestTypeItem]] = OMIT,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[None]:
         """
-        Cancels all orders that meet the conditions [order](/glossary#orders).
+        The endpoint cancels all open [orders](/glossary#orders) that match the specified filters. Use the `market` parameter to target a single trading pair, or omit the parameter to cancel across all markets. The `type` parameter filters by order type (`spot`, `margin`, `futures`). When omitted, the endpoint targets all order types.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
@@ -4652,11 +5537,11 @@ class AsyncRawSpotTradingClient:
             Available [market](/glossary#market). Example: BTC_USDT
 
         type : typing.Optional[typing.Sequence[CancelAllOrdersRequestTypeItem]]
-            Order types value. Example: 'spot', 'margin', 'futures'
+            Order types to target. Valid values: "spot" — standard spot orders. "margin" — marginal orders placed on spot markets. Note: the "margin" value is not the same as the collateral account balance; "collateral" in other endpoints refers to the funding account, whereas "margin" here refers specifically to the order type. "futures" — marginal orders placed on futures markets (e.g., BTC_PERP). If omitted, the API targets all order types.
 
         request : typing.Optional[str]
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -4731,18 +5616,22 @@ class AsyncRawSpotTradingClient:
         offset: typing.Optional[int] = OMIT,
         limit: typing.Optional[int] = OMIT,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[typing.List[OrderResponse]]:
         """
-        The endpoint retrieves [active orders](/glossary#active-orders) (orders not yet executed).
+        The endpoint retrieves [active orders](/glossary#active-orders) (orders not yet executed). The response includes limit, stop-limit, and stop-market orders that remain open on the order book. Use the `market` parameter to filter by trading pair, or omit the parameter to retrieve orders across all markets. The endpoint supports pagination with `limit` and `offset` parameters.
 
         <Warning>
         Rate limit: 12000 requests/10 sec.
         </Warning>
 
         <Note>
-        Search across all markets is available only if client_order_id and order_id are not provided.
+        Search across all markets is available only if clientOrderId and orderId are not provided.
+        </Note>
+
+        <Note>
+        This endpoint supports pagination. Use `limit` (default: 50, max: 100) and `offset` (default: 0, max: 4294967295) to page through results. The response does not include a `total` field — detect the last page when fewer than `limit` orders are returned. An empty array means you have paged past the end; receiving exactly `limit` orders does not guarantee that another page exists.
         </Note>
 
         <Accordion title="Errors">
@@ -4762,7 +5651,7 @@ class AsyncRawSpotTradingClient:
           "message": "Validation failed",
           "errors": {
             "limit": ["The limit may not be greater than 100."],
-            "offset": ["The offset may not be greater than 10000."]
+            "offset": ["The offset may not be greater than 4294967295."]
           }
         }
         ```
@@ -4771,23 +5660,23 @@ class AsyncRawSpotTradingClient:
         Parameters
         ----------
         market : typing.Optional[str]
-            Available [market](/glossary#market). Example: BTC_USDT
+            Trading pair to filter by. Format: `BASE_QUOTE` (e.g., `BTC_USDT`). Omit to retrieve orders across all markets.
 
         order_id : typing.Optional[int]
-            Available order_id. Example: 3134995325
+            Filter by a specific order identifier. Returns only the matching active order.
 
         client_order_id : typing.Optional[str]
-            Available client_order_id. Example: customId11
+            Filter by custom client order identifier. Returns only the matching active order.
 
         offset : typing.Optional[int]
-            Starting line index (OFFSET). Default: 0, Min: 0
+            Number of records to skip. Default: `0`. Maximum: `4294967295`.
 
         limit : typing.Optional[int]
-            LIMIT is a special clause used to limit records a particular query can return. Default: 50, Min: 1, Max: 100
+            Maximum number of records to return. Default: `50`. Minimum: `1`. Maximum: `100`.
 
         request : typing.Optional[str]
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -4803,8 +5692,8 @@ class AsyncRawSpotTradingClient:
             method="POST",
             json={
                 "market": market,
-                "order_id": order_id,
-                "client_order_id": client_order_id,
+                "orderId": order_id,
+                "clientOrderId": client_order_id,
                 "offset": offset,
                 "limit": limit,
                 "request": request,
@@ -4874,18 +5763,30 @@ class AsyncRawSpotTradingClient:
         offset: typing.Optional[int] = OMIT,
         limit: typing.Optional[int] = OMIT,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> AsyncHttpResponse[typing.List[GetExecutedOrderHistoryResponseItem]]:
+    ) -> AsyncHttpResponse[GetExecutedOrderHistoryResponse]:
         """
-        The endpoint retrieves all deals for all markets. Can be filtered by single market if needed.
+        The endpoint retrieves executed order history for all trading types — spot, margin, and futures — across all markets. Can be filtered by a single market if needed. Results are ordered by trade time, newest first.
 
         <Warning>
         Rate limit: 12000 requests/10 sec.
         </Warning>
 
+        <Warning>
+        Requests with `limit` values above 100 return large payloads. Use high limits only when necessary and ensure the client application can handle large response sizes.
+        </Warning>
+
         <Note>
-        The endpoint can retrieve data not older than 6 months from current month. For older data, use the Report on the History page.
+        The endpoint can retrieve data not older than 6 months from the current month. For older data, use the Report on the History page.
+        </Note>
+
+        <Note>
+        This endpoint supports pagination. Use `limit` (default: 50, max: 500) and `offset` (default: 0) to page through results. The response does not include a `total` field — detect the last page when fewer than `limit` records are returned (sum the records across all markets when no `market` filter is set). An empty response means you have paged past the end; receiving exactly `limit` records does not guarantee that another page exists.
+        </Note>
+
+        <Note>
+        For B2B accounts, canceled orders are not recorded in the history. To obtain canceled-order data, contact support or the assigned account manager.
         </Note>
 
         <Accordion title="Errors">
@@ -4909,6 +5810,17 @@ class AsyncRawSpotTradingClient:
           }
         }
         ```
+
+        ```json
+        {
+          "code": 30,
+          "message": "Validation failed",
+          "errors": {
+            "orderHistory": ["OrderHistory was not found."]
+          }
+        }
+        ```
+        Returned when `clientOrderId` is supplied but no order matches it on the calling account.
         </Accordion>
 
         Parameters
@@ -4917,7 +5829,7 @@ class AsyncRawSpotTradingClient:
             Requested [market](/glossary#market). Example: BTC_USDT
 
         client_order_id : typing.Optional[str]
-            Filter by custom order identifier
+            Look up by custom client order identifier. When supplied, the endpoint switches to single-order lookup mode and returns the matching order's deal history. Returns `422` with `"OrderHistory was not found."` if no order matches on the calling account.
 
         start_date : typing.Optional[int]
             Start date in Unix-time format
@@ -4929,19 +5841,19 @@ class AsyncRawSpotTradingClient:
             Starting line index (OFFSET). Default: 0, Min: 0
 
         limit : typing.Optional[int]
-            LIMIT is a special clause used to limit records a particular query can return. Default: 50, Min: 1, Max: 100
+            LIMIT is a special clause used to limit records a particular query can return. Default: 50, Min: 1, Max: 500
 
         request : typing.Optional[str]
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        AsyncHttpResponse[typing.List[GetExecutedOrderHistoryResponseItem]]
-            Executed order history
+        AsyncHttpResponse[GetExecutedOrderHistoryResponse]
+            Executed order history. Response shape depends on whether the market filter is provided: with market filter returns a flat array; without market filter returns an object keyed by market name.
         """
         _response = await self._client_wrapper.httpx_client.request(
             "api/v4/trade-account/executed-history",
@@ -4949,7 +5861,7 @@ class AsyncRawSpotTradingClient:
             method="POST",
             json={
                 "market": market,
-                "client_order_id": client_order_id,
+                "clientOrderId": client_order_id,
                 "startDate": start_date,
                 "endDate": end_date,
                 "offset": offset,
@@ -4966,9 +5878,9 @@ class AsyncRawSpotTradingClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.List[GetExecutedOrderHistoryResponseItem],
+                    GetExecutedOrderHistoryResponse,
                     parse_obj_as(
-                        type_=typing.List[GetExecutedOrderHistoryResponseItem],  # type: ignore
+                        type_=GetExecutedOrderHistoryResponse,  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -5016,29 +5928,48 @@ class AsyncRawSpotTradingClient:
         *,
         order_id: int,
         request: str,
-        nonce: str,
+        nonce: int,
         offset: typing.Optional[int] = OMIT,
         limit: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[GetOrderDealsResponse]:
         """
-        The endpoint retrieves deals for a specific order.
+        The endpoint retrieves individual trade fills (deals) for a specific order. Each deal represents a partial or full execution of the order against a counterparty. The response includes pagination and returns deal details such as price, amount, fee, and execution role (maker or taker).
 
         <Warning>
         Rate limit: 12000 requests/10 sec.
         </Warning>
 
+        <Note>
+        This endpoint supports pagination. Use `limit` (default: 50) and `offset` (default: 0) to page through results. The response does not include a `total` field — detect the last page when `records.length < limit`. An empty `records` array means you have paged past the end; receiving exactly `limit` records does not guarantee that another page exists.
+        </Note>
+
+        <Note>
+        An unknown or not-owned `orderId` is **not** an error. The endpoint always returns HTTP 200 with the paged-list envelope; a non-matching `orderId` simply filters down to an empty `records` array.
+        </Note>
+
+        <Note>
+        The endpoint can retrieve data not older than 6 months from the current month. For older data, use the Report on the History page. An order older than this window returns an empty `records` array even when the order was filled.
+        </Note>
+
+        <Accordion title="Error Codes">
+          - `30` - default validation error code (for example, a missing or malformed `orderId`, or invalid pagination)
+        </Accordion>
+
         Parameters
         ----------
         order_id : int
+            Identifier of the order to retrieve deals for.
 
         request : str
 
-        nonce : str
+        nonce : int
 
         offset : typing.Optional[int]
+            Number of records to skip. Default: `0`.
 
         limit : typing.Optional[int]
+            Maximum number of records to return. Default: `50`.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -5053,7 +5984,7 @@ class AsyncRawSpotTradingClient:
             base_url=self._client_wrapper.get_environment().base,
             method="POST",
             json={
-                "order_id": order_id,
+                "orderId": order_id,
                 "offset": offset,
                 "limit": limit,
                 "request": request,
@@ -5117,30 +6048,82 @@ class AsyncRawSpotTradingClient:
         self,
         *,
         market: typing.Optional[str] = OMIT,
+        client_order_id: typing.Optional[str] = OMIT,
+        order_id: typing.Optional[int] = OMIT,
+        status: typing.Optional[GetOrderHistoryRequestStatus] = OMIT,
+        start_date: typing.Optional[int] = OMIT,
+        end_date: typing.Optional[int] = OMIT,
         offset: typing.Optional[int] = OMIT,
         limit: typing.Optional[int] = OMIT,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[typing.Dict[str, typing.List[GetOrderHistoryResponseValueItem]]]:
         """
-        The endpoint retrieves order history.
+        The endpoint retrieves the history of executed and cancelled orders. The response groups orders by market name. Use the `market` parameter to filter by a single trading pair, or omit the parameter to retrieve orders across all markets. The endpoint supports pagination with `limit` (default 50, max 500) and `offset` parameters. Results are ordered by time, newest first.
 
         <Warning>
         Rate limit: 12000 requests/10 sec.
         </Warning>
 
+        <Warning>
+        Requests with `limit` values above 100 return large payloads. Use high limits only when necessary and ensure the client application can handle large response sizes.
+        </Warning>
+
+        <Note>
+        This endpoint supports pagination. Use `limit` (default: 50, max: 500) and `offset` (default: 0) to page through results. The response does not include a `total` field — detect the last page when fewer than `limit` records are returned (sum the records across all markets when no `market` filter is set). An empty response means you have paged past the end; receiving exactly `limit` records does not guarantee that another page exists.
+        </Note>
+
+        <Note>
+        **Date filter window:** the maximum span between `startDate` and `endDate` is **31 days**, and the earliest reachable date is **6 months ago (00:00 UTC)**. Requests that exceed the 31-day window or fall below the 6-month floor are rejected with a validation error. `endDate` values greater than the current time are silently clamped to `now`.
+        </Note>
+
+        <Note>
+        For B2B accounts, canceled orders are not recorded in the history. To obtain canceled-order data, contact support or the assigned account manager.
+        </Note>
+
+        <Accordion title="Errors">
+        ```json
+        {
+          "code": 30,
+          "message": "Validation failed",
+          "errors": {
+            "orderHistory": ["OrderHistory was not found."]
+          }
+        }
+        ```
+        Returned when `clientOrderId` is supplied but no order matches it on the calling account.
+        </Accordion>
+
         Parameters
         ----------
         market : typing.Optional[str]
+            Trading pair to filter by. Format: `BASE_QUOTE` (e.g., `BTC_USDT`). Omit to retrieve orders across all markets.
+
+        client_order_id : typing.Optional[str]
+            Look up a specific order by the custom client identifier. When supplied, the endpoint switches to single-order lookup mode and the `startDate`, `endDate`, and `status` filters are ignored. Returns `422` with `"OrderHistory was not found."` if no order matches. Ignored when `orderId` is also provided.
+
+        order_id : typing.Optional[int]
+            Look up a specific order by the exchange-assigned identifier. When supplied, the endpoint switches to single-order lookup mode and the `startDate`, `endDate`, and `status` filters are ignored. Returns an empty result on no match (no `422`). Takes precedence over `clientOrderId` when both are supplied.
+
+        status : typing.Optional[GetOrderHistoryRequestStatus]
+            Filter list-mode results by order status. Ignored when `orderId` or `clientOrderId` is supplied.
+
+        start_date : typing.Optional[int]
+            Start of the query window as a Unix timestamp in seconds. Default: `now - 1 month`. The earliest reachable date is 6 months ago (00:00 UTC) — requests with an older `startDate` are rejected with a validation error.
+
+        end_date : typing.Optional[int]
+            End of the query window as a Unix timestamp in seconds. Default: `now`. Values greater than the current time are silently clamped to `now`. The maximum span between `startDate` and `endDate` is 31 days.
 
         offset : typing.Optional[int]
+            Number of records to skip. Default: `0`.
 
         limit : typing.Optional[int]
+            Maximum number of records to return. Default: `50`. Minimum: `1`. Maximum: `500`.
 
         request : typing.Optional[str]
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -5156,6 +6139,11 @@ class AsyncRawSpotTradingClient:
             method="POST",
             json={
                 "market": market,
+                "clientOrderId": client_order_id,
+                "orderId": order_id,
+                "status": status,
+                "startDate": start_date,
+                "endDate": end_date,
                 "offset": offset,
                 "limit": limit,
                 "request": request,
@@ -5215,12 +6203,142 @@ class AsyncRawSpotTradingClient:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
+    async def get_delisting_order_history(
+        self,
+        *,
+        market: typing.Optional[str] = OMIT,
+        status: typing.Optional[GetDelistingOrderHistoryRequestStatus] = OMIT,
+        start_date: typing.Optional[int] = OMIT,
+        end_date: typing.Optional[int] = OMIT,
+        offset: typing.Optional[int] = OMIT,
+        limit: typing.Optional[int] = OMIT,
+        request: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[typing.List[GetDelistingOrderHistoryResponseItem]]:
+        """
+        The endpoint returns the authenticated account's delisting-related order history from the order-history index. The response combines two categories of orders, each identified by the `delistingKind` field: reverse close orders that the platform generates when a market is delisted (`delistingKind` = `reverse`, `clientOrderId` prefixed with `delisting-`), and active orders canceled at the moment of delisting (`delistingKind` = `canceled`). The endpoint returns a flat array sorted by `finishAt` descending, then `id` descending.
+
+        Set the `status` parameter to narrow the response: `filled` returns only reverse close orders that reached the `filled` outcome, and `delisting` returns only orders canceled during delisting. Omit `status` to return both categories merged in a single array.
+
+        <Note>
+        The endpoint supports pagination via `limit` (default: 500, max: 500) and `offset` (default: 0); the sum of `offset` and `limit` must not exceed 10000. A response that returns fewer than `limit` records indicates the last page.
+        </Note>
+
+        <Note>
+        **Date filter window:** the date range filters orders by the `finishAt` timestamp. The maximum span between `startDate` and `endDate` is **31 days**. `endDate` values greater than the current time are clamped to `now`.
+        </Note>
+
+        <Warning>
+        Rate limit: 10000 requests/10 sec.
+        </Warning>
+
+        Parameters
+        ----------
+        market : typing.Optional[str]
+            Trading pair to filter by. Format: `BASE_QUOTE` (e.g., `BTC_USDT`), matching the pattern `^[A-Z0-9]+_[A-Z0-9]+$`. Omit to retrieve delisting orders across all markets.
+
+        status : typing.Optional[GetDelistingOrderHistoryRequestStatus]
+            Category filter — distinct from the response `status` field. `filled` returns only reverse close orders (`clientOrderId` prefixed with `delisting-`), which carry `delistingKind` = `reverse` and response `status` = `filled`. `delisting` returns only orders canceled at delisting, which carry `delistingKind` = `canceled` and response `status` = `canceled`. Omit to return both categories merged.
+
+        start_date : typing.Optional[int]
+            Start of the query window as a Unix timestamp in seconds. Default: `now - 30 days`. Must not be later than `endDate`.
+
+        end_date : typing.Optional[int]
+            End of the query window as a Unix timestamp in seconds. Default: `now`. Values greater than the current time are clamped to `now`. The maximum span between `startDate` and `endDate` is 31 days.
+
+        offset : typing.Optional[int]
+            Number of records to skip. Default: `0`. The sum of `offset` and `limit` must not exceed 10000.
+
+        limit : typing.Optional[int]
+            Maximum number of records to return. Default: `500`. Minimum: `1`. Maximum: `500`.
+
+        request : typing.Optional[str]
+
+        nonce : typing.Optional[int]
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[typing.List[GetDelistingOrderHistoryResponseItem]]
+            Successful response - returns a flat array of delisting-related orders sorted by `finishAt` descending, then `id` descending. Returns an empty array when no delisting orders match the filters.
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "api/v4/trade-account/order/history/query",
+            base_url=self._client_wrapper.get_environment().base,
+            method="POST",
+            json={
+                "market": market,
+                "status": status,
+                "startDate": start_date,
+                "endDate": end_date,
+                "offset": offset,
+                "limit": limit,
+                "request": request,
+                "nonce": nonce,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.List[GetDelistingOrderHistoryResponseItem],
+                    parse_obj_as(
+                        type_=typing.List[GetDelistingOrderHistoryResponseItem],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 400:
+                raise BadRequestError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 503:
+                raise ServiceUnavailableError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
     async def modify_order(
         self,
         *,
         market: str,
         request: str,
-        nonce: str,
+        nonce: int,
         order_id: typing.Optional[int] = OMIT,
         client_order_id: typing.Optional[str] = OMIT,
         amount: typing.Optional[str] = OMIT,
@@ -5242,9 +6360,20 @@ class AsyncRawSpotTradingClient:
 
         <Note>
         - Use total parameter instead of amount for modify buy stop market order.
-        - Modification by client_order_id takes priority.
-        - The request supports working only with order_id or only with client_order_id.
+        - Modification by clientOrderId takes priority.
+        - The request supports working only with orderId or only with clientOrderId.
         - Do not pass both values at the same time.
+        </Note>
+
+        <Note>
+        **WebSocket impact:** Each call to the endpoint cancels the original order and
+        creates a replacement with a **new `orderId`**. Clients subscribed to the
+        `ordersPending_update` WebSocket channel will receive:
+        - `event_id=3` (cancel) for the old order
+        - `event_id=1` (new) for the replacement
+
+        Update any `orderId` references after a successful modify response.
+        Use `clientOrderId` for stable order tracking across modifications.
         </Note>
 
         <Accordion title="Error Codes">
@@ -5269,7 +6398,7 @@ class AsyncRawSpotTradingClient:
           "code": 2,
           "message": "Inner validation failed",
           "errors": {
-            "order_id": ["Unexecuted order was not found."]
+            "orderId": ["Unexecuted order was not found."]
           }
         }
         ```
@@ -5292,13 +6421,13 @@ class AsyncRawSpotTradingClient:
 
         request : str
 
-        nonce : str
+        nonce : int
 
         order_id : typing.Optional[int]
-            Active order id. Required if client_order_id is not set.
+            Active order id. Required if clientOrderId is not set.
 
         client_order_id : typing.Optional[str]
-            Identifier should be unique and contain letters, dashes, numbers, dots or underscores. Required if order_id is not set.
+            Identifier should be unique and contain letters, dashes, numbers, dots or underscores. Required if orderId is not set.
 
         amount : typing.Optional[str]
             Amount of [stock](/glossary#stock) currency to buy or sell. Example: '0.001' or 0.001
@@ -5325,8 +6454,8 @@ class AsyncRawSpotTradingClient:
             base_url=self._client_wrapper.get_environment().base,
             method="POST",
             json={
-                "order_id": order_id,
-                "client_order_id": client_order_id,
+                "orderId": order_id,
+                "clientOrderId": client_order_id,
                 "market": market,
                 "amount": amount,
                 "total": total,
@@ -5396,11 +6525,11 @@ class AsyncRawSpotTradingClient:
         timeout: str,
         types: typing.Optional[typing.Sequence[SetKillSwitchRequestTypesItem]] = OMIT,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[SetKillSwitchResponse]:
         """
-        The endpoint creates, updates, deletes [kill-switch timer](/glossary#kill-switch-timer).
+        The endpoint creates, updates, or deletes a [kill-switch timer](/glossary#kill-switch-timer). The kill-switch acts as a safety mechanism for automated trading systems — the timer automatically cancels all open orders for the specified market if the client fails to reset the timer before expiration. Set `timeout` to a value between `5` and `600` (seconds) to create or update a timer. Set `timeout` to `null` to delete an existing timer.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
@@ -5458,11 +6587,11 @@ class AsyncRawSpotTradingClient:
             Timer value. Example: '5'-'600' or null
 
         types : typing.Optional[typing.Sequence[SetKillSwitchRequestTypesItem]]
-            Order types value. Example: 'spot', 'margin', 'futures' or null
+            Order types to target. Valid values: "spot" — standard spot orders. "margin" — marginal orders placed on spot markets. Note: the "margin" value is not the same as the collateral account balance; "collateral" in other endpoints refers to the funding account, whereas "margin" here refers specifically to the order type. "futures" — marginal orders placed on futures markets (e.g., BTC_PERP). If omitted, the API targets all order types.
 
         request : typing.Optional[str]
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -5531,11 +6660,11 @@ class AsyncRawSpotTradingClient:
         *,
         market: typing.Optional[str] = OMIT,
         request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[typing.List[GetKillSwitchStatusResponseItem]]:
         """
-        The endpoint retrieves the status of [kill-switch timer](/glossary#kill-switch-timer).
+        The endpoint retrieves the status of active [kill-switch timers](/glossary#kill-switch-timer). The response returns an array of timer objects for the specified market, or for all markets if the `market` parameter is omitted. Each timer object includes the start time, scheduled cancellation time, and targeted order types.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
@@ -5565,7 +6694,7 @@ class AsyncRawSpotTradingClient:
 
         request : typing.Optional[str]
 
-        nonce : typing.Optional[str]
+        nonce : typing.Optional[int]
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.

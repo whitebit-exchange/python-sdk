@@ -11,27 +11,27 @@ from ...core.serialization import FieldMetadata
 class GetApiV4PublicFundingHistoryMarketResponseItem(UniversalBaseModel):
     funding_time: typing_extensions.Annotated[str, FieldMetadata(alias="fundingTime")] = pydantic.Field()
     """
-    Timestamp when the funding executed
+    Unix timestamp in seconds when the funding settlement executed.
     """
 
     funding_rate: typing_extensions.Annotated[str, FieldMetadata(alias="fundingRate")] = pydantic.Field()
     """
-    Funding rate value
+    Funding rate applied at the settlement interval. Each record represents a historical settlement event.
     """
 
     market: str = pydantic.Field()
     """
-    Market name
+    Futures market pair name (e.g., `BTC_PERP`).
     """
 
     settlement_price: typing_extensions.Annotated[str, FieldMetadata(alias="settlementPrice")] = pydantic.Field()
     """
-    Price at which the funding settled
+    Mark price in the quote currency at the time of funding settlement.
     """
 
     rate_calculated_time: typing_extensions.Annotated[str, FieldMetadata(alias="rateCalculatedTime")] = pydantic.Field()
     """
-    Timestamp of the funding rate calculation
+    Unix timestamp in seconds when the funding rate was calculated. The rate is computed before the actual settlement.
     """
 
     if IS_PYDANTIC_V2:

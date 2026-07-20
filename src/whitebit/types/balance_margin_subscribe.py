@@ -4,6 +4,7 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .balance_margin_subscribe_method import BalanceMarginSubscribeMethod
 
 
 class BalanceMarginSubscribe(UniversalBaseModel):
@@ -12,7 +13,7 @@ class BalanceMarginSubscribe(UniversalBaseModel):
     Unique request identifier
     """
 
-    method: typing.Literal["balanceMargin_subscribe"] = pydantic.Field(default="balanceMargin_subscribe")
+    method: BalanceMarginSubscribeMethod = pydantic.Field()
     """
     Method name. Fixed value: `balanceMargin_subscribe`.
     """

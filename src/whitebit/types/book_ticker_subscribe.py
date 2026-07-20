@@ -4,6 +4,7 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .book_ticker_subscribe_method import BookTickerSubscribeMethod
 
 
 class BookTickerSubscribe(UniversalBaseModel):
@@ -12,7 +13,7 @@ class BookTickerSubscribe(UniversalBaseModel):
     Unique request identifier
     """
 
-    method: typing.Literal["bookTicker_subscribe"] = pydantic.Field(default="bookTicker_subscribe")
+    method: BookTickerSubscribeMethod = pydantic.Field()
     """
     Method name. Fixed value: `bookTicker_subscribe`.
     """

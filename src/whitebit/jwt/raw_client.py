@@ -27,7 +27,7 @@ class RawJwtClient:
         self,
         *,
         request: str,
-        nonce: str,
+        nonce: int,
         nonce_window: typing.Optional[bool] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[IssueJwtTokenResponse]:
@@ -44,7 +44,7 @@ class RawJwtClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         nonce_window : typing.Optional[bool]
@@ -122,11 +122,25 @@ class RawJwtClient:
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     def get_web_socket_token(
-        self, *, request: str, nonce: str, request_options: typing.Optional[RequestOptions] = None
+        self, *, request: str, nonce: int, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[GetWebSocketTokenResponse]:
         """
         The V4 endpoint can be used to retrieve the WebSocket token for user.
         The token is required to authorize WebSocket connections for private API access.
+
+        <Accordion title="Errors">
+        ```json
+        {
+          "code": 30,
+          "message": "Validation failed",
+          "errors": {
+            "user": ["user not found"]
+          }
+        }
+        ```
+        </Accordion>
+
+        Beyond the error above, this endpoint can return only the [common authentication errors](/api-reference/authentication).
 
         <Warning>
         Rate limit: 10 requests/60 sec.
@@ -141,7 +155,7 @@ class RawJwtClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         request_options : typing.Optional[RequestOptions]
@@ -212,7 +226,7 @@ class AsyncRawJwtClient:
         self,
         *,
         request: str,
-        nonce: str,
+        nonce: int,
         nonce_window: typing.Optional[bool] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[IssueJwtTokenResponse]:
@@ -229,7 +243,7 @@ class AsyncRawJwtClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         nonce_window : typing.Optional[bool]
@@ -307,11 +321,25 @@ class AsyncRawJwtClient:
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
     async def get_web_socket_token(
-        self, *, request: str, nonce: str, request_options: typing.Optional[RequestOptions] = None
+        self, *, request: str, nonce: int, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[GetWebSocketTokenResponse]:
         """
         The V4 endpoint can be used to retrieve the WebSocket token for user.
         The token is required to authorize WebSocket connections for private API access.
+
+        <Accordion title="Errors">
+        ```json
+        {
+          "code": 30,
+          "message": "Validation failed",
+          "errors": {
+            "user": ["user not found"]
+          }
+        }
+        ```
+        </Accordion>
+
+        Beyond the error above, this endpoint can return only the [common authentication errors](/api-reference/authentication).
 
         <Warning>
         Rate limit: 10 requests/60 sec.
@@ -326,7 +354,7 @@ class AsyncRawJwtClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         request_options : typing.Optional[RequestOptions]

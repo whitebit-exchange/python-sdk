@@ -28,7 +28,7 @@ class RawTransferClient:
         ticker: str,
         amount: str,
         request: str,
-        nonce: str,
+        nonce: int,
         method: typing.Optional[TransferBetweenBalancesRequestMethod] = OMIT,
         from_: typing.Optional[TransferBetweenBalancesRequestFrom] = OMIT,
         to: typing.Optional[TransferBetweenBalancesRequestTo] = OMIT,
@@ -60,7 +60,7 @@ class RawTransferClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         method : typing.Optional[TransferBetweenBalancesRequestMethod]
@@ -157,7 +157,7 @@ class AsyncRawTransferClient:
         ticker: str,
         amount: str,
         request: str,
-        nonce: str,
+        nonce: int,
         method: typing.Optional[TransferBetweenBalancesRequestMethod] = OMIT,
         from_: typing.Optional[TransferBetweenBalancesRequestFrom] = OMIT,
         to: typing.Optional[TransferBetweenBalancesRequestTo] = OMIT,
@@ -189,7 +189,7 @@ class AsyncRawTransferClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         method : typing.Optional[TransferBetweenBalancesRequestMethod]

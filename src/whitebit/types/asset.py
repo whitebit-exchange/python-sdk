@@ -43,12 +43,12 @@ class Asset(UniversalBaseModel):
 
     maker_fee: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Maker fee in percentage
+    Maker fee expressed as a direct percentage value (e.g., "0.1" means 0.1%). Note: GET /api/v4/public/markets expresses the same fee as a decimal ratio (e.g., "0.001" = 0.1%) — the formats differ between endpoints.
     """
 
     taker_fee: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Taker fee in percentage
+    Taker fee expressed as a direct percentage value (e.g., "0.1" means 0.1%). Note: GET /api/v4/public/markets expresses the same fee as a decimal ratio (e.g., "0.001" = 0.1%) — the formats differ between endpoints.
     """
 
     min_deposit: typing.Optional[str] = pydantic.Field(default=None)
@@ -88,12 +88,12 @@ class Asset(UniversalBaseModel):
 
     confirmations: typing.Optional[typing.Dict[str, int]] = pydantic.Field(default=None)
     """
-    Deposit confirmations count mapped by network
+    Required blockchain confirmations for deposits, mapped by network name (e.g., {"BTC": 2, "ERC20": 20}). Absent for fiat currencies, demo assets, and internal exchange tokens (e.g., UAH, EUR, DBTC, DUSDT). Individual network keys may also be absent if a network was historically supported but is currently disabled.
     """
 
     providers: typing.Optional[AssetProviders] = pydantic.Field(default=None)
     """
-    Fiat currency providers
+    Payment provider identifiers for fiat assets (e.g., VISAMASTER, ADVCASH, GEOPAY). Use these identifiers as the network parameter value when making fiat deposits or withdrawals via the API — equivalent to network codes such as ERC20 or TRC20 for crypto assets.
     """
 
     if IS_PYDANTIC_V2:

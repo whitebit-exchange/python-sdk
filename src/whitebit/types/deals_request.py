@@ -4,6 +4,7 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .deals_request_method import DealsRequestMethod
 
 
 class DealsRequest(UniversalBaseModel):
@@ -12,7 +13,7 @@ class DealsRequest(UniversalBaseModel):
     Unique request identifier
     """
 
-    method: typing.Literal["deals_request"] = pydantic.Field(default="deals_request")
+    method: DealsRequestMethod = pydantic.Field()
     """
     Method name. Fixed value: `deals_request`.
     """

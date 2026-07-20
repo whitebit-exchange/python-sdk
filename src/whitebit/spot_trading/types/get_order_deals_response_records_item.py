@@ -11,61 +11,63 @@ from ...core.serialization import FieldMetadata
 class GetOrderDealsResponseRecordsItem(UniversalBaseModel):
     time: typing.Optional[float] = pydantic.Field(default=None)
     """
-    Timestamp of executed order
+    Unix timestamp of the deal execution, with microsecond precision.
     """
 
     fee: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Fee paid
+    Fee charged for the deal, denominated in the asset specified by `feeAsset`.
     """
 
     price: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Deal price
+    Execution price per unit in quote currency.
     """
 
     amount: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Amount in stock
+    Executed quantity in base (stock) currency.
     """
 
     id: typing.Optional[int] = pydantic.Field(default=None)
     """
-    Deal identifier
+    Unique deal identifier assigned by the matching engine.
     """
 
     deal_order_id: typing_extensions.Annotated[typing.Optional[int], FieldMetadata(alias="dealOrderId")] = (
         pydantic.Field(default=None)
     )
     """
-    Completed order identifier
+    Identifier of the counterparty order that matched against the queried order.
     """
 
-    client_order_id: typing.Optional[str] = pydantic.Field(default=None)
+    client_order_id: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="clientOrderId")] = (
+        pydantic.Field(default=None)
+    )
     """
-    Custom order identifier. Empty string if not specified
+    Custom order identifier supplied in the original order request. Returns an empty string when not specified.
     """
 
     role: typing.Optional[int] = pydantic.Field(default=None)
     """
-    Role in the deal (1 - maker, 2 - taker)
+    Execution role in the deal. `1` = maker (order was resting on the book), `2` = taker (order matched immediately).
     """
 
     deal: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Amount in money
+    Total deal value in quote (money) currency. Equals `amount * price`.
     """
 
     fee_asset: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="feeAsset")] = pydantic.Field(
         default=None
     )
     """
-    Fee asset
+    Currency ticker of the asset used to pay the trading fee.
     """
 
     rpi: typing.Optional[bool] = pydantic.Field(default=None)
     """
-    Retail Price Improvement flag
+    Retail Price Improvement flag. `true` when the deal executed under RPI pricing.
     """
 
     if IS_PYDANTIC_V2:

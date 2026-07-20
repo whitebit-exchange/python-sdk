@@ -22,8 +22,13 @@ from .get_conditional_orders_response_records_item_oto_conditional_order import 
 class GetConditionalOrdersResponseRecordsItem_Oco(UniversalBaseModel):
     type: typing.Literal["oco"] = "oco"
     id: typing.Optional[int] = None
-    stop_loss: typing.Optional[GetConditionalOrdersResponseRecordsItemOcoStopLoss] = None
-    take_profit: typing.Optional[GetConditionalOrdersResponseRecordsItemOcoTakeProfit] = None
+    reduce_only: typing_extensions.Annotated[typing.Optional[bool], FieldMetadata(alias="reduceOnly")] = None
+    stop_loss: typing_extensions.Annotated[
+        typing.Optional[GetConditionalOrdersResponseRecordsItemOcoStopLoss], FieldMetadata(alias="stopLoss")
+    ] = None
+    take_profit: typing_extensions.Annotated[
+        typing.Optional[GetConditionalOrdersResponseRecordsItemOcoTakeProfit], FieldMetadata(alias="takeProfit")
+    ] = None
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2
@@ -38,6 +43,7 @@ class GetConditionalOrdersResponseRecordsItem_Oco(UniversalBaseModel):
 class GetConditionalOrdersResponseRecordsItem_Oto(UniversalBaseModel):
     type: typing.Literal["oto"] = "oto"
     id: typing.Optional[int] = None
+    reduce_only: typing_extensions.Annotated[typing.Optional[bool], FieldMetadata(alias="reduceOnly")] = None
     stop_loss_price: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="stopLossPrice")] = None
     take_profit_price: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="takeProfitPrice")] = None
     conditional_order: typing_extensions.Annotated[

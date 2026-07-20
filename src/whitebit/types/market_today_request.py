@@ -4,6 +4,7 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .market_today_request_method import MarketTodayRequestMethod
 
 
 class MarketTodayRequest(UniversalBaseModel):
@@ -12,7 +13,7 @@ class MarketTodayRequest(UniversalBaseModel):
     Unique request identifier
     """
 
-    method: typing.Literal["marketToday_query"] = pydantic.Field(default="marketToday_query")
+    method: MarketTodayRequestMethod = pydantic.Field()
     """
     Method name. Fixed value: `marketToday_query`.
     """

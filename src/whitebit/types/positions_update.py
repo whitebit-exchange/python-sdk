@@ -4,6 +4,7 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .positions_update_method import PositionsUpdateMethod
 from .positions_update_params import PositionsUpdateParams
 
 
@@ -13,7 +14,7 @@ class PositionsUpdate(UniversalBaseModel):
     Update events have null id
     """
 
-    method: typing.Literal["positionsMargin_update"] = pydantic.Field(default="positionsMargin_update")
+    method: PositionsUpdateMethod = pydantic.Field()
     """
     Method name. Fixed value: `positionsMargin_update`.
     """

@@ -13,17 +13,17 @@ class AssetNetworks(UniversalBaseModel):
 
     deposits: typing.Optional[typing.List[str]] = pydantic.Field(default=None)
     """
-    Networks available for depositing
+    Networks available for depositing. Absent when deposits are disabled for the asset (can_deposit: false). Examples of assets where the field may be absent: AMB, AVA, A, KZT.
     """
 
     withdraws: typing.Optional[typing.List[str]] = pydantic.Field(default=None)
     """
-    Networks available for withdrawing
+    Networks available for withdrawing. Absent when withdrawals are disabled for the asset (can_withdraw: false). Examples: AVA, A (Vaulta).
     """
 
     default: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Default network for depositing / withdrawing if available
+    Default network used when no specific network is selected by the user. Absent when multiple networks exist but no explicit default priority has been configured (e.g., AGRS, ANKR, APE, POL).
     """
 
     if IS_PYDANTIC_V2:

@@ -25,12 +25,28 @@ class RawMainAccountClient:
         self,
         *,
         request: str,
-        nonce: str,
+        nonce: int,
         ticker: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[typing.Dict[str, GetMainBalanceResponseValue]]:
         """
         The endpoint retrieves the [main balance](/glossary#balance-main) by currency [ticker](/glossary#ticker) or all balances.
+
+        An unknown or non-existent `ticker` is not an error: the endpoint returns a zero balance (`{"main_balance": "0"}`) for it. Omitting `ticker` returns balances for every currency.
+
+        <Accordion title="Errors">
+        ```json
+        {
+          "code": 0,
+          "message": "Validation failed",
+          "errors": {
+            "ticker": ["validation.string"]
+          }
+        }
+        ```
+        </Accordion>
+
+        Beyond the validation error above, this endpoint can return only the [common authentication errors](/api-reference/authentication).
 
         <Warning>
           Rate limit: 1000 requests/10 sec.
@@ -45,7 +61,7 @@ class RawMainAccountClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         ticker : typing.Optional[str]
@@ -84,8 +100,8 @@ class RawMainAccountClient:
                     ),
                 )
                 return HttpResponse(response=_response, data=_data)
-            if _response.status_code == 400:
-                raise BadRequestError(
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
                     headers=dict(_response.headers),
                     body=typing.cast(
                         typing.Optional[typing.Any],
@@ -104,7 +120,7 @@ class RawMainAccountClient:
         self,
         *,
         request: str,
-        nonce: str,
+        nonce: int,
         transaction_method: typing.Optional[int] = OMIT,
         ticker: typing.Optional[str] = OMIT,
         address: typing.Optional[str] = OMIT,
@@ -123,9 +139,11 @@ class RawMainAccountClient:
         - `Successful` - 3, 7
         - `Canceled` - 4, 9
         - `Unconfirmed by user` - 5
-        - `Additional data required` - 21
+        - `AML frozen` - 21
         - `Uncredited` - 22
         - `Pending` - 15
+
+        `Successful` (3, 7) is a final state. A credited deposit does not later transition to `AML frozen` (21) or `Uncredited` (22); those checks happen before crediting.
 
         **Travel Rule Deposit check status codes:**
         - `Awaiting verification` - 27: The transaction has been frozen due to the lack of data required under the Travel Rule. The user is required to provide this data manually through the exchange interface.
@@ -134,19 +152,31 @@ class RawMainAccountClient:
         ⚠️ Due to regulatory requirements in Turkey and [EU](/glossary#european-economic-area-eea), the system places every inbound crypto deposit on hold (frozen) until confirming the transaction's origin. The sender must provide certain details if the transaction is from another Virtual Asset Service Provider (VASP) or verify the address if from a self-hosted wallet. The system credits deposited funds to the account only after successful verification.
 
         **Withdraw status codes:**
-        - `Pending` - 1, 2, 6, 10, 11, 12, 13, 14, 15, 16, 17
+        - `Pending` - 1, 2, 6, 10–17 (withdrawal in progress).
         - `Successful` - 3, 7
         - `Canceled` - 4
         - `Unconfirmed by user` - 5
-        - `Additional data required` - 21
+        - `AML frozen` - 21
         - `Partially successful` - 18
 
         <Warning>
         Rate limit: 200 requests/10 sec.
         </Warning>
 
+        <Warning>
+        Requests with `limit` values above 100 return large payloads. Use high limits only when necessary and ensure the client application can handle large response sizes.
+        </Warning>
+
         <Note>
         The API does not cache the response.
+        </Note>
+
+        <Note>
+        Results are sorted newest first (descending by timestamp).
+        </Note>
+
+        <Note>
+        **No date filtering:** the endpoint does not accept `startDate` / `endDate` parameters, and pagination is capped at `offset + limit ≤ 10000` (requests beyond the cap return `Offset is too big. Please use offset + limit less than 10000.`). To read more than 10,000 records, narrow the result set with the available filters (`transactionMethod`, `ticker`, `status`) and paginate within each subset; for a complete history export beyond the cap, use the Report on the History page.
         </Note>
 
         Parameters
@@ -154,7 +184,7 @@ class RawMainAccountClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         transaction_method : typing.Optional[int]
@@ -176,7 +206,7 @@ class RawMainAccountClient:
             Can be used for filtering transactions by specific unique id
 
         limit : typing.Optional[int]
-            LIMIT is a special clause used to limit records a particular query can return.
+            LIMIT is a special clause used to limit records a particular query can return. Default: 50, Min: 1, Max: 500
 
         offset : typing.Optional[int]
             Use the OFFSET clause to return entries starting from a particular line.
@@ -263,12 +293,28 @@ class AsyncRawMainAccountClient:
         self,
         *,
         request: str,
-        nonce: str,
+        nonce: int,
         ticker: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[typing.Dict[str, GetMainBalanceResponseValue]]:
         """
         The endpoint retrieves the [main balance](/glossary#balance-main) by currency [ticker](/glossary#ticker) or all balances.
+
+        An unknown or non-existent `ticker` is not an error: the endpoint returns a zero balance (`{"main_balance": "0"}`) for it. Omitting `ticker` returns balances for every currency.
+
+        <Accordion title="Errors">
+        ```json
+        {
+          "code": 0,
+          "message": "Validation failed",
+          "errors": {
+            "ticker": ["validation.string"]
+          }
+        }
+        ```
+        </Accordion>
+
+        Beyond the validation error above, this endpoint can return only the [common authentication errors](/api-reference/authentication).
 
         <Warning>
           Rate limit: 1000 requests/10 sec.
@@ -283,7 +329,7 @@ class AsyncRawMainAccountClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         ticker : typing.Optional[str]
@@ -322,8 +368,8 @@ class AsyncRawMainAccountClient:
                     ),
                 )
                 return AsyncHttpResponse(response=_response, data=_data)
-            if _response.status_code == 400:
-                raise BadRequestError(
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
                     headers=dict(_response.headers),
                     body=typing.cast(
                         typing.Optional[typing.Any],
@@ -342,7 +388,7 @@ class AsyncRawMainAccountClient:
         self,
         *,
         request: str,
-        nonce: str,
+        nonce: int,
         transaction_method: typing.Optional[int] = OMIT,
         ticker: typing.Optional[str] = OMIT,
         address: typing.Optional[str] = OMIT,
@@ -361,9 +407,11 @@ class AsyncRawMainAccountClient:
         - `Successful` - 3, 7
         - `Canceled` - 4, 9
         - `Unconfirmed by user` - 5
-        - `Additional data required` - 21
+        - `AML frozen` - 21
         - `Uncredited` - 22
         - `Pending` - 15
+
+        `Successful` (3, 7) is a final state. A credited deposit does not later transition to `AML frozen` (21) or `Uncredited` (22); those checks happen before crediting.
 
         **Travel Rule Deposit check status codes:**
         - `Awaiting verification` - 27: The transaction has been frozen due to the lack of data required under the Travel Rule. The user is required to provide this data manually through the exchange interface.
@@ -372,19 +420,31 @@ class AsyncRawMainAccountClient:
         ⚠️ Due to regulatory requirements in Turkey and [EU](/glossary#european-economic-area-eea), the system places every inbound crypto deposit on hold (frozen) until confirming the transaction's origin. The sender must provide certain details if the transaction is from another Virtual Asset Service Provider (VASP) or verify the address if from a self-hosted wallet. The system credits deposited funds to the account only after successful verification.
 
         **Withdraw status codes:**
-        - `Pending` - 1, 2, 6, 10, 11, 12, 13, 14, 15, 16, 17
+        - `Pending` - 1, 2, 6, 10–17 (withdrawal in progress).
         - `Successful` - 3, 7
         - `Canceled` - 4
         - `Unconfirmed by user` - 5
-        - `Additional data required` - 21
+        - `AML frozen` - 21
         - `Partially successful` - 18
 
         <Warning>
         Rate limit: 200 requests/10 sec.
         </Warning>
 
+        <Warning>
+        Requests with `limit` values above 100 return large payloads. Use high limits only when necessary and ensure the client application can handle large response sizes.
+        </Warning>
+
         <Note>
         The API does not cache the response.
+        </Note>
+
+        <Note>
+        Results are sorted newest first (descending by timestamp).
+        </Note>
+
+        <Note>
+        **No date filtering:** the endpoint does not accept `startDate` / `endDate` parameters, and pagination is capped at `offset + limit ≤ 10000` (requests beyond the cap return `Offset is too big. Please use offset + limit less than 10000.`). To read more than 10,000 records, narrow the result set with the available filters (`transactionMethod`, `ticker`, `status`) and paginate within each subset; for a complete history export beyond the cap, use the Report on the History page.
         </Note>
 
         Parameters
@@ -392,7 +452,7 @@ class AsyncRawMainAccountClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         transaction_method : typing.Optional[int]
@@ -414,7 +474,7 @@ class AsyncRawMainAccountClient:
             Can be used for filtering transactions by specific unique id
 
         limit : typing.Optional[int]
-            LIMIT is a special clause used to limit records a particular query can return.
+            LIMIT is a special clause used to limit records a particular query can return. Default: 50, Min: 1, Max: 500
 
         offset : typing.Optional[int]
             Use the OFFSET clause to return entries starting from a particular line.

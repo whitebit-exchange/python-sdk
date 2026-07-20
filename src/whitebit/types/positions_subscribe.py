@@ -4,6 +4,7 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .positions_subscribe_method import PositionsSubscribeMethod
 
 
 class PositionsSubscribe(UniversalBaseModel):
@@ -12,7 +13,7 @@ class PositionsSubscribe(UniversalBaseModel):
     Unique request identifier
     """
 
-    method: typing.Literal["positionsMargin_subscribe"] = pydantic.Field(default="positionsMargin_subscribe")
+    method: PositionsSubscribeMethod = pydantic.Field()
     """
     Method name. Fixed value: `positionsMargin_subscribe`.
     """

@@ -5,6 +5,7 @@ import typing
 from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.request_options import RequestOptions
 from .raw_client import AsyncRawWithdrawClient, RawWithdrawClient
+from .types.create_express_withdraw_token_response import CreateExpressWithdrawTokenResponse
 from .types.create_withdraw_request_beneficiary import CreateWithdrawRequestBeneficiary
 from .types.create_withdraw_request_travel_rule import CreateWithdrawRequestTravelRule
 
@@ -33,13 +34,14 @@ class WithdrawClient:
         ticker: str,
         amount: str,
         address: str,
+        unique_id: str,
         request: str,
-        nonce: str,
+        nonce: int,
         memo: typing.Optional[str] = OMIT,
-        unique_id: typing.Optional[str] = OMIT,
         provider: typing.Optional[str] = OMIT,
         network: typing.Optional[str] = OMIT,
         partial_enable: typing.Optional[bool] = OMIT,
+        customer_ip: typing.Optional[str] = OMIT,
         beneficiary: typing.Optional[CreateWithdrawRequestBeneficiary] = OMIT,
         travel_rule: typing.Optional[CreateWithdrawRequestTravelRule] = OMIT,
         payment_description: typing.Optional[str] = OMIT,
@@ -73,21 +75,21 @@ class WithdrawClient:
         address : str
             Target address (wallet address for cryptocurrencies, identifier/[card token](/glossary#card-token) for [fiat](/glossary#fiat) currencies)
 
+        unique_id : str
+            Unique transaction identifier. Any string up to 255 characters; not validated as a UUID.
+
+            ⚠️ Generate a new unique ID for each withdrawal request.
+
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         memo : typing.Optional[str]
             [Memo](/glossary#memodestination-tag).
 
             ⚠️ Required if currency is memoable.
-
-        unique_id : typing.Optional[str]
-            Unique transaction identifier.
-
-            ⚠️ Generate a new unique ID for each withdrawal request.
 
         provider : typing.Optional[str]
             [Fiat](/glossary#fiat) currency [provider](/glossary#provider). Example: VISAMASTER
@@ -102,15 +104,26 @@ class WithdrawClient:
         partial_enable : typing.Optional[bool]
             Optional parameter for [FIAT](/glossary#fiat) withdrawals with increased Maximum Limit if set as "true". To use this parameter, the application must support "Partially successful" withdrawal status and latest updates in deposit/withdrawal history.
 
-        beneficiary : typing.Optional[CreateWithdrawRequestBeneficiary]
-            Beneficiary information data array.
+        customer_ip : typing.Optional[str]
+            End-customer IP address forwarded to the [fiat](/glossary#fiat) [provider](/glossary#provider) for antifraud checks before the withdrawal is processed.
 
-            ⚠️ Required if currency [ticker](/glossary#ticker) is one of: UAH_IBAN, USD_VISAMASTER, EUR_VISAMASTER, USD, EUR
+            ⚠️ Required if currency [ticker](/glossary#ticker) is USD or EUR with VISAMASTER [provider](/glossary#provider).
+
+        beneficiary : typing.Optional[CreateWithdrawRequestBeneficiary]
+            Beneficiary information.
+
+            ⚠️ Required if currency [ticker](/glossary#ticker) is one of: UAH_IBAN, USD_VISAMASTER, EUR_VISAMASTER, USD, EUR.
+
+            Per-field requirements vary by currency and provider. Card-related fields (`cardToken`, `card.*`, `cardTokenSave`, `fingerprintSession`) apply only to card-acquiring rails; bank-related fields (`bank.*`) apply to bank-rail withdrawals; `tin` is required for UAH_IBAN; `phone`, `email`, and `birthDate` are required for VISAMASTER/Mercuryo rails. See `/asset-status-list` for the active provider per currency.
 
         travel_rule : typing.Optional[CreateWithdrawRequestTravelRule]
-            Travel Rule information data array.
+            Travel Rule information for regulatory compliance.
 
             ⚠️ Required if currency is crypto and the account is from [EEA](/glossary#european-economic-area-eea)
+
+            See [Travel Rule Overview](/api-reference/travel-rule/overview) for complete documentation.
+
+            **Legacy format:** The API still accepts the old flat format (`type`, `vasp`, `name`, `address` fields), but this format will not pass Travel Rule verification. To complete Travel Rule compliance, use the new structured format with `walletType`, `beneficiary`, and `vasp` objects.
 
         payment_description : typing.Optional[str]
             Description of withdrawal destination
@@ -128,20 +141,21 @@ class WithdrawClient:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
-        client.withdraw.create_withdraw(ticker='ETH', amount='0.9', address='0x0964A6B8F794A4B8d61b62652dB27ddC9844FB4c', unique_id='24529041', request='{{request}}', nonce='{{nonce}}', )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
+        client.withdraw.create_withdraw(ticker='ETH', amount='0.9', address='0x0964A6B8F794A4B8d61b62652dB27ddC9844FB4c', unique_id='24529041', request='{{request}}', nonce=1594297865000, )
         """
         _response = self._raw_client.create_withdraw(
             ticker=ticker,
             amount=amount,
             address=address,
+            unique_id=unique_id,
             request=request,
             nonce=nonce,
             memo=memo,
-            unique_id=unique_id,
             provider=provider,
             network=network,
             partial_enable=partial_enable,
+            customer_ip=customer_ip,
             beneficiary=beneficiary,
             travel_rule=travel_rule,
             payment_description=payment_description,
@@ -155,13 +169,14 @@ class WithdrawClient:
         ticker: str,
         amount: str,
         address: str,
+        unique_id: str,
         request: str,
-        nonce: str,
+        nonce: int,
         memo: typing.Optional[str] = OMIT,
-        unique_id: typing.Optional[str] = OMIT,
         provider: typing.Optional[str] = OMIT,
         network: typing.Optional[str] = OMIT,
         partial_enable: typing.Optional[bool] = OMIT,
+        customer_ip: typing.Optional[str] = OMIT,
         beneficiary: typing.Optional[typing.Dict[str, typing.Optional[typing.Any]]] = OMIT,
         travel_rule: typing.Optional[typing.Dict[str, typing.Optional[typing.Any]]] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
@@ -192,17 +207,17 @@ class WithdrawClient:
         address : str
             Target address (wallet address for cryptocurrencies, identifier/[card token](/glossary#card-token) for [fiat](/glossary#fiat) currencies)
 
+        unique_id : str
+            Unique transaction identifier. Any string up to 255 characters; not validated as a UUID. ⚠️ Generate a new unique ID for each withdrawal request.
+
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         memo : typing.Optional[str]
             Required if currency is memoable. See [memo](/glossary#memodestination-tag) for details.
-
-        unique_id : typing.Optional[str]
-            Unique transaction identifier. ⚠️ Generate a new unique ID for each withdrawal request.
 
         provider : typing.Optional[str]
             [Fiat](/glossary#fiat) currency [provider](/glossary#provider). Example: VISAMASTER ⚠️ Currency provider should be taken from [Asset Status endpoint](/public/http-v4/asset-status-list) response. Required if currency is fiat.
@@ -212,6 +227,9 @@ class WithdrawClient:
 
         partial_enable : typing.Optional[bool]
             Optional parameter for [FIAT](/glossary#fiat) withdrawals with increased Maximum Limit if set as "true". To use this parameter, the application must support "Partially successful" withdrawal status and latest updates in deposit/withdrawal history.
+
+        customer_ip : typing.Optional[str]
+            End-customer IP address forwarded to the [fiat](/glossary#fiat) [provider](/glossary#provider) for antifraud checks before the withdrawal is processed. ⚠️ Required if currency [ticker](/glossary#ticker) is USD or EUR with VISAMASTER [provider](/glossary#provider).
 
         beneficiary : typing.Optional[typing.Dict[str, typing.Optional[typing.Any]]]
             Beneficiary information data. Required if currency [ticker](/glossary#ticker) is one of: UAH_IBAN, USD_VISAMASTER, EUR_VISAMASTER, USD, EUR
@@ -230,22 +248,93 @@ class WithdrawClient:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
-        client.withdraw.create_withdraw_pay(ticker='ETH', amount='0.9', address='0x0964A6B8F794A4B8d61b62652dB27ddC9844FB4c', unique_id='24529041', request='{{request}}', nonce='{{nonce}}', )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
+        client.withdraw.create_withdraw_pay(ticker='ETH', amount='0.9', address='0x0964A6B8F794A4B8d61b62652dB27ddC9844FB4c', unique_id='24529041', request='{{request}}', nonce=1594297865000, )
         """
         _response = self._raw_client.create_withdraw_pay(
             ticker=ticker,
             amount=amount,
             address=address,
+            unique_id=unique_id,
             request=request,
             nonce=nonce,
             memo=memo,
-            unique_id=unique_id,
             provider=provider,
             network=network,
             partial_enable=partial_enable,
+            customer_ip=customer_ip,
             beneficiary=beneficiary,
             travel_rule=travel_rule,
+            request_options=request_options,
+        )
+        return _response.data
+
+    def create_express_withdraw_token(
+        self,
+        *,
+        ticker: str,
+        amount: str,
+        external_id: str,
+        request: str,
+        nonce: int,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> CreateExpressWithdrawTokenResponse:
+        """
+        The endpoint creates a signed, single-use Express Withdraw payment token that charges a specific amount from a WhiteBIT user's balance to the partner's [Main balance](/glossary#balance-main) in an instant, off-chain, zero-[fee](/glossary#fee) internal transfer. The response returns a URL that embeds the token; the paying user confirms the exact [ticker](/glossary#ticker) and amount on the WhiteBIT-hosted confirmation surface.
+
+        Token and payment constraints:
+        - Each token is single-use: WhiteBIT marks the token used at confirmation and rejects any replay.
+        - Each token expires 90 seconds after creation; the `expireAt` response field carries the authoritative expiry timestamp. Generate the token as close as possible to the moment of presenting the URL to the user.
+        - The [ticker](/glossary#ticker) must be a withdrawal-enabled cryptocurrency; the endpoint rejects [fiat](/glossary#fiat) tickers.
+        - Each payment is capped at the equivalent of 10,000 USDT; WhiteBIT enforces the cap at token creation and re-enforces the cap at confirmation.
+        - WhiteBIT rejects self-payments: the paying user and the token creator must be different WhiteBIT accounts.
+        - The endpoint is idempotent per `externalId`: re-submitting the same `externalId` with an identical `ticker` and `amount` while the token is still valid returns the same token instead of creating a duplicate charge. After the token expires, the same `externalId` receives a fresh token.
+
+        <Note>
+        Standard private-API rate limits apply — see [Rate limits](/api-reference/rate-limits). The endpoint carries no endpoint-specific limit.
+        </Note>
+
+        Parameters
+        ----------
+        ticker : str
+            Currency [ticker](/glossary#ticker) to charge. Example: USDT
+
+            ⚠️ The ticker must be a withdrawal-enabled cryptocurrency; the endpoint rejects [fiat](/glossary#fiat) tickers. Use [Asset Status endpoint](/public/http-v4/asset-status-list) to check the withdrawal status of a currency.
+
+        amount : str
+            Amount to charge in the specified [ticker](/glossary#ticker). Numeric string.
+
+            ⚠️ The amount converted to USDT-equivalent must not exceed 10,000; the endpoint rejects larger amounts with error code `191`.
+
+        external_id : str
+            Partner-side reference for the payment (order or invoice identifier), unique per partner account. The identifier powers idempotency and replay protection: a pending `externalId` with an identical `ticker` and `amount` returns the same token; the endpoint rejects an already-paid `externalId` with error code `19`.
+
+        request : str
+            Request signature
+
+        nonce : int
+            Unique request identifier
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        CreateExpressWithdrawTokenResponse
+            Token created. Present the returned URL to the paying user before the expiry in `expireAt`.
+
+        Examples
+        --------
+        from whitebit import WhitebitApi
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
+        client.withdraw.create_express_withdraw_token(ticker='USDT', amount='25.50', external_id='order-100294', request='{{request}}', nonce=1594297865000, )
+        """
+        _response = self._raw_client.create_express_withdraw_token(
+            ticker=ticker,
+            amount=amount,
+            external_id=external_id,
+            request=request,
+            nonce=nonce,
             request_options=request_options,
         )
         return _response.data
@@ -272,13 +361,14 @@ class AsyncWithdrawClient:
         ticker: str,
         amount: str,
         address: str,
+        unique_id: str,
         request: str,
-        nonce: str,
+        nonce: int,
         memo: typing.Optional[str] = OMIT,
-        unique_id: typing.Optional[str] = OMIT,
         provider: typing.Optional[str] = OMIT,
         network: typing.Optional[str] = OMIT,
         partial_enable: typing.Optional[bool] = OMIT,
+        customer_ip: typing.Optional[str] = OMIT,
         beneficiary: typing.Optional[CreateWithdrawRequestBeneficiary] = OMIT,
         travel_rule: typing.Optional[CreateWithdrawRequestTravelRule] = OMIT,
         payment_description: typing.Optional[str] = OMIT,
@@ -312,21 +402,21 @@ class AsyncWithdrawClient:
         address : str
             Target address (wallet address for cryptocurrencies, identifier/[card token](/glossary#card-token) for [fiat](/glossary#fiat) currencies)
 
+        unique_id : str
+            Unique transaction identifier. Any string up to 255 characters; not validated as a UUID.
+
+            ⚠️ Generate a new unique ID for each withdrawal request.
+
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         memo : typing.Optional[str]
             [Memo](/glossary#memodestination-tag).
 
             ⚠️ Required if currency is memoable.
-
-        unique_id : typing.Optional[str]
-            Unique transaction identifier.
-
-            ⚠️ Generate a new unique ID for each withdrawal request.
 
         provider : typing.Optional[str]
             [Fiat](/glossary#fiat) currency [provider](/glossary#provider). Example: VISAMASTER
@@ -341,15 +431,26 @@ class AsyncWithdrawClient:
         partial_enable : typing.Optional[bool]
             Optional parameter for [FIAT](/glossary#fiat) withdrawals with increased Maximum Limit if set as "true". To use this parameter, the application must support "Partially successful" withdrawal status and latest updates in deposit/withdrawal history.
 
-        beneficiary : typing.Optional[CreateWithdrawRequestBeneficiary]
-            Beneficiary information data array.
+        customer_ip : typing.Optional[str]
+            End-customer IP address forwarded to the [fiat](/glossary#fiat) [provider](/glossary#provider) for antifraud checks before the withdrawal is processed.
 
-            ⚠️ Required if currency [ticker](/glossary#ticker) is one of: UAH_IBAN, USD_VISAMASTER, EUR_VISAMASTER, USD, EUR
+            ⚠️ Required if currency [ticker](/glossary#ticker) is USD or EUR with VISAMASTER [provider](/glossary#provider).
+
+        beneficiary : typing.Optional[CreateWithdrawRequestBeneficiary]
+            Beneficiary information.
+
+            ⚠️ Required if currency [ticker](/glossary#ticker) is one of: UAH_IBAN, USD_VISAMASTER, EUR_VISAMASTER, USD, EUR.
+
+            Per-field requirements vary by currency and provider. Card-related fields (`cardToken`, `card.*`, `cardTokenSave`, `fingerprintSession`) apply only to card-acquiring rails; bank-related fields (`bank.*`) apply to bank-rail withdrawals; `tin` is required for UAH_IBAN; `phone`, `email`, and `birthDate` are required for VISAMASTER/Mercuryo rails. See `/asset-status-list` for the active provider per currency.
 
         travel_rule : typing.Optional[CreateWithdrawRequestTravelRule]
-            Travel Rule information data array.
+            Travel Rule information for regulatory compliance.
 
             ⚠️ Required if currency is crypto and the account is from [EEA](/glossary#european-economic-area-eea)
+
+            See [Travel Rule Overview](/api-reference/travel-rule/overview) for complete documentation.
+
+            **Legacy format:** The API still accepts the old flat format (`type`, `vasp`, `name`, `address` fields), but this format will not pass Travel Rule verification. To complete Travel Rule compliance, use the new structured format with `walletType`, `beneficiary`, and `vasp` objects.
 
         payment_description : typing.Optional[str]
             Description of withdrawal destination
@@ -368,22 +469,23 @@ class AsyncWithdrawClient:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
-            await client.withdraw.create_withdraw(ticker='ETH', amount='0.9', address='0x0964A6B8F794A4B8d61b62652dB27ddC9844FB4c', unique_id='24529041', request='{{request}}', nonce='{{nonce}}', )
+            await client.withdraw.create_withdraw(ticker='ETH', amount='0.9', address='0x0964A6B8F794A4B8d61b62652dB27ddC9844FB4c', unique_id='24529041', request='{{request}}', nonce=1594297865000, )
         asyncio.run(main())
         """
         _response = await self._raw_client.create_withdraw(
             ticker=ticker,
             amount=amount,
             address=address,
+            unique_id=unique_id,
             request=request,
             nonce=nonce,
             memo=memo,
-            unique_id=unique_id,
             provider=provider,
             network=network,
             partial_enable=partial_enable,
+            customer_ip=customer_ip,
             beneficiary=beneficiary,
             travel_rule=travel_rule,
             payment_description=payment_description,
@@ -397,13 +499,14 @@ class AsyncWithdrawClient:
         ticker: str,
         amount: str,
         address: str,
+        unique_id: str,
         request: str,
-        nonce: str,
+        nonce: int,
         memo: typing.Optional[str] = OMIT,
-        unique_id: typing.Optional[str] = OMIT,
         provider: typing.Optional[str] = OMIT,
         network: typing.Optional[str] = OMIT,
         partial_enable: typing.Optional[bool] = OMIT,
+        customer_ip: typing.Optional[str] = OMIT,
         beneficiary: typing.Optional[typing.Dict[str, typing.Optional[typing.Any]]] = OMIT,
         travel_rule: typing.Optional[typing.Dict[str, typing.Optional[typing.Any]]] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
@@ -434,17 +537,17 @@ class AsyncWithdrawClient:
         address : str
             Target address (wallet address for cryptocurrencies, identifier/[card token](/glossary#card-token) for [fiat](/glossary#fiat) currencies)
 
+        unique_id : str
+            Unique transaction identifier. Any string up to 255 characters; not validated as a UUID. ⚠️ Generate a new unique ID for each withdrawal request.
+
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         memo : typing.Optional[str]
             Required if currency is memoable. See [memo](/glossary#memodestination-tag) for details.
-
-        unique_id : typing.Optional[str]
-            Unique transaction identifier. ⚠️ Generate a new unique ID for each withdrawal request.
 
         provider : typing.Optional[str]
             [Fiat](/glossary#fiat) currency [provider](/glossary#provider). Example: VISAMASTER ⚠️ Currency provider should be taken from [Asset Status endpoint](/public/http-v4/asset-status-list) response. Required if currency is fiat.
@@ -454,6 +557,9 @@ class AsyncWithdrawClient:
 
         partial_enable : typing.Optional[bool]
             Optional parameter for [FIAT](/glossary#fiat) withdrawals with increased Maximum Limit if set as "true". To use this parameter, the application must support "Partially successful" withdrawal status and latest updates in deposit/withdrawal history.
+
+        customer_ip : typing.Optional[str]
+            End-customer IP address forwarded to the [fiat](/glossary#fiat) [provider](/glossary#provider) for antifraud checks before the withdrawal is processed. ⚠️ Required if currency [ticker](/glossary#ticker) is USD or EUR with VISAMASTER [provider](/glossary#provider).
 
         beneficiary : typing.Optional[typing.Dict[str, typing.Optional[typing.Any]]]
             Beneficiary information data. Required if currency [ticker](/glossary#ticker) is one of: UAH_IBAN, USD_VISAMASTER, EUR_VISAMASTER, USD, EUR
@@ -473,24 +579,98 @@ class AsyncWithdrawClient:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
-            await client.withdraw.create_withdraw_pay(ticker='ETH', amount='0.9', address='0x0964A6B8F794A4B8d61b62652dB27ddC9844FB4c', unique_id='24529041', request='{{request}}', nonce='{{nonce}}', )
+            await client.withdraw.create_withdraw_pay(ticker='ETH', amount='0.9', address='0x0964A6B8F794A4B8d61b62652dB27ddC9844FB4c', unique_id='24529041', request='{{request}}', nonce=1594297865000, )
         asyncio.run(main())
         """
         _response = await self._raw_client.create_withdraw_pay(
             ticker=ticker,
             amount=amount,
             address=address,
+            unique_id=unique_id,
             request=request,
             nonce=nonce,
             memo=memo,
-            unique_id=unique_id,
             provider=provider,
             network=network,
             partial_enable=partial_enable,
+            customer_ip=customer_ip,
             beneficiary=beneficiary,
             travel_rule=travel_rule,
+            request_options=request_options,
+        )
+        return _response.data
+
+    async def create_express_withdraw_token(
+        self,
+        *,
+        ticker: str,
+        amount: str,
+        external_id: str,
+        request: str,
+        nonce: int,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> CreateExpressWithdrawTokenResponse:
+        """
+        The endpoint creates a signed, single-use Express Withdraw payment token that charges a specific amount from a WhiteBIT user's balance to the partner's [Main balance](/glossary#balance-main) in an instant, off-chain, zero-[fee](/glossary#fee) internal transfer. The response returns a URL that embeds the token; the paying user confirms the exact [ticker](/glossary#ticker) and amount on the WhiteBIT-hosted confirmation surface.
+
+        Token and payment constraints:
+        - Each token is single-use: WhiteBIT marks the token used at confirmation and rejects any replay.
+        - Each token expires 90 seconds after creation; the `expireAt` response field carries the authoritative expiry timestamp. Generate the token as close as possible to the moment of presenting the URL to the user.
+        - The [ticker](/glossary#ticker) must be a withdrawal-enabled cryptocurrency; the endpoint rejects [fiat](/glossary#fiat) tickers.
+        - Each payment is capped at the equivalent of 10,000 USDT; WhiteBIT enforces the cap at token creation and re-enforces the cap at confirmation.
+        - WhiteBIT rejects self-payments: the paying user and the token creator must be different WhiteBIT accounts.
+        - The endpoint is idempotent per `externalId`: re-submitting the same `externalId` with an identical `ticker` and `amount` while the token is still valid returns the same token instead of creating a duplicate charge. After the token expires, the same `externalId` receives a fresh token.
+
+        <Note>
+        Standard private-API rate limits apply — see [Rate limits](/api-reference/rate-limits). The endpoint carries no endpoint-specific limit.
+        </Note>
+
+        Parameters
+        ----------
+        ticker : str
+            Currency [ticker](/glossary#ticker) to charge. Example: USDT
+
+            ⚠️ The ticker must be a withdrawal-enabled cryptocurrency; the endpoint rejects [fiat](/glossary#fiat) tickers. Use [Asset Status endpoint](/public/http-v4/asset-status-list) to check the withdrawal status of a currency.
+
+        amount : str
+            Amount to charge in the specified [ticker](/glossary#ticker). Numeric string.
+
+            ⚠️ The amount converted to USDT-equivalent must not exceed 10,000; the endpoint rejects larger amounts with error code `191`.
+
+        external_id : str
+            Partner-side reference for the payment (order or invoice identifier), unique per partner account. The identifier powers idempotency and replay protection: a pending `externalId` with an identical `ticker` and `amount` returns the same token; the endpoint rejects an already-paid `externalId` with error code `19`.
+
+        request : str
+            Request signature
+
+        nonce : int
+            Unique request identifier
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        CreateExpressWithdrawTokenResponse
+            Token created. Present the returned URL to the paying user before the expiry in `expireAt`.
+
+        Examples
+        --------
+        from whitebit import AsyncWhitebitApi
+        import asyncio
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
+        async def main() -> None:
+            await client.withdraw.create_express_withdraw_token(ticker='USDT', amount='25.50', external_id='order-100294', request='{{request}}', nonce=1594297865000, )
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.create_express_withdraw_token(
+            ticker=ticker,
+            amount=amount,
+            external_id=external_id,
+            request=request,
+            nonce=nonce,
             request_options=request_options,
         )
         return _response.data

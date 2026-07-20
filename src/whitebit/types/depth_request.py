@@ -4,6 +4,7 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .depth_request_method import DepthRequestMethod
 
 
 class DepthRequest(UniversalBaseModel):
@@ -12,7 +13,7 @@ class DepthRequest(UniversalBaseModel):
     Unique request identifier
     """
 
-    method: typing.Literal["depth_request"] = pydantic.Field(default="depth_request")
+    method: DepthRequestMethod = pydantic.Field()
     """
     Method name. Fixed value: `depth_request`.
     """

@@ -4,6 +4,7 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .market_request_method import MarketRequestMethod
 
 
 class MarketRequest(UniversalBaseModel):
@@ -12,7 +13,7 @@ class MarketRequest(UniversalBaseModel):
     Unique request identifier
     """
 
-    method: typing.Literal["market_request"] = pydantic.Field(default="market_request")
+    method: MarketRequestMethod = pydantic.Field()
     """
     Method name. Fixed value: `market_request`.
     """

@@ -24,12 +24,12 @@ class MarketFeeClient:
         return self._raw_client
 
     def get_market_fee(
-        self, *, market: str, request_options: typing.Optional[RequestOptions] = None
+        self, *, market: typing.Optional[str] = None, request_options: typing.Optional[RequestOptions] = None
     ) -> GetMarketFeeResponse:
         """
-        Returns maker and taker fees for a specific market.
+        Returns the account's default spot and futures maker and taker fees, plus any custom per-market overrides.
 
-        The `maker` and `taker` fields represent spot trading fees. The `futures_maker` and `futures_taker` fields represent futures trading fees.
+        The `maker` and `taker` fields represent default spot trading fees. The `futures_maker` and `futures_taker` fields represent default futures trading fees. The `custom_fee` object lists per-market overrides, keyed by market name.
 
         The system calculates the effective futures fee as the lower value between the user-specific custom fee and the market-specific fee.
 
@@ -39,14 +39,8 @@ class MarketFeeClient:
 
         Parameters
         ----------
-        market : str
-            Market to query.
-
-            If the request includes the `market` parameter, the system returns fees for the specified market only.
-
-            When fee values are identical across markets, the response contains identical values regardless of the specified market.
-
-            Example: BTC_USDT
+        market : typing.Optional[str]
+            Optional. Currently ignored by the API — all market fees are returned regardless of the value provided. Retained for backward compatibility. Example: BTC_USDT
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -59,7 +53,7 @@ class MarketFeeClient:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         client.market_fee.get_market_fee(market='BTC_USDT', )
         """
         _response = self._raw_client.get_market_fee(market=market, request_options=request_options)
@@ -82,12 +76,12 @@ class AsyncMarketFeeClient:
         return self._raw_client
 
     async def get_market_fee(
-        self, *, market: str, request_options: typing.Optional[RequestOptions] = None
+        self, *, market: typing.Optional[str] = None, request_options: typing.Optional[RequestOptions] = None
     ) -> GetMarketFeeResponse:
         """
-        Returns maker and taker fees for a specific market.
+        Returns the account's default spot and futures maker and taker fees, plus any custom per-market overrides.
 
-        The `maker` and `taker` fields represent spot trading fees. The `futures_maker` and `futures_taker` fields represent futures trading fees.
+        The `maker` and `taker` fields represent default spot trading fees. The `futures_maker` and `futures_taker` fields represent default futures trading fees. The `custom_fee` object lists per-market overrides, keyed by market name.
 
         The system calculates the effective futures fee as the lower value between the user-specific custom fee and the market-specific fee.
 
@@ -97,14 +91,8 @@ class AsyncMarketFeeClient:
 
         Parameters
         ----------
-        market : str
-            Market to query.
-
-            If the request includes the `market` parameter, the system returns fees for the specified market only.
-
-            When fee values are identical across markets, the response contains identical values regardless of the specified market.
-
-            Example: BTC_USDT
+        market : typing.Optional[str]
+            Optional. Currently ignored by the API — all market fees are returned regardless of the value provided. Retained for backward compatibility. Example: BTC_USDT
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -118,7 +106,7 @@ class AsyncMarketFeeClient:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
             await client.market_fee.get_market_fee(market='BTC_USDT', )
         asyncio.run(main())

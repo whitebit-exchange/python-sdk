@@ -4,6 +4,7 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .borrows_update_method import BorrowsUpdateMethod
 from .borrows_update_params import BorrowsUpdateParams
 
 
@@ -13,7 +14,7 @@ class BorrowsUpdate(UniversalBaseModel):
     Update events have null id
     """
 
-    method: typing.Literal["borrowsMargin_update"] = pydantic.Field(default="borrowsMargin_update")
+    method: BorrowsUpdateMethod = pydantic.Field()
     """
     Method name. Fixed value: `borrowsMargin_update`.
     """

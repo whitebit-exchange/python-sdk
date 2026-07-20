@@ -6,89 +6,97 @@ import pydantic
 import typing_extensions
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 from ..core.serialization import FieldMetadata
+from .order_response_activation_condition import OrderResponseActivationCondition
+from .order_status import OrderStatus
 
 
 class OrderResponse(UniversalBaseModel):
-    order_id: typing.Optional[int] = pydantic.Field(default=None)
+    order_id: typing_extensions.Annotated[typing.Optional[int], FieldMetadata(alias="orderId")] = pydantic.Field(
+        default=None
+    )
     """
-    Order ID
+    Unique identifier assigned to the order by the matching engine.
     """
 
-    client_order_id: typing.Optional[str] = pydantic.Field(default=None)
+    client_order_id: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="clientOrderId")] = (
+        pydantic.Field(default=None)
+    )
     """
-    Custom client order ID; empty string if not specified
+    Custom client order identifier supplied in the request. Returns an empty string when not specified.
     """
 
     market: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Deal market
+    Trading pair for the order. Format: `BASE_QUOTE` (e.g., `BTC_USDT`).
     """
 
     side: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Order side
+    Order side. Possible values: `buy`, `sell`.
     """
 
     type: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Order type
+    Order type. Possible values: `limit`, `market`, `stock market`, `stop limit`, `stop market`.
     """
 
     timestamp: typing.Optional[float] = pydantic.Field(default=None)
     """
-    Timestamp of order creation
+    Unix timestamp in seconds (UTC) of order creation, with microsecond precision.
     """
 
-    deal_money: typing.Optional[str] = pydantic.Field(default=None)
+    deal_money: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="dealMoney")] = pydantic.Field(
+        default=None
+    )
     """
-    If order finished - amount in money currency that is finished
+    Filled amount in quote currency. Returns `"0"` while the order remains unfilled.
     """
 
-    deal_stock: typing.Optional[str] = pydantic.Field(default=None)
+    deal_stock: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="dealStock")] = pydantic.Field(
+        default=None
+    )
     """
-    If order finished - amount in stock currency that is finished
+    Filled amount in base currency. Returns `"0"` while the order remains unfilled.
     """
 
     amount: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Amount
+    Order quantity in base currency for limit and stop-limit orders, or in quote currency for buy market orders.
     """
 
     left: typing.Optional[str] = pydantic.Field(default=None)
     """
-    If order not finished - rest of the amount that must be finished
+    Remaining unfilled quantity. Equals `amount` for new orders and `"0"` for fully filled orders.
     """
 
-    deal_fee: typing.Optional[str] = pydantic.Field(default=None)
+    deal_fee: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="dealFee")] = pydantic.Field(
+        default=None
+    )
     """
-    Fee in money currency when order is filled
+    Cumulative trading fee charged for filled portions, denominated in the fee asset.
     """
 
     price: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Price
+    Limit price per unit in quote currency. Returns `"0"` for market orders.
     """
 
     post_only: typing_extensions.Annotated[typing.Optional[bool], FieldMetadata(alias="postOnly")] = pydantic.Field(
         default=None
     )
     """
-    PostOnly flag
+    Post-only flag. When `true`, the order executes only as a maker order and is rejected if it would match immediately. Default: `false`.
     """
 
     ioc: typing.Optional[bool] = pydantic.Field(default=None)
     """
-    IOC flag
+    Immediate-or-cancel flag. When `true`, the order executes available quantity immediately and cancels the unfilled remainder. Default: `false`.
     """
 
-    status: typing.Optional[str] = pydantic.Field(default=None)
-    """
-    Order status
-    """
-
+    status: typing.Optional[OrderStatus] = None
     stp: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Self trade prevention mode
+    Self-trade prevention mode applied to the order. Possible values: `no`, `cb`, `cn`, `co`. The response always returns the abbreviated form, even when the request used a legacy value. Default: `no`.
     """
 
     position_side: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="positionSide")] = (
@@ -101,6 +109,38 @@ class OrderResponse(UniversalBaseModel):
     rpi: typing.Optional[bool] = pydantic.Field(default=None)
     """
     Indicates Retail Price Improvement (RPI) mode for the order.
+    """
+
+    retail: typing.Optional[bool] = pydantic.Field(default=None)
+    """
+    Retail-source taker flag. The field is present only when the order was placed with `retail=true`. See [Retail flag](/glossary#retail-flag).
+    """
+
+    reduce_only: typing_extensions.Annotated[typing.Optional[bool], FieldMetadata(alias="reduceOnly")] = pydantic.Field(
+        default=None
+    )
+    """
+    Reduce-only flag. When `true`, the order can only reduce or close an existing position. See [reduce-only](/glossary#reduce-only).
+    """
+
+    activated: typing.Optional[int] = pydantic.Field(default=None)
+    """
+    Activation status of the stop order. 0 = not yet triggered (waiting for the activation_price condition to be met). 1 = triggered (the stop condition has been met and the order is now active).
+    """
+
+    activation_condition: typing_extensions.Annotated[
+        typing.Optional[OrderResponseActivationCondition], FieldMetadata(alias="activationCondition")
+    ] = pydantic.Field(default=None)
+    """
+    Trigger condition for the stop order. Response-only — not accepted in the request body, and cannot be overridden. Derived from `side`:
+    
+    - `side = buy` → `gte`. The order activates when the market price rises to or above `activation_price`.
+    - `side = sell` → `lte`. The order activates when the market price falls to or below `activation_price`.
+    """
+
+    activation_price: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    The trigger price for the stop order. Always equals the activation_price value submitted in the request.
     """
 
     if IS_PYDANTIC_V2:

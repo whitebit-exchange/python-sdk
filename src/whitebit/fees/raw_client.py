@@ -8,7 +8,7 @@ from ..core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from ..core.http_response import AsyncHttpResponse, HttpResponse
 from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
-from ..types.fee_info import FeeInfo
+from ..types.main_account_fee_info import MainAccountFeeInfo
 
 # this is used as the default value for optional parameters
 OMIT = typing.cast(typing.Any, ...)
@@ -19,11 +19,13 @@ class RawFeesClient:
         self._client_wrapper = client_wrapper
 
     def get_fees(
-        self, *, request: str, nonce: str, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[typing.List[FeeInfo]]:
+        self, *, request: str, nonce: int, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[typing.List[MainAccountFeeInfo]]:
         """
         Returns an array of objects containing deposit/withdrawal [fees](/glossary#fee) for the corresponding currencies.
         Zero value in amount fields means that the setting is disabled.
+
+        The endpoint takes no input beyond the signed request envelope and returns the full per-currency fee schedule on success. It can return only the [common authentication errors](/api-reference/authentication).
 
         <Warning>
         Rate limit: 1000 requests/10 sec.
@@ -38,7 +40,7 @@ class RawFeesClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         request_options : typing.Optional[RequestOptions]
@@ -46,7 +48,7 @@ class RawFeesClient:
 
         Returns
         -------
-        HttpResponse[typing.List[FeeInfo]]
+        HttpResponse[typing.List[MainAccountFeeInfo]]
             Successful response
         """
         _response = self._client_wrapper.httpx_client.request(
@@ -66,9 +68,9 @@ class RawFeesClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.List[FeeInfo],
+                    typing.List[MainAccountFeeInfo],
                     parse_obj_as(
-                        type_=typing.List[FeeInfo],  # type: ignore
+                        type_=typing.List[MainAccountFeeInfo],  # type: ignore
                         object_=_response.json(),
                     ),
                 )
@@ -84,11 +86,13 @@ class AsyncRawFeesClient:
         self._client_wrapper = client_wrapper
 
     async def get_fees(
-        self, *, request: str, nonce: str, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[typing.List[FeeInfo]]:
+        self, *, request: str, nonce: int, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[typing.List[MainAccountFeeInfo]]:
         """
         Returns an array of objects containing deposit/withdrawal [fees](/glossary#fee) for the corresponding currencies.
         Zero value in amount fields means that the setting is disabled.
+
+        The endpoint takes no input beyond the signed request envelope and returns the full per-currency fee schedule on success. It can return only the [common authentication errors](/api-reference/authentication).
 
         <Warning>
         Rate limit: 1000 requests/10 sec.
@@ -103,7 +107,7 @@ class AsyncRawFeesClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         request_options : typing.Optional[RequestOptions]
@@ -111,7 +115,7 @@ class AsyncRawFeesClient:
 
         Returns
         -------
-        AsyncHttpResponse[typing.List[FeeInfo]]
+        AsyncHttpResponse[typing.List[MainAccountFeeInfo]]
             Successful response
         """
         _response = await self._client_wrapper.httpx_client.request(
@@ -131,9 +135,9 @@ class AsyncRawFeesClient:
         try:
             if 200 <= _response.status_code < 300:
                 _data = typing.cast(
-                    typing.List[FeeInfo],
+                    typing.List[MainAccountFeeInfo],
                     parse_obj_as(
-                        type_=typing.List[FeeInfo],  # type: ignore
+                        type_=typing.List[MainAccountFeeInfo],  # type: ignore
                         object_=_response.json(),
                     ),
                 )

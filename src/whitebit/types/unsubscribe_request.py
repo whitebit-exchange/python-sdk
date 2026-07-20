@@ -4,6 +4,7 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .unsubscribe_request_method import UnsubscribeRequestMethod
 
 
 class UnsubscribeRequest(UniversalBaseModel):
@@ -12,7 +13,7 @@ class UnsubscribeRequest(UniversalBaseModel):
     Unique request identifier
     """
 
-    method: typing.Literal["positionsMargin_unsubscribe"] = pydantic.Field(default="positionsMargin_unsubscribe")
+    method: UnsubscribeRequestMethod = pydantic.Field()
     """
     Method name. Fixed value: `positionsMargin_unsubscribe`.
     """

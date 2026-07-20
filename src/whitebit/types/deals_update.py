@@ -4,6 +4,7 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .deals_update_method import DealsUpdateMethod
 
 
 class DealsUpdate(UniversalBaseModel):
@@ -12,7 +13,7 @@ class DealsUpdate(UniversalBaseModel):
     Update events have null id
     """
 
-    method: typing.Literal["deals_update"] = pydantic.Field(default="deals_update")
+    method: DealsUpdateMethod = pydantic.Field()
     """
     Method name. Fixed value: `deals_update`.
     """

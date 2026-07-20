@@ -12,7 +12,7 @@ from .get_conditional_orders_response_records_item_oco_take_profit_position_side
 
 
 class GetConditionalOrdersResponseRecordsItemOcoTakeProfit(UniversalBaseModel):
-    order_id: typing.Optional[int] = None
+    order_id: typing_extensions.Annotated[typing.Optional[int], FieldMetadata(alias="orderId")] = None
     position_side: typing_extensions.Annotated[
         typing.Optional[GetConditionalOrdersResponseRecordsItemOcoTakeProfitPositionSide],
         FieldMetadata(alias="positionSide"),

@@ -9,7 +9,7 @@ from ...core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 class ChangeCollateralAccountLeverageResponse(UniversalBaseModel):
     leverage: typing.Optional[int] = pydantic.Field(default=None)
     """
-    Current collateral balance leverage
+    Active leverage level for the collateral account after the update, from `1` (no leverage) to `100`
     """
 
     if IS_PYDANTIC_V2:

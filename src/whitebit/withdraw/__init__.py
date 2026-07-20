@@ -3,9 +3,29 @@
 # isort: skip_file
 
 from .types import (
+    CreateExpressWithdrawTokenResponse,
     CreateWithdrawRequestBeneficiary,
+    CreateWithdrawRequestBeneficiaryAddress,
+    CreateWithdrawRequestBeneficiaryBank,
+    CreateWithdrawRequestBeneficiaryCard,
     CreateWithdrawRequestTravelRule,
-    CreateWithdrawRequestTravelRuleType,
+    CreateWithdrawRequestTravelRuleBeneficiary,
+    CreateWithdrawRequestTravelRuleBeneficiaryAddress,
+    CreateWithdrawRequestTravelRuleBeneficiaryType,
+    CreateWithdrawRequestTravelRuleVaspData,
+    CreateWithdrawRequestTravelRuleWalletType,
 )
 
-__all__ = ["CreateWithdrawRequestBeneficiary", "CreateWithdrawRequestTravelRule", "CreateWithdrawRequestTravelRuleType"]
+__all__ = [
+    "CreateExpressWithdrawTokenResponse",
+    "CreateWithdrawRequestBeneficiary",
+    "CreateWithdrawRequestBeneficiaryAddress",
+    "CreateWithdrawRequestBeneficiaryBank",
+    "CreateWithdrawRequestBeneficiaryCard",
+    "CreateWithdrawRequestTravelRule",
+    "CreateWithdrawRequestTravelRuleBeneficiary",
+    "CreateWithdrawRequestTravelRuleBeneficiaryAddress",
+    "CreateWithdrawRequestTravelRuleBeneficiaryType",
+    "CreateWithdrawRequestTravelRuleVaspData",
+    "CreateWithdrawRequestTravelRuleWalletType",
+]

@@ -4,6 +4,7 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .borrows_events_subscribe_method import BorrowsEventsSubscribeMethod
 
 
 class BorrowsEventsSubscribe(UniversalBaseModel):
@@ -12,7 +13,7 @@ class BorrowsEventsSubscribe(UniversalBaseModel):
     Unique request identifier
     """
 
-    method: typing.Literal["borrowsAccountMargin_subscribe"] = pydantic.Field(default="borrowsAccountMargin_subscribe")
+    method: BorrowsEventsSubscribeMethod = pydantic.Field()
     """
     Method name. Fixed value: `borrowsAccountMargin_subscribe`.
     """

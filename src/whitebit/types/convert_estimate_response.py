@@ -36,7 +36,7 @@ class ConvertEstimateResponse(UniversalBaseModel):
 
     rate: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Conversion rate
+    Conversion rate expressed in the from→to direction: units of the 'to' currency received per one unit of the 'from' currency. Example: if from=BTC and to=USDT, a rate of "34299.76" means 1 BTC is worth approximately 34 299.76 USDT at the time of the quote.
     """
 
     expire_at: typing_extensions.Annotated[typing.Optional[int], FieldMetadata(alias="expireAt")] = pydantic.Field(

@@ -3,5 +3,6 @@
 # isort: skip_file
 
 from .get_market_fee_response import GetMarketFeeResponse
+from .get_market_fee_response_custom_fee_value import GetMarketFeeResponseCustomFeeValue
 
-__all__ = ["GetMarketFeeResponse"]
+__all__ = ["GetMarketFeeResponse", "GetMarketFeeResponseCustomFeeValue"]

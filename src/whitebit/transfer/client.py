@@ -34,7 +34,7 @@ class TransferClient:
         ticker: str,
         amount: str,
         request: str,
-        nonce: str,
+        nonce: int,
         method: typing.Optional[TransferBetweenBalancesRequestMethod] = OMIT,
         from_: typing.Optional[TransferBetweenBalancesRequestFrom] = OMIT,
         to: typing.Optional[TransferBetweenBalancesRequestTo] = OMIT,
@@ -66,7 +66,7 @@ class TransferClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         method : typing.Optional[TransferBetweenBalancesRequestMethod]
@@ -99,8 +99,8 @@ class TransferClient:
         Examples
         --------
         from whitebit import WhitebitApi
-        client = WhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
-        client.transfer.between_balances(method="deposit", ticker='XLM', amount='0.9', request='{{request}}', nonce='{{nonce}}', )
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
+        client.transfer.between_balances(method="deposit", ticker='XLM', amount='0.9', request='{{request}}', nonce=1594297865000, )
         """
         _response = self._raw_client.between_balances(
             ticker=ticker,
@@ -136,7 +136,7 @@ class AsyncTransferClient:
         ticker: str,
         amount: str,
         request: str,
-        nonce: str,
+        nonce: int,
         method: typing.Optional[TransferBetweenBalancesRequestMethod] = OMIT,
         from_: typing.Optional[TransferBetweenBalancesRequestFrom] = OMIT,
         to: typing.Optional[TransferBetweenBalancesRequestTo] = OMIT,
@@ -168,7 +168,7 @@ class AsyncTransferClient:
         request : str
             Request signature
 
-        nonce : str
+        nonce : int
             Unique request identifier
 
         method : typing.Optional[TransferBetweenBalancesRequestMethod]
@@ -202,9 +202,9 @@ class AsyncTransferClient:
         --------
         from whitebit import AsyncWhitebitApi
         import asyncio
-        client = AsyncWhitebitApi(txc_apikey="YOUR_TXC_APIKEY", token="YOUR_TOKEN", )
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
-            await client.transfer.between_balances(method="deposit", ticker='XLM', amount='0.9', request='{{request}}', nonce='{{nonce}}', )
+            await client.transfer.between_balances(method="deposit", ticker='XLM', amount='0.9', request='{{request}}', nonce=1594297865000, )
         asyncio.run(main())
         """
         _response = await self._raw_client.between_balances(

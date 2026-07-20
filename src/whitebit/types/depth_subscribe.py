@@ -4,11 +4,12 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .depth_subscribe_method import DepthSubscribeMethod
 
 
 class DepthSubscribe(UniversalBaseModel):
     id: int
-    method: typing.Literal["depth_subscribe"] = pydantic.Field(default="depth_subscribe")
+    method: DepthSubscribeMethod = pydantic.Field()
     """
     Method name. Fixed value: `depth_subscribe`.
     """

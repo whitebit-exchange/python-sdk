@@ -4,6 +4,7 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .orders_pending_update_method import OrdersPendingUpdateMethod
 
 
 class OrdersPendingUpdate(UniversalBaseModel):
@@ -12,7 +13,7 @@ class OrdersPendingUpdate(UniversalBaseModel):
     Update events have null id
     """
 
-    method: typing.Literal["ordersPending_update"] = pydantic.Field(default="ordersPending_update")
+    method: OrdersPendingUpdateMethod = pydantic.Field()
     """
     Method name. Fixed value: `ordersPending_update`.
     """

@@ -4,6 +4,7 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .balance_spot_update_method import BalanceSpotUpdateMethod
 from .balance_spot_update_params_item_value import BalanceSpotUpdateParamsItemValue
 
 
@@ -13,7 +14,7 @@ class BalanceSpotUpdate(UniversalBaseModel):
     Update events have null id
     """
 
-    method: typing.Literal["balanceSpot_update"] = pydantic.Field(default="balanceSpot_update")
+    method: BalanceSpotUpdateMethod = pydantic.Field()
     """
     Method name. Fixed value: `balanceSpot_update`.
     """

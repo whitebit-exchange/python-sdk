@@ -4,6 +4,7 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from .authorize_request_method import AuthorizeRequestMethod
 
 
 class AuthorizeRequest(UniversalBaseModel):
@@ -12,7 +13,7 @@ class AuthorizeRequest(UniversalBaseModel):
     Unique request identifier
     """
 
-    method: typing.Literal["authorize"] = pydantic.Field(default="authorize")
+    method: AuthorizeRequestMethod = pydantic.Field()
     """
     Method name. Fixed value: `authorize`.
     """
