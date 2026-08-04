@@ -9,6 +9,7 @@ from .not_found_error import NotFoundError
 from .precondition_failed_error import PreconditionFailedError
 from .service_unavailable_error import ServiceUnavailableError
 from .unauthorized_error import UnauthorizedError
+from .unavailable_for_legal_reasons_error import UnavailableForLegalReasonsError
 from .unprocessable_entity_error import UnprocessableEntityError
 
 __all__ = [
@@ -19,5 +20,6 @@ __all__ = [
     "PreconditionFailedError",
     "ServiceUnavailableError",
     "UnauthorizedError",
+    "UnavailableForLegalReasonsError",
     "UnprocessableEntityError",
 ]

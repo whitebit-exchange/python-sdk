@@ -2,43 +2,6 @@
 
 import typing
 
-import pydantic
-import typing_extensions
-from ...core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
-from ...core.serialization import FieldMetadata
-from .set_kill_switch_response_types_item import SetKillSwitchResponseTypesItem
+from .set_kill_switch_response_cancellation_time import SetKillSwitchResponseCancellationTime
 
-
-class SetKillSwitchResponse(UniversalBaseModel):
-    market: typing.Optional[str] = pydantic.Field(default=None)
-    """
-    Trading pair the timer applies to.
-    """
-
-    start_time: typing_extensions.Annotated[typing.Optional[int], FieldMetadata(alias="startTime")] = pydantic.Field(
-        default=None
-    )
-    """
-    Unix timestamp (seconds) when the timer was created or last reset.
-    """
-
-    cancellation_time: typing_extensions.Annotated[typing.Optional[int], FieldMetadata(alias="cancellationTime")] = (
-        pydantic.Field(default=None)
-    )
-    """
-    Unix timestamp (seconds) when the kill-switch will cancel orders. Equals `startTime + timeout`.
-    """
-
-    types: typing.Optional[typing.List[SetKillSwitchResponseTypesItem]] = pydantic.Field(default=None)
-    """
-    Order types targeted by the kill-switch. Possible values: `spot`, `margin`, `futures`.
-    """
-
-    if IS_PYDANTIC_V2:
-        model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2
-    else:
-
-        class Config:
-            frozen = True
-            smart_union = True
-            extra = pydantic.Extra.allow
+SetKillSwitchResponse = typing.Union[SetKillSwitchResponseCancellationTime, typing.List[typing.Optional[typing.Any]]]

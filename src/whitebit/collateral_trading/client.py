@@ -36,6 +36,7 @@ from .types.create_collateral_trigger_market_order_request_position_side import 
 from .types.create_collateral_trigger_market_order_request_side import CreateCollateralTriggerMarketOrderRequestSide
 from .types.create_collateral_trigger_market_order_request_stp import CreateCollateralTriggerMarketOrderRequestStp
 from .types.create_collateral_trigger_market_order_response import CreateCollateralTriggerMarketOrderResponse
+from .types.get_closed_positions_pnl_response_item import GetClosedPositionsPnlResponseItem
 from .types.get_collateral_account_adl_quantile_response_item import GetCollateralAccountAdlQuantileResponseItem
 from .types.get_collateral_hedge_mode_response import GetCollateralHedgeModeResponse
 from .types.get_conditional_orders_response import GetConditionalOrdersResponse
@@ -984,6 +985,79 @@ class CollateralTradingClient:
         )
         return _response.data
 
+    def get_closed_positions_pnl(
+        self,
+        *,
+        start_date: typing.Optional[int] = OMIT,
+        end_date: typing.Optional[int] = OMIT,
+        limit: typing.Optional[int] = OMIT,
+        offset: typing.Optional[int] = OMIT,
+        request: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> typing.List[GetClosedPositionsPnlResponseItem]:
+        """
+        The endpoint returns one aggregated profit-and-loss record per closed [collateral](/glossary#balance-collateral) position for the authenticated account — the same closed-position PNL the trading terminal shows. Records are sorted by `closeDate` descending, then `positionId` descending. Use the optional `startDate` and `endDate` parameters to narrow the window; the filter applies to the position close time.
+
+        <Note>
+        The endpoint supports pagination via `limit` (default: 50, max: 100) and `offset` (default: 0); the sum of `offset` and `limit` must not exceed 10000. A response that returns fewer than `limit` records indicates the last page.
+        </Note>
+
+        <Note>
+        **Close-time windowing:** a position opened before the requested window but closed inside the window returns complete aggregates — fees, average prices, and closed size cover the full position lifetime, not only the requested window.
+        </Note>
+
+        <Warning>
+        Rate limit: 12000 requests/10 sec.
+        </Warning>
+
+        <Accordion title="Error Codes">
+          - `30` - default validation error code (invalid pagination — `limit` outside 1–100, or `offset` + `limit` above 10000 — or a date filter that violates `startDate` ≤ `endDate` ≤ `now + 1s`)
+        </Accordion>
+
+        Parameters
+        ----------
+        start_date : typing.Optional[int]
+            Start of the query window as a Unix timestamp in seconds, applied to the position close time. Optional, no default. Must be ≤ `endDate`.
+
+        end_date : typing.Optional[int]
+            End of the query window as a Unix timestamp in seconds, applied to the position close time. Optional, no default. Must be ≥ `startDate` and ≤ `now + 1s`.
+
+        limit : typing.Optional[int]
+            Maximum number of records to return. Default: `50`. Minimum: `1`. Maximum: `100`.
+
+        offset : typing.Optional[int]
+            Number of records to skip. Default: `0`. The sum of `offset` and `limit` must not exceed 10000.
+
+        request : typing.Optional[str]
+
+        nonce : typing.Optional[int]
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.List[GetClosedPositionsPnlResponseItem]
+            Successful response - returns an array with one aggregated record per closed position, sorted by `closeDate` descending, then `positionId` descending. Returns an empty array when no closed positions match the filters.
+
+        Examples
+        --------
+        from whitebit import WhitebitApi
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
+        client.collateral_trading.get_closed_positions_pnl(start_date=1778000000, end_date=1778100000, limit=50, offset=0, request='{{request}}', nonce=1594297865000, )
+        """
+        _response = self._raw_client.get_closed_positions_pnl(
+            start_date=start_date,
+            end_date=end_date,
+            limit=limit,
+            offset=offset,
+            request=request,
+            nonce=nonce,
+            request_options=request_options,
+        )
+        return _response.data
+
     def get_funding_history(
         self,
         *,
@@ -1461,7 +1535,7 @@ class CollateralTradingClient:
 
     def cancel_conditional_order(
         self, *, market: str, id: int, request: str, nonce: int, request_options: typing.Optional[RequestOptions] = None
-    ) -> None:
+    ) -> typing.List[typing.Optional[typing.Any]]:
         """
         The endpoint cancels an active conditional order ([OCO](/glossary#one-cancels-the-other-oco) or [OTO](/glossary#one-triggers-the-other-oto)) on the specified market. Both legs of the conditional order are cancelled. Use the [query unexecuted conditional orders](/api-reference/collateral-trading/query-unexecuted-conditional-orders) endpoint to obtain the conditional order `id` before cancellation.
 
@@ -1504,7 +1578,8 @@ class CollateralTradingClient:
 
         Returns
         -------
-        None
+        typing.List[typing.Optional[typing.Any]]
+            Order cancelled. The response body is a literal empty array.
 
         Examples
         --------
@@ -1521,22 +1596,23 @@ class CollateralTradingClient:
         self,
         *,
         market: str,
-        order_id: int,
         request: str,
         nonce: int,
+        order_id: typing.Optional[int] = OMIT,
+        client_order_id: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> CancelOcoOrderResponse:
         """
-        The endpoint cancels an OCO order.
+        The endpoint cancels an OCO order. Identify the order by `orderId` or `clientOrderId` — exactly one of the two must be provided. A request specifying both identifiers, or neither, fails validation.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
         </Warning>
 
         <Accordion title="Error Codes">
-          - `30` - default validation error code
+          - `30` - default validation error code. Also returned when the request specifies both `orderId` and `clientOrderId`, or neither
           - `31` - market validation failed
-          - `2` - OCO order not found. Returned whether the `orderId` does not exist, or the order was already filled or already cancelled — these cases are not distinguished
+          - `2` - OCO order not found. Returned whether the identifier (`orderId` or `clientOrderId`) does not exist, or the order was already filled or already cancelled — these cases are not distinguished
         </Accordion>
 
         <Accordion title="Errors">
@@ -1554,12 +1630,17 @@ class CollateralTradingClient:
         Parameters
         ----------
         market : str
-
-        order_id : int
+            Market of the OCO order to cancel. Example: BTC_USDT
 
         request : str
 
         nonce : int
+
+        order_id : typing.Optional[int]
+            OCO order identifier (the `id` returned at creation and by the OCO listings). Required if `clientOrderId` is not set; mutually exclusive with `clientOrderId`.
+
+        client_order_id : typing.Optional[str]
+            Client-defined order ID supplied at order creation. Required if `orderId` is not set; mutually exclusive with `orderId`.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1573,10 +1654,15 @@ class CollateralTradingClient:
         --------
         from whitebit import WhitebitApi
         client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
-        client.collateral_trading.cancel_oco_order(market='BTC_USDT', order_id=117703764514, request='{{request}}', nonce=1594297865000, )
+        client.collateral_trading.cancel_oco_order(market='BTC_USDT', order_id=117703764513, request='{{request}}', nonce=1594297865000, )
         """
         _response = self._raw_client.cancel_oco_order(
-            market=market, order_id=order_id, request=request, nonce=nonce, request_options=request_options
+            market=market,
+            request=request,
+            nonce=nonce,
+            order_id=order_id,
+            client_order_id=client_order_id,
+            request_options=request_options,
         )
         return _response.data
 
@@ -1588,7 +1674,7 @@ class CollateralTradingClient:
         request: str,
         nonce: int,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> None:
+    ) -> typing.List[typing.Optional[typing.Any]]:
         """
         The endpoint cancels an OTO order.
 
@@ -1629,7 +1715,8 @@ class CollateralTradingClient:
 
         Returns
         -------
-        None
+        typing.List[typing.Optional[typing.Any]]
+            OTO order cancelled. The response body is a literal empty array.
 
         Examples
         --------
@@ -2612,6 +2699,82 @@ class AsyncCollateralTradingClient:
         )
         return _response.data
 
+    async def get_closed_positions_pnl(
+        self,
+        *,
+        start_date: typing.Optional[int] = OMIT,
+        end_date: typing.Optional[int] = OMIT,
+        limit: typing.Optional[int] = OMIT,
+        offset: typing.Optional[int] = OMIT,
+        request: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> typing.List[GetClosedPositionsPnlResponseItem]:
+        """
+        The endpoint returns one aggregated profit-and-loss record per closed [collateral](/glossary#balance-collateral) position for the authenticated account — the same closed-position PNL the trading terminal shows. Records are sorted by `closeDate` descending, then `positionId` descending. Use the optional `startDate` and `endDate` parameters to narrow the window; the filter applies to the position close time.
+
+        <Note>
+        The endpoint supports pagination via `limit` (default: 50, max: 100) and `offset` (default: 0); the sum of `offset` and `limit` must not exceed 10000. A response that returns fewer than `limit` records indicates the last page.
+        </Note>
+
+        <Note>
+        **Close-time windowing:** a position opened before the requested window but closed inside the window returns complete aggregates — fees, average prices, and closed size cover the full position lifetime, not only the requested window.
+        </Note>
+
+        <Warning>
+        Rate limit: 12000 requests/10 sec.
+        </Warning>
+
+        <Accordion title="Error Codes">
+          - `30` - default validation error code (invalid pagination — `limit` outside 1–100, or `offset` + `limit` above 10000 — or a date filter that violates `startDate` ≤ `endDate` ≤ `now + 1s`)
+        </Accordion>
+
+        Parameters
+        ----------
+        start_date : typing.Optional[int]
+            Start of the query window as a Unix timestamp in seconds, applied to the position close time. Optional, no default. Must be ≤ `endDate`.
+
+        end_date : typing.Optional[int]
+            End of the query window as a Unix timestamp in seconds, applied to the position close time. Optional, no default. Must be ≥ `startDate` and ≤ `now + 1s`.
+
+        limit : typing.Optional[int]
+            Maximum number of records to return. Default: `50`. Minimum: `1`. Maximum: `100`.
+
+        offset : typing.Optional[int]
+            Number of records to skip. Default: `0`. The sum of `offset` and `limit` must not exceed 10000.
+
+        request : typing.Optional[str]
+
+        nonce : typing.Optional[int]
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        typing.List[GetClosedPositionsPnlResponseItem]
+            Successful response - returns an array with one aggregated record per closed position, sorted by `closeDate` descending, then `positionId` descending. Returns an empty array when no closed positions match the filters.
+
+        Examples
+        --------
+        from whitebit import AsyncWhitebitApi
+        import asyncio
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
+        async def main() -> None:
+            await client.collateral_trading.get_closed_positions_pnl(start_date=1778000000, end_date=1778100000, limit=50, offset=0, request='{{request}}', nonce=1594297865000, )
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.get_closed_positions_pnl(
+            start_date=start_date,
+            end_date=end_date,
+            limit=limit,
+            offset=offset,
+            request=request,
+            nonce=nonce,
+            request_options=request_options,
+        )
+        return _response.data
+
     async def get_funding_history(
         self,
         *,
@@ -3113,7 +3276,7 @@ class AsyncCollateralTradingClient:
 
     async def cancel_conditional_order(
         self, *, market: str, id: int, request: str, nonce: int, request_options: typing.Optional[RequestOptions] = None
-    ) -> None:
+    ) -> typing.List[typing.Optional[typing.Any]]:
         """
         The endpoint cancels an active conditional order ([OCO](/glossary#one-cancels-the-other-oco) or [OTO](/glossary#one-triggers-the-other-oto)) on the specified market. Both legs of the conditional order are cancelled. Use the [query unexecuted conditional orders](/api-reference/collateral-trading/query-unexecuted-conditional-orders) endpoint to obtain the conditional order `id` before cancellation.
 
@@ -3156,7 +3319,8 @@ class AsyncCollateralTradingClient:
 
         Returns
         -------
-        None
+        typing.List[typing.Optional[typing.Any]]
+            Order cancelled. The response body is a literal empty array.
 
         Examples
         --------
@@ -3176,22 +3340,23 @@ class AsyncCollateralTradingClient:
         self,
         *,
         market: str,
-        order_id: int,
         request: str,
         nonce: int,
+        order_id: typing.Optional[int] = OMIT,
+        client_order_id: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> CancelOcoOrderResponse:
         """
-        The endpoint cancels an OCO order.
+        The endpoint cancels an OCO order. Identify the order by `orderId` or `clientOrderId` — exactly one of the two must be provided. A request specifying both identifiers, or neither, fails validation.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
         </Warning>
 
         <Accordion title="Error Codes">
-          - `30` - default validation error code
+          - `30` - default validation error code. Also returned when the request specifies both `orderId` and `clientOrderId`, or neither
           - `31` - market validation failed
-          - `2` - OCO order not found. Returned whether the `orderId` does not exist, or the order was already filled or already cancelled — these cases are not distinguished
+          - `2` - OCO order not found. Returned whether the identifier (`orderId` or `clientOrderId`) does not exist, or the order was already filled or already cancelled — these cases are not distinguished
         </Accordion>
 
         <Accordion title="Errors">
@@ -3209,12 +3374,17 @@ class AsyncCollateralTradingClient:
         Parameters
         ----------
         market : str
-
-        order_id : int
+            Market of the OCO order to cancel. Example: BTC_USDT
 
         request : str
 
         nonce : int
+
+        order_id : typing.Optional[int]
+            OCO order identifier (the `id` returned at creation and by the OCO listings). Required if `clientOrderId` is not set; mutually exclusive with `clientOrderId`.
+
+        client_order_id : typing.Optional[str]
+            Client-defined order ID supplied at order creation. Required if `orderId` is not set; mutually exclusive with `orderId`.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -3230,11 +3400,16 @@ class AsyncCollateralTradingClient:
         import asyncio
         client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
-            await client.collateral_trading.cancel_oco_order(market='BTC_USDT', order_id=117703764514, request='{{request}}', nonce=1594297865000, )
+            await client.collateral_trading.cancel_oco_order(market='BTC_USDT', order_id=117703764513, request='{{request}}', nonce=1594297865000, )
         asyncio.run(main())
         """
         _response = await self._raw_client.cancel_oco_order(
-            market=market, order_id=order_id, request=request, nonce=nonce, request_options=request_options
+            market=market,
+            request=request,
+            nonce=nonce,
+            order_id=order_id,
+            client_order_id=client_order_id,
+            request_options=request_options,
         )
         return _response.data
 
@@ -3246,7 +3421,7 @@ class AsyncCollateralTradingClient:
         request: str,
         nonce: int,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> None:
+    ) -> typing.List[typing.Optional[typing.Any]]:
         """
         The endpoint cancels an OTO order.
 
@@ -3287,7 +3462,8 @@ class AsyncCollateralTradingClient:
 
         Returns
         -------
-        None
+        typing.List[typing.Optional[typing.Any]]
+            OTO order cancelled. The response body is a literal empty array.
 
         Examples
         --------

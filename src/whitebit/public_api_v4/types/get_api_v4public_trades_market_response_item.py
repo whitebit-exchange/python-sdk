@@ -40,7 +40,7 @@ class GetApiV4PublicTradesMarketResponseItem(UniversalBaseModel):
     Used to determine whether or not the transaction originated as a buy or sell. Buy – Identifies an ask that was removed from the order book. Sell – Identifies a bid that was removed from the order book.
     """
 
-    rpi: typing.Optional[bool] = pydantic.Field(default=None)
+    rpi: bool = pydantic.Field()
     """
     Indicates that the trade originates from a Retail Price Improvement (RPI) order.
     """

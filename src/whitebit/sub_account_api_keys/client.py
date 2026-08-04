@@ -32,12 +32,7 @@ class SubAccountApiKeysClient:
         return self._raw_client
 
     def create_sub_account_api_key(
-        self,
-        *,
-        type: int,
-        sub_account_id: str,
-        title: typing.Optional[str] = OMIT,
-        request_options: typing.Optional[RequestOptions] = None,
+        self, *, type: int, sub_account_id: str, title: str, request_options: typing.Optional[RequestOptions] = None
     ) -> SubAccountApiKey:
         """
         The endpoint creates a new API key for a [sub-account](/glossary#sub-account). Each sub-account supports up to 50 API keys, independent from the main account and from other sub-accounts.
@@ -64,7 +59,7 @@ class SubAccountApiKeysClient:
         sub_account_id : str
             ID of the sub-account to create the API key for
 
-        title : typing.Optional[str]
+        title : str
             Custom title/name for the API key
 
         request_options : typing.Optional[RequestOptions]
@@ -79,7 +74,7 @@ class SubAccountApiKeysClient:
         --------
         from whitebit import WhitebitApi
         client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
-        client.sub_account_api_keys.create_sub_account_api_key(type=1, sub_account_id='8e667b4a-0b71-4988-8af5-9474dbfaeb51', )
+        client.sub_account_api_keys.create_sub_account_api_key(type=1, sub_account_id='8e667b4a-0b71-4988-8af5-9474dbfaeb51', title='Trading Bot Key', )
         """
         _response = self._raw_client.create_sub_account_api_key(
             type=type, sub_account_id=sub_account_id, title=title, request_options=request_options
@@ -397,12 +392,7 @@ class AsyncSubAccountApiKeysClient:
         return self._raw_client
 
     async def create_sub_account_api_key(
-        self,
-        *,
-        type: int,
-        sub_account_id: str,
-        title: typing.Optional[str] = OMIT,
-        request_options: typing.Optional[RequestOptions] = None,
+        self, *, type: int, sub_account_id: str, title: str, request_options: typing.Optional[RequestOptions] = None
     ) -> SubAccountApiKey:
         """
         The endpoint creates a new API key for a [sub-account](/glossary#sub-account). Each sub-account supports up to 50 API keys, independent from the main account and from other sub-accounts.
@@ -429,7 +419,7 @@ class AsyncSubAccountApiKeysClient:
         sub_account_id : str
             ID of the sub-account to create the API key for
 
-        title : typing.Optional[str]
+        title : str
             Custom title/name for the API key
 
         request_options : typing.Optional[RequestOptions]
@@ -446,7 +436,7 @@ class AsyncSubAccountApiKeysClient:
         import asyncio
         client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
-            await client.sub_account_api_keys.create_sub_account_api_key(type=1, sub_account_id='8e667b4a-0b71-4988-8af5-9474dbfaeb51', )
+            await client.sub_account_api_keys.create_sub_account_api_key(type=1, sub_account_id='8e667b4a-0b71-4988-8af5-9474dbfaeb51', title='Trading Bot Key', )
         asyncio.run(main())
         """
         _response = await self._raw_client.create_sub_account_api_key(

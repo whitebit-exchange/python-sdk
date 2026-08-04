@@ -7,10 +7,15 @@ import typing_extensions
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 from ..core.serialization import FieldMetadata
 from .order_response_activation_condition import OrderResponseActivationCondition
+from .order_response_oto import OrderResponseOto
 from .order_status import OrderStatus
 
 
 class OrderResponse(UniversalBaseModel):
+    """
+    Shared order shape returned by the order-creation, cancel, active-orders list, and modify endpoints. Field presence varies by endpoint and order type — see the per-field notes.
+    """
+
     order_id: typing_extensions.Annotated[typing.Optional[int], FieldMetadata(alias="orderId")] = pydantic.Field(
         default=None
     )
@@ -76,16 +81,23 @@ class OrderResponse(UniversalBaseModel):
     Cumulative trading fee charged for filled portions, denominated in the fee asset.
     """
 
+    fee_asset: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="feeAsset")] = pydantic.Field(
+        default=None
+    )
+    """
+    Currency ticker of the asset used to pay the trading fee. Omitted when empty.
+    """
+
     price: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Limit price per unit in quote currency. Returns `"0"` for market orders.
+    Limit price per unit in quote currency. Present for orders that carry a price (limit and stop-limit shapes); omitted on market and stop-market order shapes.
     """
 
     post_only: typing_extensions.Annotated[typing.Optional[bool], FieldMetadata(alias="postOnly")] = pydantic.Field(
         default=None
     )
     """
-    Post-only flag. When `true`, the order executes only as a maker order and is rejected if it would match immediately. Default: `false`.
+    Post-only flag. When `true`, the order executes only as a maker order and is rejected if it would match immediately. Omitted when not set.
     """
 
     ioc: typing.Optional[bool] = pydantic.Field(default=None)
@@ -103,7 +115,12 @@ class OrderResponse(UniversalBaseModel):
         pydantic.Field(default=None)
     )
     """
-    Position side (for collateral orders)
+    Position side (for collateral orders). Returned on the cancel, active-orders list, and modify responses; omitted when not set. Spot order-creation responses do not include the field.
+    """
+
+    oto: typing.Optional[OrderResponseOto] = pydantic.Field(default=None)
+    """
+    OTO order data. Present only when the order belongs to an [OTO](/glossary#one-triggers-the-other-oto) group — returned on the cancel, active-orders list, and modify responses.
     """
 
     rpi: typing.Optional[bool] = pydantic.Field(default=None)
@@ -120,12 +137,12 @@ class OrderResponse(UniversalBaseModel):
         default=None
     )
     """
-    Reduce-only flag. When `true`, the order can only reduce or close an existing position. See [reduce-only](/glossary#reduce-only).
+    Reduce-only flag. When `true`, the order can only reduce or close an existing position. Returned on the cancel, active-orders list, and modify responses; spot order-creation responses do not include the field. See [reduce-only](/glossary#reduce-only).
     """
 
     activated: typing.Optional[int] = pydantic.Field(default=None)
     """
-    Activation status of the stop order. 0 = not yet triggered (waiting for the activation_price condition to be met). 1 = triggered (the stop condition has been met and the order is now active).
+    Activation status of the stop order. 0 = not yet triggered (waiting for the activation_price condition to be met). 1 = triggered (the stop condition has been met and the order is now active). Returned for stop orders; omitted on other order shapes.
     """
 
     activation_condition: typing_extensions.Annotated[
@@ -140,7 +157,7 @@ class OrderResponse(UniversalBaseModel):
 
     activation_price: typing.Optional[str] = pydantic.Field(default=None)
     """
-    The trigger price for the stop order. Always equals the activation_price value submitted in the request.
+    The trigger price for the stop order. Always equals the activation_price value submitted in the request. Returned for stop orders; omitted on other order shapes.
     """
 
     if IS_PYDANTIC_V2:

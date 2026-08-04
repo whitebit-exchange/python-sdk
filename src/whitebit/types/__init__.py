@@ -59,6 +59,7 @@ from .bulk_limit_order_response import BulkLimitOrderResponse
 from .bulk_limit_order_response_item import BulkLimitOrderResponseItem
 from .bulk_order_item import BulkOrderItem
 from .bulk_order_item_side import BulkOrderItemSide
+from .bulk_order_item_stp import BulkOrderItemStp
 from .candle import Candle
 from .candles_request import CandlesRequest
 from .candles_request_method import CandlesRequestMethod
@@ -69,6 +70,10 @@ from .candles_update import CandlesUpdate
 from .candles_update_method import CandlesUpdateMethod
 from .code_history import CodeHistory
 from .code_info import CodeInfo
+from .conditional_order_leg import ConditionalOrderLeg
+from .conditional_order_leg_activation_condition import ConditionalOrderLegActivationCondition
+from .conditional_order_leg_position_side import ConditionalOrderLegPositionSide
+from .conditional_order_leg_side import ConditionalOrderLegSide
 from .convert_confirm_response import ConvertConfirmResponse
 from .convert_estimate_request_direction import ConvertEstimateRequestDirection
 from .convert_estimate_response import ConvertEstimateResponse
@@ -106,8 +111,16 @@ from .executed_order_object_stp import ExecutedOrderObjectStp
 from .fee_details import FeeDetails
 from .fee_details_flex import FeeDetailsFlex
 from .fee_info import FeeInfo
+from .fee_info_deposit import FeeInfoDeposit
+from .fee_info_withdraw import FeeInfoWithdraw
+from .fixed_plan import FixedPlan
+from .flex_investment import FlexInvestment
+from .flex_investment_history import FlexInvestmentHistory
+from .flex_plan import FlexPlan
 from .futures_market import FuturesMarket
 from .futures_market_product_type import FuturesMarketProductType
+from .interest_payment import InterestPayment
+from .investment import Investment
 from .lastprice_request import LastpriceRequest
 from .lastprice_request_method import LastpriceRequestMethod
 from .lastprice_response import LastpriceResponse
@@ -138,13 +151,21 @@ from .market_today_update import MarketTodayUpdate
 from .market_today_update_method import MarketTodayUpdateMethod
 from .market_update import MarketUpdate
 from .market_update_method import MarketUpdateMethod
+from .mining_reward import MiningReward
+from .mining_reward_payout_destination import MiningRewardPayoutDestination
+from .mining_reward_status import MiningRewardStatus
 from .not_found_error_body import NotFoundErrorBody
+from .oco_order_leg import OcoOrderLeg
+from .oco_order_leg_activation_condition import OcoOrderLegActivationCondition
+from .oco_order_leg_position_side import OcoOrderLegPositionSide
+from .oco_order_leg_side import OcoOrderLegSide
 from .order_book import OrderBook
 from .order_object import OrderObject
 from .order_object_position_side import OrderObjectPositionSide
 from .order_object_stp import OrderObjectStp
 from .order_response import OrderResponse
 from .order_response_activation_condition import OrderResponseActivationCondition
+from .order_response_oto import OrderResponseOto
 from .order_status import OrderStatus
 from .orderbook_response import OrderbookResponse
 from .orders_executed_request import OrdersExecutedRequest
@@ -175,6 +196,8 @@ from .positions_update_params import PositionsUpdateParams
 from .positions_update_params_records_item import PositionsUpdateParamsRecordsItem
 from .positions_update_params_records_item_liq_stage import PositionsUpdateParamsRecordsItemLiqStage
 from .positions_update_params_records_item_position_side import PositionsUpdateParamsRecordsItemPositionSide
+from .provider_fee_details import ProviderFeeDetails
+from .provider_fee_details_flex import ProviderFeeDetailsFlex
 from .public_validation_error import PublicValidationError
 from .sub_account import SubAccount
 from .sub_account_api_key import SubAccountApiKey
@@ -271,6 +294,7 @@ __all__ = [
     "BulkLimitOrderResponseItem",
     "BulkOrderItem",
     "BulkOrderItemSide",
+    "BulkOrderItemStp",
     "Candle",
     "CandlesRequest",
     "CandlesRequestMethod",
@@ -281,6 +305,10 @@ __all__ = [
     "CandlesUpdateMethod",
     "CodeHistory",
     "CodeInfo",
+    "ConditionalOrderLeg",
+    "ConditionalOrderLegActivationCondition",
+    "ConditionalOrderLegPositionSide",
+    "ConditionalOrderLegSide",
     "ConvertConfirmResponse",
     "ConvertEstimateRequestDirection",
     "ConvertEstimateResponse",
@@ -318,8 +346,16 @@ __all__ = [
     "FeeDetails",
     "FeeDetailsFlex",
     "FeeInfo",
+    "FeeInfoDeposit",
+    "FeeInfoWithdraw",
+    "FixedPlan",
+    "FlexInvestment",
+    "FlexInvestmentHistory",
+    "FlexPlan",
     "FuturesMarket",
     "FuturesMarketProductType",
+    "InterestPayment",
+    "Investment",
     "LastpriceRequest",
     "LastpriceRequestMethod",
     "LastpriceResponse",
@@ -350,13 +386,21 @@ __all__ = [
     "MarketTodayUpdateMethod",
     "MarketUpdate",
     "MarketUpdateMethod",
+    "MiningReward",
+    "MiningRewardPayoutDestination",
+    "MiningRewardStatus",
     "NotFoundErrorBody",
+    "OcoOrderLeg",
+    "OcoOrderLegActivationCondition",
+    "OcoOrderLegPositionSide",
+    "OcoOrderLegSide",
     "OrderBook",
     "OrderObject",
     "OrderObjectPositionSide",
     "OrderObjectStp",
     "OrderResponse",
     "OrderResponseActivationCondition",
+    "OrderResponseOto",
     "OrderStatus",
     "OrderbookResponse",
     "OrdersExecutedRequest",
@@ -387,6 +431,8 @@ __all__ = [
     "PositionsUpdateParamsRecordsItem",
     "PositionsUpdateParamsRecordsItemLiqStage",
     "PositionsUpdateParamsRecordsItemPositionSide",
+    "ProviderFeeDetails",
+    "ProviderFeeDetailsFlex",
     "PublicValidationError",
     "SubAccount",
     "SubAccountApiKey",

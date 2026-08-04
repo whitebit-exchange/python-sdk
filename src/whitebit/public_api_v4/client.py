@@ -12,6 +12,7 @@ from .types.get_api_v4public_collateral_markets_response import GetApiV4PublicCo
 from .types.get_api_v4public_funding_history_market_response_item import GetApiV4PublicFundingHistoryMarketResponseItem
 from .types.get_api_v4public_futures_response import GetApiV4PublicFuturesResponse
 from .types.get_api_v4public_markets_response_item import GetApiV4PublicMarketsResponseItem
+from .types.get_api_v4public_mining_pool_response import GetApiV4PublicMiningPoolResponse
 from .types.get_api_v4public_platform_status_response import GetApiV4PublicPlatformStatusResponse
 from .types.get_api_v4public_ticker_response_value import GetApiV4PublicTickerResponseValue
 from .types.get_api_v4public_time_response import GetApiV4PublicTimeResponse
@@ -63,14 +64,18 @@ class PublicApiV4Client:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> typing.List[GetApiV4PublicMarketsResponseItem]:
         """
-        The endpoint retrieves configuration and trading rules for all available spot, futures, and TradFi futures markets. Use the response to discover tradeable pairs, check minimum order sizes, and read fee schedules. Each entry includes precision settings, fee ratios, and order-size constraints for the market.
+        The endpoint retrieves configuration and trading rules for all available spot and futures markets (TradFi futures markets are coming soon and are not yet returned). Use the response to discover tradeable pairs, check minimum order sizes, and read fee schedules. Each entry includes precision settings, fee ratios, and order-size constraints for the market.
 
         <Note>
         Market configuration is reference data, re-synced from the database approximately every 10 seconds. Polling more frequently returns identical data. The cache is shared across all callers.
         </Note>
 
         <Note>
-        TradFi futures markets are region-gated. Markets not available in a given region are omitted from the response entirely and do not appear under any other market type.
+        TradFi futures markets are coming soon and are not yet returned by this endpoint. Once available, they will be region-gated: markets not available in a given region are omitted from the response entirely and do not appear under any other market type.
+        </Note>
+
+        <Note>
+        A market with an announced delisting carries the announced date in `delistedAt` and stays tradeable until the delisting runs. Once the delisting runs, the platform cancels the active orders on the market and drops the market from this response — [Query delisting orders](/api-reference/spot-trading/query-delisting-orders) is a signed request that returns the authenticated account's resulting spot order records. An announcement can be rescheduled or canceled, so treat `delistedAt` as the current plan rather than a settled fact and re-read the value on the next poll.
         </Note>
 
         <Warning>
@@ -188,7 +193,7 @@ class PublicApiV4Client:
             Orders depth quantity: 0 - 100. Not defined or 0 will return 100 entries.
 
         level : typing.Optional[int]
-            Aggregation level for price grouping. Level 0 applies no aggregation. Levels 1–5 provide increasing aggregation of the order book.
+            Aggregation level for price grouping. Level 0 applies no aggregation. Levels 1–5 provide increasing aggregation of the order book; values up to 10 are accepted. Out-of-range values are clamped to the 0–10 range rather than rejected.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -249,7 +254,7 @@ class PublicApiV4Client:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> typing.List[GetApiV4PublicTradesMarketResponseItem]:
         """
-        The endpoint retrieves the [trades](/glossary#deal-trade) that have been executed recently on the requested [market](/glossary#market).
+        The endpoint retrieves the [trades](/glossary#deal-trade) that have been executed recently on the requested [market](/glossary#market). It returns up to the 100 most recent trades; the response size is fixed and there is no `limit` parameter.
 
         <Note>
         The API caches the response for 1 second
@@ -518,6 +523,37 @@ class PublicApiV4Client:
         )
         return _response.data
 
+    def mining_pool_overview(
+        self, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> GetApiV4PublicMiningPoolResponse:
+        """
+        The endpoint returns overall information about the current mining pool state.
+
+        Hash rate is expressed in H units.
+
+        <Warning>
+        Rate limit 1000 requests/10 sec.
+        </Warning>
+
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        GetApiV4PublicMiningPoolResponse
+            Successful response
+
+        Examples
+        --------
+        from whitebit import WhitebitApi
+        client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
+        client.public_api_v4.mining_pool_overview()
+        """
+        _response = self._raw_client.mining_pool_overview(request_options=request_options)
+        return _response.data
+
 
 class AsyncPublicApiV4Client:
     def __init__(self, *, client_wrapper: AsyncClientWrapper):
@@ -566,14 +602,18 @@ class AsyncPublicApiV4Client:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> typing.List[GetApiV4PublicMarketsResponseItem]:
         """
-        The endpoint retrieves configuration and trading rules for all available spot, futures, and TradFi futures markets. Use the response to discover tradeable pairs, check minimum order sizes, and read fee schedules. Each entry includes precision settings, fee ratios, and order-size constraints for the market.
+        The endpoint retrieves configuration and trading rules for all available spot and futures markets (TradFi futures markets are coming soon and are not yet returned). Use the response to discover tradeable pairs, check minimum order sizes, and read fee schedules. Each entry includes precision settings, fee ratios, and order-size constraints for the market.
 
         <Note>
         Market configuration is reference data, re-synced from the database approximately every 10 seconds. Polling more frequently returns identical data. The cache is shared across all callers.
         </Note>
 
         <Note>
-        TradFi futures markets are region-gated. Markets not available in a given region are omitted from the response entirely and do not appear under any other market type.
+        TradFi futures markets are coming soon and are not yet returned by this endpoint. Once available, they will be region-gated: markets not available in a given region are omitted from the response entirely and do not appear under any other market type.
+        </Note>
+
+        <Note>
+        A market with an announced delisting carries the announced date in `delistedAt` and stays tradeable until the delisting runs. Once the delisting runs, the platform cancels the active orders on the market and drops the market from this response — [Query delisting orders](/api-reference/spot-trading/query-delisting-orders) is a signed request that returns the authenticated account's resulting spot order records. An announcement can be rescheduled or canceled, so treat `delistedAt` as the current plan rather than a settled fact and re-read the value on the next poll.
         </Note>
 
         <Warning>
@@ -702,7 +742,7 @@ class AsyncPublicApiV4Client:
             Orders depth quantity: 0 - 100. Not defined or 0 will return 100 entries.
 
         level : typing.Optional[int]
-            Aggregation level for price grouping. Level 0 applies no aggregation. Levels 1–5 provide increasing aggregation of the order book.
+            Aggregation level for price grouping. Level 0 applies no aggregation. Levels 1–5 provide increasing aggregation of the order book; values up to 10 are accepted. Out-of-range values are clamped to the 0–10 range rather than rejected.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -769,7 +809,7 @@ class AsyncPublicApiV4Client:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> typing.List[GetApiV4PublicTradesMarketResponseItem]:
         """
-        The endpoint retrieves the [trades](/glossary#deal-trade) that have been executed recently on the requested [market](/glossary#market).
+        The endpoint retrieves the [trades](/glossary#deal-trade) that have been executed recently on the requested [market](/glossary#market). It returns up to the 100 most recent trades; the response size is fixed and there is no `limit` parameter.
 
         <Note>
         The API caches the response for 1 second
@@ -1059,4 +1099,38 @@ class AsyncPublicApiV4Client:
             offset=offset,
             request_options=request_options,
         )
+        return _response.data
+
+    async def mining_pool_overview(
+        self, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> GetApiV4PublicMiningPoolResponse:
+        """
+        The endpoint returns overall information about the current mining pool state.
+
+        Hash rate is expressed in H units.
+
+        <Warning>
+        Rate limit 1000 requests/10 sec.
+        </Warning>
+
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        GetApiV4PublicMiningPoolResponse
+            Successful response
+
+        Examples
+        --------
+        from whitebit import AsyncWhitebitApi
+        import asyncio
+        client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
+        async def main() -> None:
+            await client.public_api_v4.mining_pool_overview()
+        asyncio.run(main())
+        """
+        _response = await self._raw_client.mining_pool_overview(request_options=request_options)
         return _response.data

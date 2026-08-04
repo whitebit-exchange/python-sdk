@@ -16,9 +16,9 @@ class CreateWithdrawRequestBeneficiary(UniversalBaseModel):
     """
     Beneficiary information.
 
-    ⚠️ Required if currency [ticker](/glossary#ticker) is one of: UAH_IBAN, USD_VISAMASTER, EUR_VISAMASTER, USD, EUR.
+    ⚠️ Required if currency [ticker](/glossary#ticker) is one of: USD_VISAMASTER, EUR_VISAMASTER, USD, EUR.
 
-    Per-field requirements vary by currency and provider. Card-related fields (`cardToken`, `card.*`, `cardTokenSave`, `fingerprintSession`) apply only to card-acquiring rails; bank-related fields (`bank.*`) apply to bank-rail withdrawals; `tin` is required for UAH_IBAN; `phone`, `email`, and `birthDate` are required for VISAMASTER/Mercuryo rails. See `/asset-status-list` for the active provider per currency.
+    Per-field requirements vary by currency and provider. Card-related fields (`cardToken`, `card.*`, `cardTokenSave`, `fingerprintSession`) apply only to card-acquiring rails; bank-related fields (`bank.*`) apply to bank-rail withdrawals; `phone`, `email`, and `birthDate` are required for VISAMASTER/Mercuryo rails. See `/asset-status-list` for the active provider per currency.
     """
 
     first_name: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="firstName")] = pydantic.Field(
@@ -27,7 +27,7 @@ class CreateWithdrawRequestBeneficiary(UniversalBaseModel):
     """
     Beneficiary first name. Max length: 40 symbols, latin letters and special characters.
     
-    ⚠️ Required if currency [ticker](/glossary#ticker) is one of: UAH_IBAN, USD_VISAMASTER, USD, EUR
+    ⚠️ Required if currency [ticker](/glossary#ticker) is one of: USD_VISAMASTER, USD, EUR
     """
 
     last_name: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="lastName")] = pydantic.Field(
@@ -36,14 +36,7 @@ class CreateWithdrawRequestBeneficiary(UniversalBaseModel):
     """
     Beneficiary last name. Max length: 40 symbols, latin letters and special characters.
     
-    ⚠️ Required if currency [ticker](/glossary#ticker) is one of: UAH_IBAN, USD_VISAMASTER, USD, EUR
-    """
-
-    tin: typing.Optional[int] = pydantic.Field(default=None)
-    """
-    Beneficiary TAX payer number. Integer, 10 digits.
-    
-    ⚠️ Required if currency is UAH_IBAN.
+    ⚠️ Required if currency [ticker](/glossary#ticker) is one of: USD_VISAMASTER, USD, EUR
     """
 
     phone: typing.Optional[str] = pydantic.Field(default=None)

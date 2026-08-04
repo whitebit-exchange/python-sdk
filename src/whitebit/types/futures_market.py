@@ -60,7 +60,7 @@ class FuturesMarket(UniversalBaseModel):
 
     product_type: typing.Optional[FuturesMarketProductType] = pydantic.Field(default=None)
     """
-    Derivative product type for the market.
+    Derivative product type for the market. Currently always `Perpetual`.
     """
 
     open_interest: typing.Optional[str] = pydantic.Field(default=None)
@@ -86,6 +86,16 @@ class FuturesMarket(UniversalBaseModel):
     funding_rate: typing.Optional[str] = pydantic.Field(default=None)
     """
     Predicted funding rate for the next settlement interval. Fluctuates in real time until settlement occurs. See GET /api/v4/public/funding-history/{market} for historical funding rate records.
+    """
+
+    funding_cap: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Upper bound that the funding rate can reach for the market. Served from the last successfully refreshed funding snapshot, so a temporary source outage does not drop the field. Returns `null` only when no snapshot has been loaded since service start.
+    """
+
+    funding_floor: typing.Optional[str] = pydantic.Field(default=None)
+    """
+    Lower bound that the funding rate can reach for the market. Served from the last successfully refreshed funding snapshot, so a temporary source outage does not drop the field. Returns `null` only when no snapshot has been loaded since service start.
     """
 
     next_funding_rate_timestamp: typing.Optional[str] = pydantic.Field(default=None)

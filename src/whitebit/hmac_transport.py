@@ -8,8 +8,9 @@ Usage::
     import httpx
 
     client = WhitebitApi(
-        txc_apikey="YOUR_API_KEY",
-        token="YOUR_TOKEN",
+        api_key="YOUR_API_KEY",
+        txc_payload="",
+        txc_signature="",
         httpx_client=httpx.Client(transport=HmacTransport(api_secret="YOUR_API_SECRET")),
     )
 """
@@ -77,9 +78,24 @@ class HmacTransport(httpx.BaseTransport):
                 headers=clean, content=raw,
             )
             return self._wrapped.handle_request(patched)
-        body.setdefault("nonce", int(time.time() * 1000))
-        body.setdefault("request", path)
-        body.setdefault("nonceWindow", True)
+        # request/nonce: fill if falsy, not just if absent. Some endpoints'
+        # generated request models declare request/nonce as required (OpenAPI
+        # marks them required for the wire contract, since they're mandatory
+        # for non-SDK callers), so they're always serialized as their zero
+        # value ("" / 0) when the caller doesn't set them — which setdefault
+        # would never touch since the key is already present. "" and 0 are
+        # never legitimate caller-supplied values for these two fields, so
+        # treating them as absent is safe and still lets an explicitly-set
+        # nonce survive.
+        if not body.get("request"):
+            body["request"] = path
+        if not body.get("nonce"):
+            body["nonce"] = int(time.time() * 1000)
+        # nonceWindow is genuinely optional in every spec and defaults to
+        # false server-side — an explicit `nonceWindow: False` from the
+        # caller must survive, so only fill it in when the key is missing.
+        if body.get("nonceWindow") is None:
+            body["nonceWindow"] = True
 
         new_raw = json.dumps(body, separators=(",", ":")).encode()
         payload = base64.b64encode(new_raw).decode()
@@ -89,7 +105,15 @@ class HmacTransport(httpx.BaseTransport):
             hashlib.sha512,
         ).hexdigest()
 
-        headers = self._clean_headers(request, strip_keys=("content-length",))
+        # Strip any pre-existing X-TXC-PAYLOAD/X-TXC-SIGNATURE (the SDK client sends empty
+        # placeholders for these from its txc_payload/txc_signature constructor args).
+        # request.headers.items() yields lowercase keys, but re-adding them below under
+        # their canonical case would otherwise create a *second*, distinct dict entry
+        # instead of replacing the placeholder — httpx then sends both as repeated
+        # headers, and the server reads the first (empty) one ("Payload not provided").
+        headers = self._clean_headers(
+            request, strip_keys=("content-length", "x-txc-payload", "x-txc-signature")
+        )
         headers["X-TXC-PAYLOAD"]   = payload
         headers["X-TXC-SIGNATURE"] = signature
 

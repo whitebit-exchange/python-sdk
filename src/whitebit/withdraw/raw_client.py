@@ -110,9 +110,9 @@ class RawWithdrawClient:
         beneficiary : typing.Optional[CreateWithdrawRequestBeneficiary]
             Beneficiary information.
 
-            ⚠️ Required if currency [ticker](/glossary#ticker) is one of: UAH_IBAN, USD_VISAMASTER, EUR_VISAMASTER, USD, EUR.
+            ⚠️ Required if currency [ticker](/glossary#ticker) is one of: USD_VISAMASTER, EUR_VISAMASTER, USD, EUR.
 
-            Per-field requirements vary by currency and provider. Card-related fields (`cardToken`, `card.*`, `cardTokenSave`, `fingerprintSession`) apply only to card-acquiring rails; bank-related fields (`bank.*`) apply to bank-rail withdrawals; `tin` is required for UAH_IBAN; `phone`, `email`, and `birthDate` are required for VISAMASTER/Mercuryo rails. See `/asset-status-list` for the active provider per currency.
+            Per-field requirements vary by currency and provider. Card-related fields (`cardToken`, `card.*`, `cardTokenSave`, `fingerprintSession`) apply only to card-acquiring rails; bank-related fields (`bank.*`) apply to bank-rail withdrawals; `phone`, `email`, and `birthDate` are required for VISAMASTER/Mercuryo rails. See `/asset-status-list` for the active provider per currency.
 
         travel_rule : typing.Optional[CreateWithdrawRequestTravelRule]
             Travel Rule information for regulatory compliance.
@@ -283,7 +283,7 @@ class RawWithdrawClient:
             End-customer IP address forwarded to the [fiat](/glossary#fiat) [provider](/glossary#provider) for antifraud checks before the withdrawal is processed. ⚠️ Required if currency [ticker](/glossary#ticker) is USD or EUR with VISAMASTER [provider](/glossary#provider).
 
         beneficiary : typing.Optional[typing.Dict[str, typing.Optional[typing.Any]]]
-            Beneficiary information data. Required if currency [ticker](/glossary#ticker) is one of: UAH_IBAN, USD_VISAMASTER, EUR_VISAMASTER, USD, EUR
+            Beneficiary information data. Required if currency [ticker](/glossary#ticker) is one of: USD_VISAMASTER, EUR_VISAMASTER, USD, EUR
 
         travel_rule : typing.Optional[typing.Dict[str, typing.Optional[typing.Any]]]
             Travel Rule information data. Required if currency is crypto and the account is from [EEA](/glossary#european-economic-area-eea)
@@ -566,9 +566,9 @@ class AsyncRawWithdrawClient:
         beneficiary : typing.Optional[CreateWithdrawRequestBeneficiary]
             Beneficiary information.
 
-            ⚠️ Required if currency [ticker](/glossary#ticker) is one of: UAH_IBAN, USD_VISAMASTER, EUR_VISAMASTER, USD, EUR.
+            ⚠️ Required if currency [ticker](/glossary#ticker) is one of: USD_VISAMASTER, EUR_VISAMASTER, USD, EUR.
 
-            Per-field requirements vary by currency and provider. Card-related fields (`cardToken`, `card.*`, `cardTokenSave`, `fingerprintSession`) apply only to card-acquiring rails; bank-related fields (`bank.*`) apply to bank-rail withdrawals; `tin` is required for UAH_IBAN; `phone`, `email`, and `birthDate` are required for VISAMASTER/Mercuryo rails. See `/asset-status-list` for the active provider per currency.
+            Per-field requirements vary by currency and provider. Card-related fields (`cardToken`, `card.*`, `cardTokenSave`, `fingerprintSession`) apply only to card-acquiring rails; bank-related fields (`bank.*`) apply to bank-rail withdrawals; `phone`, `email`, and `birthDate` are required for VISAMASTER/Mercuryo rails. See `/asset-status-list` for the active provider per currency.
 
         travel_rule : typing.Optional[CreateWithdrawRequestTravelRule]
             Travel Rule information for regulatory compliance.
@@ -739,7 +739,7 @@ class AsyncRawWithdrawClient:
             End-customer IP address forwarded to the [fiat](/glossary#fiat) [provider](/glossary#provider) for antifraud checks before the withdrawal is processed. ⚠️ Required if currency [ticker](/glossary#ticker) is USD or EUR with VISAMASTER [provider](/glossary#provider).
 
         beneficiary : typing.Optional[typing.Dict[str, typing.Optional[typing.Any]]]
-            Beneficiary information data. Required if currency [ticker](/glossary#ticker) is one of: UAH_IBAN, USD_VISAMASTER, EUR_VISAMASTER, USD, EUR
+            Beneficiary information data. Required if currency [ticker](/glossary#ticker) is one of: USD_VISAMASTER, EUR_VISAMASTER, USD, EUR
 
         travel_rule : typing.Optional[typing.Dict[str, typing.Optional[typing.Any]]]
             Travel Rule information data. Required if currency is crypto and the account is from [EEA](/glossary#european-economic-area-eea)

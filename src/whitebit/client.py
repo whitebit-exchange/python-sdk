@@ -8,12 +8,15 @@ from .collateral_trading.client import AsyncCollateralTradingClient, CollateralT
 from .core.client_wrapper import AsyncClientWrapper, SyncClientWrapper
 from .core.request_options import RequestOptions
 from .credit_line.client import AsyncCreditLineClient, CreditLineClient
+from .crypto_lending_fixed.client import AsyncCryptoLendingFixedClient, CryptoLendingFixedClient
+from .crypto_lending_flex.client import AsyncCryptoLendingFlexClient, CryptoLendingFlexClient
 from .deposit.client import AsyncDepositClient, DepositClient
 from .environment import WhitebitApiEnvironment
 from .fees.client import AsyncFeesClient, FeesClient
 from .jwt.client import AsyncJwtClient, JwtClient
 from .main_account.client import AsyncMainAccountClient, MainAccountClient
 from .market_fee.client import AsyncMarketFeeClient, MarketFeeClient
+from .mining_pool.client import AsyncMiningPoolClient, MiningPoolClient
 from .public_api_v4.client import AsyncPublicApiV4Client, PublicApiV4Client
 from .raw_client import AsyncRawWhitebitApi, RawWhitebitApi
 from .spot_trading.client import AsyncSpotTradingClient, SpotTradingClient
@@ -96,9 +99,12 @@ class WhitebitApi:
         self.withdraw = WithdrawClient(client_wrapper=self._client_wrapper)
         self.transfer = TransferClient(client_wrapper=self._client_wrapper)
         self.codes = CodesClient(client_wrapper=self._client_wrapper)
+        self.crypto_lending_fixed = CryptoLendingFixedClient(client_wrapper=self._client_wrapper)
+        self.crypto_lending_flex = CryptoLendingFlexClient(client_wrapper=self._client_wrapper)
         self.fees = FeesClient(client_wrapper=self._client_wrapper)
         self.sub_account = SubAccountClient(client_wrapper=self._client_wrapper)
         self.sub_account_api_keys = SubAccountApiKeysClient(client_wrapper=self._client_wrapper)
+        self.mining_pool = MiningPoolClient(client_wrapper=self._client_wrapper)
         self.credit_line = CreditLineClient(client_wrapper=self._client_wrapper)
         self.travel_rule = TravelRuleClient(client_wrapper=self._client_wrapper)
         self.collateral_trading = CollateralTradingClient(client_wrapper=self._client_wrapper)
@@ -396,9 +402,12 @@ class AsyncWhitebitApi:
         self.withdraw = AsyncWithdrawClient(client_wrapper=self._client_wrapper)
         self.transfer = AsyncTransferClient(client_wrapper=self._client_wrapper)
         self.codes = AsyncCodesClient(client_wrapper=self._client_wrapper)
+        self.crypto_lending_fixed = AsyncCryptoLendingFixedClient(client_wrapper=self._client_wrapper)
+        self.crypto_lending_flex = AsyncCryptoLendingFlexClient(client_wrapper=self._client_wrapper)
         self.fees = AsyncFeesClient(client_wrapper=self._client_wrapper)
         self.sub_account = AsyncSubAccountClient(client_wrapper=self._client_wrapper)
         self.sub_account_api_keys = AsyncSubAccountApiKeysClient(client_wrapper=self._client_wrapper)
+        self.mining_pool = AsyncMiningPoolClient(client_wrapper=self._client_wrapper)
         self.credit_line = AsyncCreditLineClient(client_wrapper=self._client_wrapper)
         self.travel_rule = AsyncTravelRuleClient(client_wrapper=self._client_wrapper)
         self.collateral_trading = AsyncCollateralTradingClient(client_wrapper=self._client_wrapper)

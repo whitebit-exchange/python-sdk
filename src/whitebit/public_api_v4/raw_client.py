@@ -9,14 +9,17 @@ from ..core.http_response import AsyncHttpResponse, HttpResponse
 from ..core.jsonable_encoder import jsonable_encoder
 from ..core.pydantic_utilities import parse_obj_as
 from ..core.request_options import RequestOptions
+from ..errors.unavailable_for_legal_reasons_error import UnavailableForLegalReasonsError
 from ..errors.unprocessable_entity_error import UnprocessableEntityError
 from ..types.asset import Asset
+from ..types.error_v4 import ErrorV4
 from ..types.fee_info import FeeInfo
 from ..types.orderbook_response import OrderbookResponse
 from .types.get_api_v4public_collateral_markets_response import GetApiV4PublicCollateralMarketsResponse
 from .types.get_api_v4public_funding_history_market_response_item import GetApiV4PublicFundingHistoryMarketResponseItem
 from .types.get_api_v4public_futures_response import GetApiV4PublicFuturesResponse
 from .types.get_api_v4public_markets_response_item import GetApiV4PublicMarketsResponseItem
+from .types.get_api_v4public_mining_pool_response import GetApiV4PublicMiningPoolResponse
 from .types.get_api_v4public_platform_status_response import GetApiV4PublicPlatformStatusResponse
 from .types.get_api_v4public_ticker_response_value import GetApiV4PublicTickerResponseValue
 from .types.get_api_v4public_time_response import GetApiV4PublicTimeResponse
@@ -69,14 +72,18 @@ class RawPublicApiV4Client:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> HttpResponse[typing.List[GetApiV4PublicMarketsResponseItem]]:
         """
-        The endpoint retrieves configuration and trading rules for all available spot, futures, and TradFi futures markets. Use the response to discover tradeable pairs, check minimum order sizes, and read fee schedules. Each entry includes precision settings, fee ratios, and order-size constraints for the market.
+        The endpoint retrieves configuration and trading rules for all available spot and futures markets (TradFi futures markets are coming soon and are not yet returned). Use the response to discover tradeable pairs, check minimum order sizes, and read fee schedules. Each entry includes precision settings, fee ratios, and order-size constraints for the market.
 
         <Note>
         Market configuration is reference data, re-synced from the database approximately every 10 seconds. Polling more frequently returns identical data. The cache is shared across all callers.
         </Note>
 
         <Note>
-        TradFi futures markets are region-gated. Markets not available in a given region are omitted from the response entirely and do not appear under any other market type.
+        TradFi futures markets are coming soon and are not yet returned by this endpoint. Once available, they will be region-gated: markets not available in a given region are omitted from the response entirely and do not appear under any other market type.
+        </Note>
+
+        <Note>
+        A market with an announced delisting carries the announced date in `delistedAt` and stays tradeable until the delisting runs. Once the delisting runs, the platform cancels the active orders on the market and drops the market from this response — [Query delisting orders](/api-reference/spot-trading/query-delisting-orders) is a signed request that returns the authenticated account's resulting spot order records. An announcement can be rescheduled or canceled, so treat `delistedAt` as the current plan rather than a settled fact and re-read the value on the next poll.
         </Note>
 
         <Warning>
@@ -232,7 +239,7 @@ class RawPublicApiV4Client:
             Orders depth quantity: 0 - 100. Not defined or 0 will return 100 entries.
 
         level : typing.Optional[int]
-            Aggregation level for price grouping. Level 0 applies no aggregation. Levels 1–5 provide increasing aggregation of the order book.
+            Aggregation level for price grouping. Level 0 applies no aggregation. Levels 1–5 provide increasing aggregation of the order book; values up to 10 are accepted. Out-of-range values are clamped to the 0–10 range rather than rejected.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -345,7 +352,7 @@ class RawPublicApiV4Client:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[typing.List[GetApiV4PublicTradesMarketResponseItem]]:
         """
-        The endpoint retrieves the [trades](/glossary#deal-trade) that have been executed recently on the requested [market](/glossary#market).
+        The endpoint retrieves the [trades](/glossary#deal-trade) that have been executed recently on the requested [market](/glossary#market). It returns up to the 100 most recent trades; the response size is fixed and there is no `limit` parameter.
 
         <Note>
         The API caches the response for 1 second
@@ -586,6 +593,17 @@ class RawPublicApiV4Client:
                     ),
                 )
                 return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 451:
+                raise UnavailableForLegalReasonsError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        ErrorV4,
+                        parse_obj_as(
+                            type_=ErrorV4,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -631,6 +649,17 @@ class RawPublicApiV4Client:
                     ),
                 )
                 return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 451:
+                raise UnavailableForLegalReasonsError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        ErrorV4,
+                        parse_obj_as(
+                            type_=ErrorV4,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -728,6 +757,49 @@ class RawPublicApiV4Client:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
+    def mining_pool_overview(
+        self, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> HttpResponse[GetApiV4PublicMiningPoolResponse]:
+        """
+        The endpoint returns overall information about the current mining pool state.
+
+        Hash rate is expressed in H units.
+
+        <Warning>
+        Rate limit 1000 requests/10 sec.
+        </Warning>
+
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[GetApiV4PublicMiningPoolResponse]
+            Successful response
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "api/v4/public/mining-pool",
+            base_url=self._client_wrapper.get_environment().base,
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    GetApiV4PublicMiningPoolResponse,
+                    parse_obj_as(
+                        type_=GetApiV4PublicMiningPoolResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
 
 class AsyncRawPublicApiV4Client:
     def __init__(self, *, client_wrapper: AsyncClientWrapper):
@@ -774,14 +846,18 @@ class AsyncRawPublicApiV4Client:
         self, *, request_options: typing.Optional[RequestOptions] = None
     ) -> AsyncHttpResponse[typing.List[GetApiV4PublicMarketsResponseItem]]:
         """
-        The endpoint retrieves configuration and trading rules for all available spot, futures, and TradFi futures markets. Use the response to discover tradeable pairs, check minimum order sizes, and read fee schedules. Each entry includes precision settings, fee ratios, and order-size constraints for the market.
+        The endpoint retrieves configuration and trading rules for all available spot and futures markets (TradFi futures markets are coming soon and are not yet returned). Use the response to discover tradeable pairs, check minimum order sizes, and read fee schedules. Each entry includes precision settings, fee ratios, and order-size constraints for the market.
 
         <Note>
         Market configuration is reference data, re-synced from the database approximately every 10 seconds. Polling more frequently returns identical data. The cache is shared across all callers.
         </Note>
 
         <Note>
-        TradFi futures markets are region-gated. Markets not available in a given region are omitted from the response entirely and do not appear under any other market type.
+        TradFi futures markets are coming soon and are not yet returned by this endpoint. Once available, they will be region-gated: markets not available in a given region are omitted from the response entirely and do not appear under any other market type.
+        </Note>
+
+        <Note>
+        A market with an announced delisting carries the announced date in `delistedAt` and stays tradeable until the delisting runs. Once the delisting runs, the platform cancels the active orders on the market and drops the market from this response — [Query delisting orders](/api-reference/spot-trading/query-delisting-orders) is a signed request that returns the authenticated account's resulting spot order records. An announcement can be rescheduled or canceled, so treat `delistedAt` as the current plan rather than a settled fact and re-read the value on the next poll.
         </Note>
 
         <Warning>
@@ -937,7 +1013,7 @@ class AsyncRawPublicApiV4Client:
             Orders depth quantity: 0 - 100. Not defined or 0 will return 100 entries.
 
         level : typing.Optional[int]
-            Aggregation level for price grouping. Level 0 applies no aggregation. Levels 1–5 provide increasing aggregation of the order book.
+            Aggregation level for price grouping. Level 0 applies no aggregation. Levels 1–5 provide increasing aggregation of the order book; values up to 10 are accepted. Out-of-range values are clamped to the 0–10 range rather than rejected.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -1050,7 +1126,7 @@ class AsyncRawPublicApiV4Client:
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[typing.List[GetApiV4PublicTradesMarketResponseItem]]:
         """
-        The endpoint retrieves the [trades](/glossary#deal-trade) that have been executed recently on the requested [market](/glossary#market).
+        The endpoint retrieves the [trades](/glossary#deal-trade) that have been executed recently on the requested [market](/glossary#market). It returns up to the 100 most recent trades; the response size is fixed and there is no `limit` parameter.
 
         <Note>
         The API caches the response for 1 second
@@ -1291,6 +1367,17 @@ class AsyncRawPublicApiV4Client:
                     ),
                 )
                 return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 451:
+                raise UnavailableForLegalReasonsError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        ErrorV4,
+                        parse_obj_as(
+                            type_=ErrorV4,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -1336,6 +1423,17 @@ class AsyncRawPublicApiV4Client:
                     ),
                 )
                 return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 451:
+                raise UnavailableForLegalReasonsError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        ErrorV4,
+                        parse_obj_as(
+                            type_=ErrorV4,  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
@@ -1428,6 +1526,49 @@ class AsyncRawPublicApiV4Client:
                         ),
                     ),
                 )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
+    async def mining_pool_overview(
+        self, *, request_options: typing.Optional[RequestOptions] = None
+    ) -> AsyncHttpResponse[GetApiV4PublicMiningPoolResponse]:
+        """
+        The endpoint returns overall information about the current mining pool state.
+
+        Hash rate is expressed in H units.
+
+        <Warning>
+        Rate limit 1000 requests/10 sec.
+        </Warning>
+
+        Parameters
+        ----------
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[GetApiV4PublicMiningPoolResponse]
+            Successful response
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "api/v4/public/mining-pool",
+            base_url=self._client_wrapper.get_environment().base,
+            method="GET",
+            request_options=request_options,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    GetApiV4PublicMiningPoolResponse,
+                    parse_obj_as(
+                        type_=GetApiV4PublicMiningPoolResponse,  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
             _response_json = _response.json()
         except JSONDecodeError:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)

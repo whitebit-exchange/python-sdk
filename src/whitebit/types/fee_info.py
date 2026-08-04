@@ -4,7 +4,8 @@ import typing
 
 import pydantic
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
-from .fee_details import FeeDetails
+from .fee_info_deposit import FeeInfoDeposit
+from .fee_info_withdraw import FeeInfoWithdraw
 
 
 class FeeInfo(UniversalBaseModel):
@@ -27,18 +28,14 @@ class FeeInfo(UniversalBaseModel):
     Payment provider identifiers used as the network parameter value for fiat deposits and withdrawals via the API. See GET /api/v4/public/assets providers field for context.
     """
 
-    deposit: typing.Optional[FeeDetails] = pydantic.Field(default=None)
+    deposit: typing.Optional[FeeInfoDeposit] = pydantic.Field(default=None)
     """
-    Deposit fee details. This shape applies to crypto assets: `max_amount` (maximum transaction amount, `"0"` means no upper limit), `min_amount` (minimum transaction amount), `fixed` (fixed fee per transaction, `null` if none), `flex` (percentage-based fee — `percent`, `min_fee`, `max_fee` — or `null` if none).
-    
-    For fiat assets with providers, this field is instead an object keyed by provider ID (e.g. `EUR_SEPA_BCB`), where each value has `ticker`, `name`, `is_depositable`, `is_api_depositable`, `max_amount`, `min_amount`, `fixed`, and `flex` — the API returns a different shape than `FeeDetails` in that case.
+    Deposit fee details. For crypto assets, this is a flat object with `max_amount`, `min_amount`, `fixed`, and `flex` fields. For fiat assets with providers, this is an object keyed by provider ID, where each value contains provider-specific fee details.
     """
 
-    withdraw: typing.Optional[FeeDetails] = pydantic.Field(default=None)
+    withdraw: typing.Optional[FeeInfoWithdraw] = pydantic.Field(default=None)
     """
-    Withdrawal fee details. This shape applies to crypto assets: `max_amount` (maximum transaction amount, `"0"` means no upper limit), `min_amount` (minimum transaction amount), `fixed` (fixed fee per transaction, `null` if none), `flex` (percentage-based fee — `percent`, `min_fee`, `max_fee` — or `null` if none).
-    
-    For fiat assets with providers, this field is instead an object keyed by provider ID (e.g. `EUR_SEPA_BCB`), where each value has `ticker`, `name`, `is_withdrawal`, `is_api_withdrawal`, `max_amount`, `min_amount`, `fixed`, and `flex` — the API returns a different shape than `FeeDetails` in that case.
+    Withdrawal fee details. For crypto assets, this is a flat object with `max_amount`, `min_amount`, `fixed`, and `flex` fields. For fiat assets with providers, this is an object keyed by provider ID, where each value contains provider-specific fee details.
     """
 
     is_depositable: typing.Optional[bool] = pydantic.Field(default=None)

@@ -31,7 +31,7 @@ class GetKillSwitchStatusResponseItem(UniversalBaseModel):
 
     types: typing.Optional[typing.List[GetKillSwitchStatusResponseItemTypesItem]] = pydantic.Field(default=None)
     """
-    Order types targeted by the kill-switch. Possible values: `spot`, `margin`, `futures`.
+    Order types targeted by the kill-switch. Possible values: `spot`, `margin`, `futures`. Returns `null` when the timer was created without `types` (the kill-switch then targets all order types).
     """
 
     if IS_PYDANTIC_V2:

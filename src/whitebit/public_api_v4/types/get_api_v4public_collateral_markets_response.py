@@ -7,6 +7,7 @@ from ...core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 
 
 class GetApiV4PublicCollateralMarketsResponse(UniversalBaseModel):
+    success: typing.Optional[bool] = None
     message: typing.Optional[str] = None
     result: typing.Optional[typing.List[str]] = None
 

@@ -22,7 +22,7 @@ class GetApiV4PublicMarketsResponseItem(UniversalBaseModel):
 
     money: str = pydantic.Field()
     """
-    Ticker of money currency
+    Ticker of money currency. Perpetual futures markets report `USDT` as the money currency.
     """
 
     stock_prec: typing_extensions.Annotated[str, FieldMetadata(alias="stockPrec")] = pydantic.Field()
@@ -42,12 +42,12 @@ class GetApiV4PublicMarketsResponseItem(UniversalBaseModel):
 
     maker_fee: typing_extensions.Annotated[str, FieldMetadata(alias="makerFee")] = pydantic.Field()
     """
-    Default maker fee as a decimal ratio (e.g., `"0.001"` = 0.1%). Multiply by 100 to convert to a percentage.
+    Default maker fee as a percentage value (e.g., `"0.1"` means 0.1%). Divide by 100 to convert to a decimal ratio. `GET /api/v4/public/assets` reports `maker_fee` in the same format.
     """
 
     taker_fee: typing_extensions.Annotated[str, FieldMetadata(alias="takerFee")] = pydantic.Field()
     """
-    Default taker fee as a decimal ratio (e.g., `"0.001"` = 0.1%). Multiply by 100 to convert to a percentage.
+    Default taker fee as a percentage value (e.g., `"0.1"` means 0.1%). Divide by 100 to convert to a decimal ratio. `GET /api/v4/public/assets` reports `taker_fee` in the same format.
     """
 
     min_amount: typing_extensions.Annotated[str, FieldMetadata(alias="minAmount")] = pydantic.Field()
@@ -67,7 +67,7 @@ class GetApiV4PublicMarketsResponseItem(UniversalBaseModel):
 
     trades_enabled: typing_extensions.Annotated[bool, FieldMetadata(alias="tradesEnabled")] = pydantic.Field()
     """
-    Indicates whether trading is enabled
+    Indicates whether trading is enabled. The response includes only markets enabled for trading, so the value is always `true`.
     """
 
     is_collateral: typing_extensions.Annotated[bool, FieldMetadata(alias="isCollateral")] = pydantic.Field()
@@ -82,7 +82,14 @@ class GetApiV4PublicMarketsResponseItem(UniversalBaseModel):
 
     is_trad_fi_futures: typing_extensions.Annotated[bool, FieldMetadata(alias="isTradFiFutures")] = pydantic.Field()
     """
-    Indicates whether the market is a traditional-finance (TradFi) futures market. Always paired with `type: tradfiFutures`. TradFi futures markets are region-gated and are omitted from the response entirely where not available.
+    Indicates whether the market is a traditional-finance (TradFi) futures market. Always paired with `type: tradfiFutures`. TradFi futures markets are coming soon and are not yet returned; once available they are region-gated and omitted from the response entirely where not available.
+    """
+
+    delisted_at: typing_extensions.Annotated[typing.Optional[int], FieldMetadata(alias="delistedAt")] = pydantic.Field(
+        default=None
+    )
+    """
+    Announced delisting date as a Unix timestamp in seconds. `null` when no delisting is announced for the market. The field is always present in the response.
     """
 
     if IS_PYDANTIC_V2:

@@ -7,6 +7,12 @@ from .get_api_v4public_funding_history_market_response_item import GetApiV4Publi
 from .get_api_v4public_futures_response import GetApiV4PublicFuturesResponse
 from .get_api_v4public_markets_response_item import GetApiV4PublicMarketsResponseItem
 from .get_api_v4public_markets_response_item_type import GetApiV4PublicMarketsResponseItemType
+from .get_api_v4public_mining_pool_response import GetApiV4PublicMiningPoolResponse
+from .get_api_v4public_mining_pool_response_data import GetApiV4PublicMiningPoolResponseData
+from .get_api_v4public_mining_pool_response_data_blocks_item import GetApiV4PublicMiningPoolResponseDataBlocksItem
+from .get_api_v4public_mining_pool_response_data_last7days_hash_rate_item import (
+    GetApiV4PublicMiningPoolResponseDataLast7DaysHashRateItem,
+)
 from .get_api_v4public_platform_status_response import GetApiV4PublicPlatformStatusResponse
 from .get_api_v4public_platform_status_response_status import GetApiV4PublicPlatformStatusResponseStatus
 from .get_api_v4public_ticker_response_value import GetApiV4PublicTickerResponseValue
@@ -21,6 +27,10 @@ __all__ = [
     "GetApiV4PublicFuturesResponse",
     "GetApiV4PublicMarketsResponseItem",
     "GetApiV4PublicMarketsResponseItemType",
+    "GetApiV4PublicMiningPoolResponse",
+    "GetApiV4PublicMiningPoolResponseData",
+    "GetApiV4PublicMiningPoolResponseDataBlocksItem",
+    "GetApiV4PublicMiningPoolResponseDataLast7DaysHashRateItem",
     "GetApiV4PublicPlatformStatusResponse",
     "GetApiV4PublicPlatformStatusResponseStatus",
     "GetApiV4PublicTickerResponseValue",

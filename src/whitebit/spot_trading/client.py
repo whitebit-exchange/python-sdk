@@ -10,6 +10,7 @@ from ..types.bulk_limit_order_response import BulkLimitOrderResponse
 from ..types.bulk_order_item import BulkOrderItem
 from ..types.order_response import OrderResponse
 from .raw_client import AsyncRawSpotTradingClient, RawSpotTradingClient
+from .types.cancel_all_orders_request_position_side import CancelAllOrdersRequestPositionSide
 from .types.cancel_all_orders_request_type_item import CancelAllOrdersRequestTypeItem
 from .types.get_delisting_order_history_request_status import GetDelistingOrderHistoryRequestStatus
 from .types.get_delisting_order_history_response_item import GetDelistingOrderHistoryResponseItem
@@ -22,6 +23,7 @@ from .types.limit_order_request_side import LimitOrderRequestSide
 from .types.limit_order_request_stp import LimitOrderRequestStp
 from .types.market_order_request_side import MarketOrderRequestSide
 from .types.market_order_request_stp import MarketOrderRequestStp
+from .types.modify_order_request_stp import ModifyOrderRequestStp
 from .types.set_kill_switch_request_types_item import SetKillSwitchRequestTypesItem
 from .types.set_kill_switch_response import SetKillSwitchResponse
 from .types.stock_market_order_request_side import StockMarketOrderRequestSide
@@ -132,9 +134,9 @@ class SpotTradingClient:
         market: str,
         side: LimitOrderRequestSide,
         amount: str,
-        price: str,
         request: str,
         nonce: int,
+        price: typing.Optional[str] = OMIT,
         client_order_id: typing.Optional[str] = OMIT,
         post_only: typing.Optional[bool] = OMIT,
         ioc: typing.Optional[bool] = OMIT,
@@ -161,6 +163,7 @@ class SpotTradingClient:
         <Note>
           - RPI orders do not appear in public order book feeds (`depth`, `bookTicker`). RPI orders are visible only in private active orders and in the exchange UI order book (web/mobile).
           - RPI orders are post-only by design and cannot be used with the IOC flag. The API returns error code `40` when both `rpi=true` and `ioc=true` are used.
+          - RPI orders apply post-only behavior automatically — do not also send `postOnly=true`: a request combining `rpi=true` with an explicit `postOnly=true` fails validation.
           - `retail=true` marks the order as a retail-source taker eligible to match RPI-maker liquidity. The Retail flag must be enabled on the account; contact the account manager to enable it.
           - `retail=true` and `rpi=true` cannot be combined. The API returns error code `41` when both flags are set.
           - `retail=true` has no effect on a `postOnly=true` order. Post-only orders are makers and cannot be retail takers.
@@ -384,29 +387,34 @@ class SpotTradingClient:
         amount : str
             Order quantity in base (stock) currency. Minimum and maximum values are market-dependent. Query `GET /api/v4/public/markets` for `minAmount`, `minTotal`, `maxTotal`. Precision: `stockPrec`.
 
-        price : str
-            Limit price per unit in quote (money) currency. Minimum and maximum values are market-dependent. Precision: `moneyPrec`.
-
         request : str
 
         nonce : int
+
+        price : typing.Optional[str]
+            Limit price per unit in quote (money) currency. Required unless `bboRole` is set — the BBO execution method replaces the explicit price. Minimum and maximum values are market-dependent. Precision: `moneyPrec`.
 
         client_order_id : typing.Optional[str]
             Custom client order identifier. Uniqueness is enforced only among the account's open (pending) orders on the same market — once a previous order is filled or canceled, the same identifier can be reused, including on the same market. Contains only letters, numbers, dashes, dots, or underscores.
 
         post_only : typing.Optional[bool]
-            Post-only flag. When `true`, the order executes only as a [maker](/glossary#maker) order and the system rejects the order if it would match immediately. Default: `false`.
+            Post-only flag. When `true`, the order executes only as a [maker](/glossary#maker) order and the system rejects the order if it would match immediately. Allowed only when `bboRole` is not set. Do not combine with `rpi=true` — RPI orders apply post-only behavior automatically, and a request setting both flags fails validation. Default: `false`.
 
         ioc : typing.Optional[bool]
             Immediate-or-cancel (IOC) flag. When `true`, the matching engine executes all or part of the order immediately and cancels any unfilled portion. Default: `false`.
 
             IOC does not support `rpi=true` because RPI uses post-only behavior by design.
             The API returns error code `40` when a request sets both `ioc=true` and `rpi=true`.
+            IOC cannot be combined with `postOnly=true` (error code `37`), and with `bboRole` it is allowed only for the Counterparty method (`2`).
 
             Refer to [Order Parameter Rules](/guides/order-parameter-rules) for unsupported parameter combinations.
 
         bbo_role : typing.Optional[int]
-            Best Bid/Offer ([BBO](/glossary#bbo)) execution method. The system selects the best market price for execution. `1` = Queue method, `2` = Counterparty method. Use method `2` with the `ioc` flag.
+            Best Bid/Offer ([BBO](/glossary#best-bid-offer-bbo)) execution method. The system selects the best market price for execution. `1` = Queue method, `2` = Counterparty method.
+
+            When `bboRole` is set, `price` is not required — the BBO method determines the execution price. `postOnly` is allowed only when `bboRole` is not set; `ioc` can be combined only with the Counterparty method (`2`). Use method `2` with the `ioc` flag.
+
+            Refer to [Order Parameter Rules](/guides/order-parameter-rules) for the full interaction rules.
 
         stp : typing.Optional[LimitOrderRequestStp]
             Self-trade prevention mode. Allowed values: `no` (self-trades allowed), `cb` (cancel both the new and the existing order), `cn` (cancel the new order, keep the existing), `co` (cancel the existing order, place the new one). Default: `no`.
@@ -418,7 +426,7 @@ class SpotTradingClient:
         rpi : typing.Optional[bool]
             Enables Retail Price Improvement (RPI) mode. Default: `false`.
 
-            RPI orders use post-only behavior by design. An RPI order does not support `ioc=true`.
+            RPI orders apply post-only behavior automatically — do not also send an explicit `postOnly=true`: a request combining the two flags fails validation. An RPI order does not support `ioc=true`.
             The API returns error code `40` when a request sets both `rpi=true` and `ioc=true`.
             RPI orders do not appear in public order book feeds (`depth`, `bookTicker`). RPI orders are visible only in private active orders and in the exchange UI order book (web/mobile).
             RPI executions may apply custom fees or rebates, especially when trading via sub-accounts. Use Query Market Fees to verify effective fees.
@@ -448,15 +456,15 @@ class SpotTradingClient:
         --------
         from whitebit import WhitebitApi
         client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
-        client.spot_trading.create_limit_order(market='BTC_USDT', side="buy", amount='0.001', price='9800', request='{{request}}', nonce=1594297865000, )
+        client.spot_trading.create_limit_order(market='BTC_USDT', side="buy", amount='0.001', request='{{request}}', nonce=1594297865000, )
         """
         _response = self._raw_client.create_limit_order(
             market=market,
             side=side,
             amount=amount,
-            price=price,
             request=request,
             nonce=nonce,
+            price=price,
             client_order_id=client_order_id,
             post_only=post_only,
             ioc=ioc,
@@ -471,10 +479,10 @@ class SpotTradingClient:
     def create_bulk_limit_order(
         self,
         *,
-        orders: typing.Optional[typing.Sequence[BulkOrderItem]] = OMIT,
+        orders: typing.Sequence[BulkOrderItem],
+        request: str,
+        nonce: int,
         stop_on_fail: typing.Optional[bool] = OMIT,
-        request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> BulkLimitOrderResponse:
         """
@@ -487,6 +495,7 @@ class SpotTradingClient:
         <Note>
           - RPI orders do not appear in public order book feeds (`depth`, `bookTicker`). RPI orders are visible only in private active orders and in the exchange UI order book (web/mobile).
           - RPI orders are post-only by design and cannot be used with the IOC flag. The API returns error code `40` when both `rpi=true` and `ioc=true` are used.
+          - RPI orders apply post-only behavior automatically — do not also send `postOnly=true`: a request combining `rpi=true` with an explicit `postOnly=true` fails validation.
           - `retail=true` marks the order as a retail-source taker eligible to match RPI-maker liquidity. The Retail flag must be enabled on the account; contact the account manager to enable it.
           - `retail=true` and `rpi=true` cannot be combined. The API returns error code `41` when both flags are set on an item.
           - `retail=true` has no effect on a `postOnly=true` item. Post-only orders are makers and cannot be retail takers.
@@ -585,8 +594,12 @@ class SpotTradingClient:
 
         Parameters
         ----------
-        orders : typing.Optional[typing.Sequence[BulkOrderItem]]
-            Array of limit orders
+        orders : typing.Sequence[BulkOrderItem]
+            Array of limit orders. Each item is validated with the same rules as a single limit order.
+
+        request : str
+
+        nonce : int
 
         stop_on_fail : typing.Optional[bool]
             Controls how the bulk order processor handles failures.
@@ -594,10 +607,6 @@ class SpotTradingClient:
             When true: Processing stops at the first order that fails validation or execution. Only orders up to (but not including) the failed order are processed.
 
             When false (default): All orders in the bulk request are processed regardless of individual failures. Each order result is returned in the response array.
-
-        request : typing.Optional[str]
-
-        nonce : typing.Optional[int]
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -612,10 +621,10 @@ class SpotTradingClient:
         from whitebit import WhitebitApi
         from whitebit import BulkOrderItem
         client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
-        client.spot_trading.create_bulk_limit_order(orders=[BulkOrderItem(side="buy", amount='0.02', price='40000', market='BTC_USDT', post_only=False, ioc=False, client_order_id='', rpi=True, retail=False, ), BulkOrderItem(side="sell", amount='0.0001', price='41000', market='BTC_USDT', post_only=False, ioc=False, client_order_id='', rpi=False, retail=True, ), BulkOrderItem(side="sell", amount='0.02', price='41000', market='BTC_USDT', post_only=False, ioc=False, client_order_id='', rpi=False, retail=False, )], )
+        client.spot_trading.create_bulk_limit_order(orders=[BulkOrderItem(side="buy", amount='0.02', price='40000', market='BTC_USDT', post_only=False, ioc=False, client_order_id='', rpi=True, retail=False, ), BulkOrderItem(side="sell", amount='0.0001', price='41000', market='BTC_USDT', post_only=False, ioc=False, client_order_id='', rpi=False, retail=True, ), BulkOrderItem(side="sell", amount='0.02', price='41000', market='BTC_USDT', post_only=False, ioc=False, client_order_id='', rpi=False, retail=False, )], request='{{request}}', nonce=1594297865000, )
         """
         _response = self._raw_client.create_bulk_limit_order(
-            orders=orders, stop_on_fail=stop_on_fail, request=request, nonce=nonce, request_options=request_options
+            orders=orders, request=request, nonce=nonce, stop_on_fail=stop_on_fail, request_options=request_options
         )
         return _response.data
 
@@ -965,10 +974,10 @@ class SpotTradingClient:
         market: str,
         side: StopLimitOrderRequestSide,
         amount: str,
-        price: str,
         activation_price: str,
         request: str,
         nonce: int,
+        price: typing.Optional[str] = OMIT,
         client_order_id: typing.Optional[str] = OMIT,
         bbo_role: typing.Optional[int] = OMIT,
         stp: typing.Optional[StopLimitOrderRequestStp] = OMIT,
@@ -1121,9 +1130,6 @@ class SpotTradingClient:
         amount : str
             Order quantity in base (stock) currency. Minimum and maximum values are market-dependent. Query `GET /api/v4/public/markets` for `minAmount`, `minTotal`, `maxTotal`. Precision: `stockPrec`.
 
-        price : str
-            Limit price per unit in quote (money) currency applied after the stop triggers. Minimum and maximum values are market-dependent. Precision: `moneyPrec`.
-
         activation_price : str
             Trigger price in quote (money) currency. For buy orders, the stop triggers when the market price rises to or above the specified price. For sell orders, the stop triggers when the market price falls to or below the specified price. Precision: `moneyPrec`.
 
@@ -1131,11 +1137,14 @@ class SpotTradingClient:
 
         nonce : int
 
+        price : typing.Optional[str]
+            Limit price per unit in quote (money) currency applied after the stop triggers. Required unless `bboRole` is set — the BBO execution method replaces the explicit price. Minimum and maximum values are market-dependent. Precision: `moneyPrec`.
+
         client_order_id : typing.Optional[str]
             Custom client order identifier. Uniqueness is enforced only among the account's open (pending) orders on the same market — once a previous order is filled or canceled, the same identifier can be reused, including on the same market. Contains only letters, numbers, dashes, dots, or underscores.
 
         bbo_role : typing.Optional[int]
-            Best Bid/Offer ([BBO](/glossary#bbo)) execution method. The system selects the best market price for execution after the stop triggers. `1` = Queue method, `2` = Counterparty method.
+            Best Bid/Offer ([BBO](/glossary#best-bid-offer-bbo)) execution method. The system selects the best market price for execution after the stop triggers. `1` = Queue method, `2` = Counterparty method. When `bboRole` is set, `price` is not required — the BBO method determines the execution price.
 
         stp : typing.Optional[StopLimitOrderRequestStp]
             Self-trade prevention mode. Allowed values: `no` (self-trades allowed), `cb` (cancel both the new and the existing order), `cn` (cancel the new order, keep the existing), `co` (cancel the existing order, place the new one). Default: `no`.
@@ -1156,16 +1165,16 @@ class SpotTradingClient:
         --------
         from whitebit import WhitebitApi
         client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
-        client.spot_trading.create_stop_limit_order(market='BTC_USDT', side="buy", amount='0.001', price='9800', activation_price='10000', request='{{request}}', nonce=1594297865000, )
+        client.spot_trading.create_stop_limit_order(market='BTC_USDT', side="buy", amount='0.001', activation_price='10000', request='{{request}}', nonce=1594297865000, )
         """
         _response = self._raw_client.create_stop_limit_order(
             market=market,
             side=side,
             amount=amount,
-            price=price,
             activation_price=activation_price,
             request=request,
             nonce=nonce,
+            price=price,
             client_order_id=client_order_id,
             bbo_role=bbo_role,
             stp=stp,
@@ -1395,9 +1404,8 @@ class SpotTradingClient:
         </Warning>
 
         <Note>
-        - Cancellation by clientOrderId takes priority over orderId.
-        - The request supports working only with orderId or only with clientOrderId.
-        - Do not pass both values at the same time.
+        - The request accepts exactly one identifier: either `orderId` or `clientOrderId`.
+        - Sending both identifiers, or neither, returns a validation error.
         </Note>
 
         <Accordion title="Error Codes">
@@ -1683,12 +1691,13 @@ class SpotTradingClient:
     def cancel_all_orders(
         self,
         *,
+        request: str,
+        nonce: int,
         market: typing.Optional[str] = OMIT,
         type: typing.Optional[typing.Sequence[CancelAllOrdersRequestTypeItem]] = OMIT,
-        request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[int] = OMIT,
+        position_side: typing.Optional[CancelAllOrdersRequestPositionSide] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> None:
+    ) -> typing.List[typing.Optional[typing.Any]]:
         """
         The endpoint cancels all open [orders](/glossary#orders) that match the specified filters. Use the `market` parameter to target a single trading pair, or omit the parameter to cancel across all markets. The `type` parameter filters by order type (`spot`, `margin`, `futures`). When omitted, the endpoint targets all order types.
 
@@ -1738,31 +1747,40 @@ class SpotTradingClient:
 
         Parameters
         ----------
+        request : str
+
+        nonce : int
+
         market : typing.Optional[str]
             Available [market](/glossary#market). Example: BTC_USDT
 
         type : typing.Optional[typing.Sequence[CancelAllOrdersRequestTypeItem]]
             Order types to target. Valid values: "spot" — standard spot orders. "margin" — marginal orders placed on spot markets. Note: the "margin" value is not the same as the collateral account balance; "collateral" in other endpoints refers to the funding account, whereas "margin" here refers specifically to the order type. "futures" — marginal orders placed on futures markets (e.g., BTC_PERP). If omitted, the API targets all order types.
 
-        request : typing.Optional[str]
-
-        nonce : typing.Optional[int]
+        position_side : typing.Optional[CancelAllOrdersRequestPositionSide]
+            [Position side](/glossary#position-side) scope. Accepted only when `market` is a perpetual futures market (e.g., BTC_PERP); values are lowercase on this endpoint.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        None
+        typing.List[typing.Optional[typing.Any]]
+            Orders cancelled successfully. The response body is a literal empty array.
 
         Examples
         --------
         from whitebit import WhitebitApi
         client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
-        client.spot_trading.cancel_all_orders(market='BTC_USDT', type=["spot", "margin", "futures"], )
+        client.spot_trading.cancel_all_orders(market='BTC_USDT', type=["spot", "margin", "futures"], request='{{request}}', nonce=1594297865000, )
         """
         _response = self._raw_client.cancel_all_orders(
-            market=market, type=type, request=request, nonce=nonce, request_options=request_options
+            request=request,
+            nonce=nonce,
+            market=market,
+            type=type,
+            position_side=position_side,
+            request_options=request_options,
         )
         return _response.data
 
@@ -2254,6 +2272,7 @@ class SpotTradingClient:
         total: typing.Optional[str] = OMIT,
         price: typing.Optional[str] = OMIT,
         activation_price: typing.Optional[str] = OMIT,
+        stp: typing.Optional[ModifyOrderRequestStp] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> OrderResponse:
         """
@@ -2261,17 +2280,16 @@ class SpotTradingClient:
 
         Supported order types: limit, stop limit, stop market.
 
-        Request must contain one of the following parameters: amount, price, activationPrice.
+        Request must contain at least one of the following parameters: amount, total, price, activationPrice.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
         </Warning>
 
         <Note>
-        - Use total parameter instead of amount for modify buy stop market order.
-        - Modification by clientOrderId takes priority.
-        - The request supports working only with orderId or only with clientOrderId.
-        - Do not pass both values at the same time.
+        - Use total parameter instead of amount for modify buy stop market order. `amount` and `total` are mutually exclusive — a request sending both is rejected.
+        - The request accepts exactly one identifier: either `orderId` or `clientOrderId`.
+        - Sending both identifiers, or neither, returns a validation error.
         </Note>
 
         <Note>
@@ -2350,6 +2368,13 @@ class SpotTradingClient:
         activation_price : typing.Optional[str]
             Activation price in [money](/glossary#money) currency. Example: '10000' or 10000
 
+        stp : typing.Optional[ModifyOrderRequestStp]
+            Self-trade prevention mode. Allowed values: `no` (self-trades allowed), `cb` (cancel both the new and the existing order), `cn` (cancel the new order, keep the existing), `co` (cancel the existing order, place the new one). Default: `no`.
+
+            Legacy values `cancel_both`, `cancel_new`, `cancel_old` are deprecated: the API accepts the legacy values with identical behavior until a deprecation deadline is announced, then rejects the legacy values. Responses always return the abbreviated form, regardless of which variant the request used.
+
+            See [Self-Trade Prevention](/platform/self-trade-prevention).
+
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
@@ -2374,6 +2399,7 @@ class SpotTradingClient:
             total=total,
             price=price,
             activation_price=activation_price,
+            stp=stp,
             request_options=request_options,
         )
         return _response.data
@@ -2382,7 +2408,7 @@ class SpotTradingClient:
         self,
         *,
         market: str,
-        timeout: str,
+        timeout: typing.Optional[str] = OMIT,
         types: typing.Optional[typing.Sequence[SetKillSwitchRequestTypesItem]] = OMIT,
         request: typing.Optional[str] = OMIT,
         nonce: typing.Optional[int] = OMIT,
@@ -2443,8 +2469,8 @@ class SpotTradingClient:
         market : str
             Available [market](/glossary#market). Example: BTC_USDT
 
-        timeout : str
-            Timer value. Example: '5'-'600' or null
+        timeout : typing.Optional[str]
+            Timer value in seconds ('5'-'600'), or `null` to delete the existing timer. The key must always be present — omitting it fails validation.
 
         types : typing.Optional[typing.Sequence[SetKillSwitchRequestTypesItem]]
             Order types to target. Valid values: "spot" — standard spot orders. "margin" — marginal orders placed on spot markets. Note: the "margin" value is not the same as the collateral account balance; "collateral" in other endpoints refers to the funding account, whereas "margin" here refers specifically to the order type. "futures" — marginal orders placed on futures markets (e.g., BTC_PERP). If omitted, the API targets all order types.
@@ -2459,13 +2485,13 @@ class SpotTradingClient:
         Returns
         -------
         SetKillSwitchResponse
-            Successful response - kill-switch timer synced
+            Successful response — creating or updating a timer returns the timer object; deleting a timer (`timeout: null`) returns a literal empty array (`[]`).
 
         Examples
         --------
         from whitebit import WhitebitApi
         client = WhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
-        client.spot_trading.set_kill_switch(market='BTC_USDT', timeout='60', )
+        client.spot_trading.set_kill_switch(market='BTC_USDT', )
         """
         _response = self._raw_client.set_kill_switch(
             market=market, timeout=timeout, types=types, request=request, nonce=nonce, request_options=request_options
@@ -2632,9 +2658,9 @@ class AsyncSpotTradingClient:
         market: str,
         side: LimitOrderRequestSide,
         amount: str,
-        price: str,
         request: str,
         nonce: int,
+        price: typing.Optional[str] = OMIT,
         client_order_id: typing.Optional[str] = OMIT,
         post_only: typing.Optional[bool] = OMIT,
         ioc: typing.Optional[bool] = OMIT,
@@ -2661,6 +2687,7 @@ class AsyncSpotTradingClient:
         <Note>
           - RPI orders do not appear in public order book feeds (`depth`, `bookTicker`). RPI orders are visible only in private active orders and in the exchange UI order book (web/mobile).
           - RPI orders are post-only by design and cannot be used with the IOC flag. The API returns error code `40` when both `rpi=true` and `ioc=true` are used.
+          - RPI orders apply post-only behavior automatically — do not also send `postOnly=true`: a request combining `rpi=true` with an explicit `postOnly=true` fails validation.
           - `retail=true` marks the order as a retail-source taker eligible to match RPI-maker liquidity. The Retail flag must be enabled on the account; contact the account manager to enable it.
           - `retail=true` and `rpi=true` cannot be combined. The API returns error code `41` when both flags are set.
           - `retail=true` has no effect on a `postOnly=true` order. Post-only orders are makers and cannot be retail takers.
@@ -2884,29 +2911,34 @@ class AsyncSpotTradingClient:
         amount : str
             Order quantity in base (stock) currency. Minimum and maximum values are market-dependent. Query `GET /api/v4/public/markets` for `minAmount`, `minTotal`, `maxTotal`. Precision: `stockPrec`.
 
-        price : str
-            Limit price per unit in quote (money) currency. Minimum and maximum values are market-dependent. Precision: `moneyPrec`.
-
         request : str
 
         nonce : int
+
+        price : typing.Optional[str]
+            Limit price per unit in quote (money) currency. Required unless `bboRole` is set — the BBO execution method replaces the explicit price. Minimum and maximum values are market-dependent. Precision: `moneyPrec`.
 
         client_order_id : typing.Optional[str]
             Custom client order identifier. Uniqueness is enforced only among the account's open (pending) orders on the same market — once a previous order is filled or canceled, the same identifier can be reused, including on the same market. Contains only letters, numbers, dashes, dots, or underscores.
 
         post_only : typing.Optional[bool]
-            Post-only flag. When `true`, the order executes only as a [maker](/glossary#maker) order and the system rejects the order if it would match immediately. Default: `false`.
+            Post-only flag. When `true`, the order executes only as a [maker](/glossary#maker) order and the system rejects the order if it would match immediately. Allowed only when `bboRole` is not set. Do not combine with `rpi=true` — RPI orders apply post-only behavior automatically, and a request setting both flags fails validation. Default: `false`.
 
         ioc : typing.Optional[bool]
             Immediate-or-cancel (IOC) flag. When `true`, the matching engine executes all or part of the order immediately and cancels any unfilled portion. Default: `false`.
 
             IOC does not support `rpi=true` because RPI uses post-only behavior by design.
             The API returns error code `40` when a request sets both `ioc=true` and `rpi=true`.
+            IOC cannot be combined with `postOnly=true` (error code `37`), and with `bboRole` it is allowed only for the Counterparty method (`2`).
 
             Refer to [Order Parameter Rules](/guides/order-parameter-rules) for unsupported parameter combinations.
 
         bbo_role : typing.Optional[int]
-            Best Bid/Offer ([BBO](/glossary#bbo)) execution method. The system selects the best market price for execution. `1` = Queue method, `2` = Counterparty method. Use method `2` with the `ioc` flag.
+            Best Bid/Offer ([BBO](/glossary#best-bid-offer-bbo)) execution method. The system selects the best market price for execution. `1` = Queue method, `2` = Counterparty method.
+
+            When `bboRole` is set, `price` is not required — the BBO method determines the execution price. `postOnly` is allowed only when `bboRole` is not set; `ioc` can be combined only with the Counterparty method (`2`). Use method `2` with the `ioc` flag.
+
+            Refer to [Order Parameter Rules](/guides/order-parameter-rules) for the full interaction rules.
 
         stp : typing.Optional[LimitOrderRequestStp]
             Self-trade prevention mode. Allowed values: `no` (self-trades allowed), `cb` (cancel both the new and the existing order), `cn` (cancel the new order, keep the existing), `co` (cancel the existing order, place the new one). Default: `no`.
@@ -2918,7 +2950,7 @@ class AsyncSpotTradingClient:
         rpi : typing.Optional[bool]
             Enables Retail Price Improvement (RPI) mode. Default: `false`.
 
-            RPI orders use post-only behavior by design. An RPI order does not support `ioc=true`.
+            RPI orders apply post-only behavior automatically — do not also send an explicit `postOnly=true`: a request combining the two flags fails validation. An RPI order does not support `ioc=true`.
             The API returns error code `40` when a request sets both `rpi=true` and `ioc=true`.
             RPI orders do not appear in public order book feeds (`depth`, `bookTicker`). RPI orders are visible only in private active orders and in the exchange UI order book (web/mobile).
             RPI executions may apply custom fees or rebates, especially when trading via sub-accounts. Use Query Market Fees to verify effective fees.
@@ -2950,16 +2982,16 @@ class AsyncSpotTradingClient:
         import asyncio
         client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
-            await client.spot_trading.create_limit_order(market='BTC_USDT', side="buy", amount='0.001', price='9800', request='{{request}}', nonce=1594297865000, )
+            await client.spot_trading.create_limit_order(market='BTC_USDT', side="buy", amount='0.001', request='{{request}}', nonce=1594297865000, )
         asyncio.run(main())
         """
         _response = await self._raw_client.create_limit_order(
             market=market,
             side=side,
             amount=amount,
-            price=price,
             request=request,
             nonce=nonce,
+            price=price,
             client_order_id=client_order_id,
             post_only=post_only,
             ioc=ioc,
@@ -2974,10 +3006,10 @@ class AsyncSpotTradingClient:
     async def create_bulk_limit_order(
         self,
         *,
-        orders: typing.Optional[typing.Sequence[BulkOrderItem]] = OMIT,
+        orders: typing.Sequence[BulkOrderItem],
+        request: str,
+        nonce: int,
         stop_on_fail: typing.Optional[bool] = OMIT,
-        request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[int] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> BulkLimitOrderResponse:
         """
@@ -2990,6 +3022,7 @@ class AsyncSpotTradingClient:
         <Note>
           - RPI orders do not appear in public order book feeds (`depth`, `bookTicker`). RPI orders are visible only in private active orders and in the exchange UI order book (web/mobile).
           - RPI orders are post-only by design and cannot be used with the IOC flag. The API returns error code `40` when both `rpi=true` and `ioc=true` are used.
+          - RPI orders apply post-only behavior automatically — do not also send `postOnly=true`: a request combining `rpi=true` with an explicit `postOnly=true` fails validation.
           - `retail=true` marks the order as a retail-source taker eligible to match RPI-maker liquidity. The Retail flag must be enabled on the account; contact the account manager to enable it.
           - `retail=true` and `rpi=true` cannot be combined. The API returns error code `41` when both flags are set on an item.
           - `retail=true` has no effect on a `postOnly=true` item. Post-only orders are makers and cannot be retail takers.
@@ -3088,8 +3121,12 @@ class AsyncSpotTradingClient:
 
         Parameters
         ----------
-        orders : typing.Optional[typing.Sequence[BulkOrderItem]]
-            Array of limit orders
+        orders : typing.Sequence[BulkOrderItem]
+            Array of limit orders. Each item is validated with the same rules as a single limit order.
+
+        request : str
+
+        nonce : int
 
         stop_on_fail : typing.Optional[bool]
             Controls how the bulk order processor handles failures.
@@ -3097,10 +3134,6 @@ class AsyncSpotTradingClient:
             When true: Processing stops at the first order that fails validation or execution. Only orders up to (but not including) the failed order are processed.
 
             When false (default): All orders in the bulk request are processed regardless of individual failures. Each order result is returned in the response array.
-
-        request : typing.Optional[str]
-
-        nonce : typing.Optional[int]
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -3117,11 +3150,11 @@ class AsyncSpotTradingClient:
         import asyncio
         client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
-            await client.spot_trading.create_bulk_limit_order(orders=[BulkOrderItem(side="buy", amount='0.02', price='40000', market='BTC_USDT', post_only=False, ioc=False, client_order_id='', rpi=True, retail=False, ), BulkOrderItem(side="sell", amount='0.0001', price='41000', market='BTC_USDT', post_only=False, ioc=False, client_order_id='', rpi=False, retail=True, ), BulkOrderItem(side="sell", amount='0.02', price='41000', market='BTC_USDT', post_only=False, ioc=False, client_order_id='', rpi=False, retail=False, )], )
+            await client.spot_trading.create_bulk_limit_order(orders=[BulkOrderItem(side="buy", amount='0.02', price='40000', market='BTC_USDT', post_only=False, ioc=False, client_order_id='', rpi=True, retail=False, ), BulkOrderItem(side="sell", amount='0.0001', price='41000', market='BTC_USDT', post_only=False, ioc=False, client_order_id='', rpi=False, retail=True, ), BulkOrderItem(side="sell", amount='0.02', price='41000', market='BTC_USDT', post_only=False, ioc=False, client_order_id='', rpi=False, retail=False, )], request='{{request}}', nonce=1594297865000, )
         asyncio.run(main())
         """
         _response = await self._raw_client.create_bulk_limit_order(
-            orders=orders, stop_on_fail=stop_on_fail, request=request, nonce=nonce, request_options=request_options
+            orders=orders, request=request, nonce=nonce, stop_on_fail=stop_on_fail, request_options=request_options
         )
         return _response.data
 
@@ -3477,10 +3510,10 @@ class AsyncSpotTradingClient:
         market: str,
         side: StopLimitOrderRequestSide,
         amount: str,
-        price: str,
         activation_price: str,
         request: str,
         nonce: int,
+        price: typing.Optional[str] = OMIT,
         client_order_id: typing.Optional[str] = OMIT,
         bbo_role: typing.Optional[int] = OMIT,
         stp: typing.Optional[StopLimitOrderRequestStp] = OMIT,
@@ -3633,9 +3666,6 @@ class AsyncSpotTradingClient:
         amount : str
             Order quantity in base (stock) currency. Minimum and maximum values are market-dependent. Query `GET /api/v4/public/markets` for `minAmount`, `minTotal`, `maxTotal`. Precision: `stockPrec`.
 
-        price : str
-            Limit price per unit in quote (money) currency applied after the stop triggers. Minimum and maximum values are market-dependent. Precision: `moneyPrec`.
-
         activation_price : str
             Trigger price in quote (money) currency. For buy orders, the stop triggers when the market price rises to or above the specified price. For sell orders, the stop triggers when the market price falls to or below the specified price. Precision: `moneyPrec`.
 
@@ -3643,11 +3673,14 @@ class AsyncSpotTradingClient:
 
         nonce : int
 
+        price : typing.Optional[str]
+            Limit price per unit in quote (money) currency applied after the stop triggers. Required unless `bboRole` is set — the BBO execution method replaces the explicit price. Minimum and maximum values are market-dependent. Precision: `moneyPrec`.
+
         client_order_id : typing.Optional[str]
             Custom client order identifier. Uniqueness is enforced only among the account's open (pending) orders on the same market — once a previous order is filled or canceled, the same identifier can be reused, including on the same market. Contains only letters, numbers, dashes, dots, or underscores.
 
         bbo_role : typing.Optional[int]
-            Best Bid/Offer ([BBO](/glossary#bbo)) execution method. The system selects the best market price for execution after the stop triggers. `1` = Queue method, `2` = Counterparty method.
+            Best Bid/Offer ([BBO](/glossary#best-bid-offer-bbo)) execution method. The system selects the best market price for execution after the stop triggers. `1` = Queue method, `2` = Counterparty method. When `bboRole` is set, `price` is not required — the BBO method determines the execution price.
 
         stp : typing.Optional[StopLimitOrderRequestStp]
             Self-trade prevention mode. Allowed values: `no` (self-trades allowed), `cb` (cancel both the new and the existing order), `cn` (cancel the new order, keep the existing), `co` (cancel the existing order, place the new one). Default: `no`.
@@ -3670,17 +3703,17 @@ class AsyncSpotTradingClient:
         import asyncio
         client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
-            await client.spot_trading.create_stop_limit_order(market='BTC_USDT', side="buy", amount='0.001', price='9800', activation_price='10000', request='{{request}}', nonce=1594297865000, )
+            await client.spot_trading.create_stop_limit_order(market='BTC_USDT', side="buy", amount='0.001', activation_price='10000', request='{{request}}', nonce=1594297865000, )
         asyncio.run(main())
         """
         _response = await self._raw_client.create_stop_limit_order(
             market=market,
             side=side,
             amount=amount,
-            price=price,
             activation_price=activation_price,
             request=request,
             nonce=nonce,
+            price=price,
             client_order_id=client_order_id,
             bbo_role=bbo_role,
             stp=stp,
@@ -3913,9 +3946,8 @@ class AsyncSpotTradingClient:
         </Warning>
 
         <Note>
-        - Cancellation by clientOrderId takes priority over orderId.
-        - The request supports working only with orderId or only with clientOrderId.
-        - Do not pass both values at the same time.
+        - The request accepts exactly one identifier: either `orderId` or `clientOrderId`.
+        - Sending both identifiers, or neither, returns a validation error.
         </Note>
 
         <Accordion title="Error Codes">
@@ -4207,12 +4239,13 @@ class AsyncSpotTradingClient:
     async def cancel_all_orders(
         self,
         *,
+        request: str,
+        nonce: int,
         market: typing.Optional[str] = OMIT,
         type: typing.Optional[typing.Sequence[CancelAllOrdersRequestTypeItem]] = OMIT,
-        request: typing.Optional[str] = OMIT,
-        nonce: typing.Optional[int] = OMIT,
+        position_side: typing.Optional[CancelAllOrdersRequestPositionSide] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> None:
+    ) -> typing.List[typing.Optional[typing.Any]]:
         """
         The endpoint cancels all open [orders](/glossary#orders) that match the specified filters. Use the `market` parameter to target a single trading pair, or omit the parameter to cancel across all markets. The `type` parameter filters by order type (`spot`, `margin`, `futures`). When omitted, the endpoint targets all order types.
 
@@ -4262,22 +4295,26 @@ class AsyncSpotTradingClient:
 
         Parameters
         ----------
+        request : str
+
+        nonce : int
+
         market : typing.Optional[str]
             Available [market](/glossary#market). Example: BTC_USDT
 
         type : typing.Optional[typing.Sequence[CancelAllOrdersRequestTypeItem]]
             Order types to target. Valid values: "spot" — standard spot orders. "margin" — marginal orders placed on spot markets. Note: the "margin" value is not the same as the collateral account balance; "collateral" in other endpoints refers to the funding account, whereas "margin" here refers specifically to the order type. "futures" — marginal orders placed on futures markets (e.g., BTC_PERP). If omitted, the API targets all order types.
 
-        request : typing.Optional[str]
-
-        nonce : typing.Optional[int]
+        position_side : typing.Optional[CancelAllOrdersRequestPositionSide]
+            [Position side](/glossary#position-side) scope. Accepted only when `market` is a perpetual futures market (e.g., BTC_PERP); values are lowercase on this endpoint.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
         Returns
         -------
-        None
+        typing.List[typing.Optional[typing.Any]]
+            Orders cancelled successfully. The response body is a literal empty array.
 
         Examples
         --------
@@ -4285,11 +4322,16 @@ class AsyncSpotTradingClient:
         import asyncio
         client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
-            await client.spot_trading.cancel_all_orders(market='BTC_USDT', type=["spot", "margin", "futures"], )
+            await client.spot_trading.cancel_all_orders(market='BTC_USDT', type=["spot", "margin", "futures"], request='{{request}}', nonce=1594297865000, )
         asyncio.run(main())
         """
         _response = await self._raw_client.cancel_all_orders(
-            market=market, type=type, request=request, nonce=nonce, request_options=request_options
+            request=request,
+            nonce=nonce,
+            market=market,
+            type=type,
+            position_side=position_side,
+            request_options=request_options,
         )
         return _response.data
 
@@ -4796,6 +4838,7 @@ class AsyncSpotTradingClient:
         total: typing.Optional[str] = OMIT,
         price: typing.Optional[str] = OMIT,
         activation_price: typing.Optional[str] = OMIT,
+        stp: typing.Optional[ModifyOrderRequestStp] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> OrderResponse:
         """
@@ -4803,17 +4846,16 @@ class AsyncSpotTradingClient:
 
         Supported order types: limit, stop limit, stop market.
 
-        Request must contain one of the following parameters: amount, price, activationPrice.
+        Request must contain at least one of the following parameters: amount, total, price, activationPrice.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
         </Warning>
 
         <Note>
-        - Use total parameter instead of amount for modify buy stop market order.
-        - Modification by clientOrderId takes priority.
-        - The request supports working only with orderId or only with clientOrderId.
-        - Do not pass both values at the same time.
+        - Use total parameter instead of amount for modify buy stop market order. `amount` and `total` are mutually exclusive — a request sending both is rejected.
+        - The request accepts exactly one identifier: either `orderId` or `clientOrderId`.
+        - Sending both identifiers, or neither, returns a validation error.
         </Note>
 
         <Note>
@@ -4892,6 +4934,13 @@ class AsyncSpotTradingClient:
         activation_price : typing.Optional[str]
             Activation price in [money](/glossary#money) currency. Example: '10000' or 10000
 
+        stp : typing.Optional[ModifyOrderRequestStp]
+            Self-trade prevention mode. Allowed values: `no` (self-trades allowed), `cb` (cancel both the new and the existing order), `cn` (cancel the new order, keep the existing), `co` (cancel the existing order, place the new one). Default: `no`.
+
+            Legacy values `cancel_both`, `cancel_new`, `cancel_old` are deprecated: the API accepts the legacy values with identical behavior until a deprecation deadline is announced, then rejects the legacy values. Responses always return the abbreviated form, regardless of which variant the request used.
+
+            See [Self-Trade Prevention](/platform/self-trade-prevention).
+
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
 
@@ -4919,6 +4968,7 @@ class AsyncSpotTradingClient:
             total=total,
             price=price,
             activation_price=activation_price,
+            stp=stp,
             request_options=request_options,
         )
         return _response.data
@@ -4927,7 +4977,7 @@ class AsyncSpotTradingClient:
         self,
         *,
         market: str,
-        timeout: str,
+        timeout: typing.Optional[str] = OMIT,
         types: typing.Optional[typing.Sequence[SetKillSwitchRequestTypesItem]] = OMIT,
         request: typing.Optional[str] = OMIT,
         nonce: typing.Optional[int] = OMIT,
@@ -4988,8 +5038,8 @@ class AsyncSpotTradingClient:
         market : str
             Available [market](/glossary#market). Example: BTC_USDT
 
-        timeout : str
-            Timer value. Example: '5'-'600' or null
+        timeout : typing.Optional[str]
+            Timer value in seconds ('5'-'600'), or `null` to delete the existing timer. The key must always be present — omitting it fails validation.
 
         types : typing.Optional[typing.Sequence[SetKillSwitchRequestTypesItem]]
             Order types to target. Valid values: "spot" — standard spot orders. "margin" — marginal orders placed on spot markets. Note: the "margin" value is not the same as the collateral account balance; "collateral" in other endpoints refers to the funding account, whereas "margin" here refers specifically to the order type. "futures" — marginal orders placed on futures markets (e.g., BTC_PERP). If omitted, the API targets all order types.
@@ -5004,7 +5054,7 @@ class AsyncSpotTradingClient:
         Returns
         -------
         SetKillSwitchResponse
-            Successful response - kill-switch timer synced
+            Successful response — creating or updating a timer returns the timer object; deleting a timer (`timeout: null`) returns a literal empty array (`[]`).
 
         Examples
         --------
@@ -5012,7 +5062,7 @@ class AsyncSpotTradingClient:
         import asyncio
         client = AsyncWhitebitApi(txc_payload="YOUR_TXC_PAYLOAD", txc_signature="YOUR_TXC_SIGNATURE", api_key="YOUR_API_KEY", )
         async def main() -> None:
-            await client.spot_trading.set_kill_switch(market='BTC_USDT', timeout='60', )
+            await client.spot_trading.set_kill_switch(market='BTC_USDT', )
         asyncio.run(main())
         """
         _response = await self._raw_client.set_kill_switch(

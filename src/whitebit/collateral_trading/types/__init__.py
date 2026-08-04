@@ -3,11 +3,6 @@
 # isort: skip_file
 
 from .cancel_oco_order_response import CancelOcoOrderResponse
-from .cancel_oco_order_response_stop_loss import CancelOcoOrderResponseStopLoss
-from .cancel_oco_order_response_stop_loss_activation_condition import CancelOcoOrderResponseStopLossActivationCondition
-from .cancel_oco_order_response_stop_loss_side import CancelOcoOrderResponseStopLossSide
-from .cancel_oco_order_response_take_profit import CancelOcoOrderResponseTakeProfit
-from .cancel_oco_order_response_take_profit_side import CancelOcoOrderResponseTakeProfitSide
 from .change_collateral_account_leverage_response import ChangeCollateralAccountLeverageResponse
 from .close_position_request_position_side import ClosePositionRequestPositionSide
 from .collateral_account_balance_summary_response_item import CollateralAccountBalanceSummaryResponseItem
@@ -75,6 +70,8 @@ from .create_collateral_trigger_market_order_response_position_side import (
     CreateCollateralTriggerMarketOrderResponsePositionSide,
 )
 from .create_collateral_trigger_market_order_response_side import CreateCollateralTriggerMarketOrderResponseSide
+from .get_closed_positions_pnl_response_item import GetClosedPositionsPnlResponseItem
+from .get_closed_positions_pnl_response_item_side import GetClosedPositionsPnlResponseItemSide
 from .get_collateral_account_adl_quantile_response_item import GetCollateralAccountAdlQuantileResponseItem
 from .get_collateral_hedge_mode_response import GetCollateralHedgeModeResponse
 from .get_conditional_orders_response import GetConditionalOrdersResponse
@@ -84,35 +81,10 @@ from .get_conditional_orders_response_records_item import (
     GetConditionalOrdersResponseRecordsItem_Oto,
 )
 from .get_conditional_orders_response_records_item_oco import GetConditionalOrdersResponseRecordsItemOco
-from .get_conditional_orders_response_records_item_oco_stop_loss import (
-    GetConditionalOrdersResponseRecordsItemOcoStopLoss,
-)
-from .get_conditional_orders_response_records_item_oco_stop_loss_position_side import (
-    GetConditionalOrdersResponseRecordsItemOcoStopLossPositionSide,
-)
-from .get_conditional_orders_response_records_item_oco_take_profit import (
-    GetConditionalOrdersResponseRecordsItemOcoTakeProfit,
-)
-from .get_conditional_orders_response_records_item_oco_take_profit_position_side import (
-    GetConditionalOrdersResponseRecordsItemOcoTakeProfitPositionSide,
-)
 from .get_conditional_orders_response_records_item_oto import GetConditionalOrdersResponseRecordsItemOto
-from .get_conditional_orders_response_records_item_oto_conditional_order import (
-    GetConditionalOrdersResponseRecordsItemOtoConditionalOrder,
-)
-from .get_conditional_orders_response_records_item_oto_conditional_order_position_side import (
-    GetConditionalOrdersResponseRecordsItemOtoConditionalOrderPositionSide,
-)
 from .get_funding_history_response import GetFundingHistoryResponse
 from .get_funding_history_response_records_item import GetFundingHistoryResponseRecordsItem
 from .get_oco_orders_response_item import GetOcoOrdersResponseItem
-from .get_oco_orders_response_item_stop_loss import GetOcoOrdersResponseItemStopLoss
-from .get_oco_orders_response_item_stop_loss_activation_condition import (
-    GetOcoOrdersResponseItemStopLossActivationCondition,
-)
-from .get_oco_orders_response_item_stop_loss_side import GetOcoOrdersResponseItemStopLossSide
-from .get_oco_orders_response_item_take_profit import GetOcoOrdersResponseItemTakeProfit
-from .get_oco_orders_response_item_take_profit_side import GetOcoOrdersResponseItemTakeProfitSide
 from .get_open_positions_response_item import GetOpenPositionsResponseItem
 from .get_open_positions_response_item_liquidation_state import GetOpenPositionsResponseItemLiquidationState
 from .get_open_positions_response_item_position_side import GetOpenPositionsResponseItemPositionSide
@@ -124,11 +96,6 @@ from .get_positions_history_response_item_side import GetPositionsHistoryRespons
 
 __all__ = [
     "CancelOcoOrderResponse",
-    "CancelOcoOrderResponseStopLoss",
-    "CancelOcoOrderResponseStopLossActivationCondition",
-    "CancelOcoOrderResponseStopLossSide",
-    "CancelOcoOrderResponseTakeProfit",
-    "CancelOcoOrderResponseTakeProfitSide",
     "ChangeCollateralAccountLeverageResponse",
     "ClosePositionRequestPositionSide",
     "CollateralAccountBalanceSummaryResponseItem",
@@ -180,28 +147,19 @@ __all__ = [
     "CreateCollateralTriggerMarketOrderResponseOto",
     "CreateCollateralTriggerMarketOrderResponsePositionSide",
     "CreateCollateralTriggerMarketOrderResponseSide",
+    "GetClosedPositionsPnlResponseItem",
+    "GetClosedPositionsPnlResponseItemSide",
     "GetCollateralAccountAdlQuantileResponseItem",
     "GetCollateralHedgeModeResponse",
     "GetConditionalOrdersResponse",
     "GetConditionalOrdersResponseRecordsItem",
     "GetConditionalOrdersResponseRecordsItemOco",
-    "GetConditionalOrdersResponseRecordsItemOcoStopLoss",
-    "GetConditionalOrdersResponseRecordsItemOcoStopLossPositionSide",
-    "GetConditionalOrdersResponseRecordsItemOcoTakeProfit",
-    "GetConditionalOrdersResponseRecordsItemOcoTakeProfitPositionSide",
     "GetConditionalOrdersResponseRecordsItemOto",
-    "GetConditionalOrdersResponseRecordsItemOtoConditionalOrder",
-    "GetConditionalOrdersResponseRecordsItemOtoConditionalOrderPositionSide",
     "GetConditionalOrdersResponseRecordsItem_Oco",
     "GetConditionalOrdersResponseRecordsItem_Oto",
     "GetFundingHistoryResponse",
     "GetFundingHistoryResponseRecordsItem",
     "GetOcoOrdersResponseItem",
-    "GetOcoOrdersResponseItemStopLoss",
-    "GetOcoOrdersResponseItemStopLossActivationCondition",
-    "GetOcoOrdersResponseItemStopLossSide",
-    "GetOcoOrdersResponseItemTakeProfit",
-    "GetOcoOrdersResponseItemTakeProfitSide",
     "GetOpenPositionsResponseItem",
     "GetOpenPositionsResponseItemLiquidationState",
     "GetOpenPositionsResponseItemPositionSide",

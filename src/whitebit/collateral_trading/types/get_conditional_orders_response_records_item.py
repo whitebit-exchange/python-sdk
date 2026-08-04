@@ -8,26 +8,19 @@ import pydantic
 import typing_extensions
 from ...core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 from ...core.serialization import FieldMetadata
-from .get_conditional_orders_response_records_item_oco_stop_loss import (
-    GetConditionalOrdersResponseRecordsItemOcoStopLoss,
-)
-from .get_conditional_orders_response_records_item_oco_take_profit import (
-    GetConditionalOrdersResponseRecordsItemOcoTakeProfit,
-)
-from .get_conditional_orders_response_records_item_oto_conditional_order import (
-    GetConditionalOrdersResponseRecordsItemOtoConditionalOrder,
-)
+from ...types.conditional_order_leg import ConditionalOrderLeg
+from ...types.order_response import OrderResponse
 
 
 class GetConditionalOrdersResponseRecordsItem_Oco(UniversalBaseModel):
     type: typing.Literal["oco"] = "oco"
     id: typing.Optional[int] = None
-    reduce_only: typing_extensions.Annotated[typing.Optional[bool], FieldMetadata(alias="reduceOnly")] = None
-    stop_loss: typing_extensions.Annotated[
-        typing.Optional[GetConditionalOrdersResponseRecordsItemOcoStopLoss], FieldMetadata(alias="stopLoss")
+    conditional_order_type: typing_extensions.Annotated[
+        typing.Optional[str], FieldMetadata(alias="conditionalOrderType")
     ] = None
+    stop_loss: typing_extensions.Annotated[typing.Optional[ConditionalOrderLeg], FieldMetadata(alias="stopLoss")] = None
     take_profit: typing_extensions.Annotated[
-        typing.Optional[GetConditionalOrdersResponseRecordsItemOcoTakeProfit], FieldMetadata(alias="takeProfit")
+        typing.Optional[ConditionalOrderLeg], FieldMetadata(alias="takeProfit")
     ] = None
 
     if IS_PYDANTIC_V2:
@@ -43,12 +36,13 @@ class GetConditionalOrdersResponseRecordsItem_Oco(UniversalBaseModel):
 class GetConditionalOrdersResponseRecordsItem_Oto(UniversalBaseModel):
     type: typing.Literal["oto"] = "oto"
     id: typing.Optional[int] = None
-    reduce_only: typing_extensions.Annotated[typing.Optional[bool], FieldMetadata(alias="reduceOnly")] = None
+    conditional_order_type: typing_extensions.Annotated[
+        typing.Optional[str], FieldMetadata(alias="conditionalOrderType")
+    ] = None
     stop_loss_price: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="stopLossPrice")] = None
     take_profit_price: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="takeProfitPrice")] = None
     conditional_order: typing_extensions.Annotated[
-        typing.Optional[GetConditionalOrdersResponseRecordsItemOtoConditionalOrder],
-        FieldMetadata(alias="conditionalOrder"),
+        typing.Optional[OrderResponse], FieldMetadata(alias="conditionalOrder")
     ] = None
 
     if IS_PYDANTIC_V2:

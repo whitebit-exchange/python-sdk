@@ -2,4 +2,4 @@
 
 import typing
 
-FuturesMarketProductType = typing.Union[typing.Literal["Perpetual", "Futures", "Options"], typing.Any]
+FuturesMarketProductType = typing.Union[typing.Literal["Perpetual"], typing.Any]

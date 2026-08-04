@@ -3,7 +3,9 @@
 import typing
 
 import pydantic
+import typing_extensions
 from ...core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
+from ...core.serialization import FieldMetadata
 
 
 class GetApiV4PublicTickerResponseValue(UniversalBaseModel):
@@ -32,7 +34,9 @@ class GetApiV4PublicTickerResponseValue(UniversalBaseModel):
     Rolling 24-hour trading volume in the base currency.
     """
 
-    is_frozen: typing.Optional[bool] = pydantic.Field(default=None)
+    is_frozen: typing_extensions.Annotated[typing.Optional[bool], FieldMetadata(alias="isFrozen")] = pydantic.Field(
+        default=None
+    )
     """
     Indicates whether trading is disabled for the market pair.
     """

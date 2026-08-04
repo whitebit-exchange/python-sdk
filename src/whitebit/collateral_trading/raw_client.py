@@ -44,6 +44,7 @@ from .types.create_collateral_trigger_market_order_request_position_side import 
 from .types.create_collateral_trigger_market_order_request_side import CreateCollateralTriggerMarketOrderRequestSide
 from .types.create_collateral_trigger_market_order_request_stp import CreateCollateralTriggerMarketOrderRequestStp
 from .types.create_collateral_trigger_market_order_response import CreateCollateralTriggerMarketOrderResponse
+from .types.get_closed_positions_pnl_response_item import GetClosedPositionsPnlResponseItem
 from .types.get_collateral_account_adl_quantile_response_item import GetCollateralAccountAdlQuantileResponseItem
 from .types.get_collateral_hedge_mode_response import GetCollateralHedgeModeResponse
 from .types.get_conditional_orders_response import GetConditionalOrdersResponse
@@ -1476,6 +1477,139 @@ class RawCollateralTradingClient:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
+    def get_closed_positions_pnl(
+        self,
+        *,
+        start_date: typing.Optional[int] = OMIT,
+        end_date: typing.Optional[int] = OMIT,
+        limit: typing.Optional[int] = OMIT,
+        offset: typing.Optional[int] = OMIT,
+        request: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> HttpResponse[typing.List[GetClosedPositionsPnlResponseItem]]:
+        """
+        The endpoint returns one aggregated profit-and-loss record per closed [collateral](/glossary#balance-collateral) position for the authenticated account — the same closed-position PNL the trading terminal shows. Records are sorted by `closeDate` descending, then `positionId` descending. Use the optional `startDate` and `endDate` parameters to narrow the window; the filter applies to the position close time.
+
+        <Note>
+        The endpoint supports pagination via `limit` (default: 50, max: 100) and `offset` (default: 0); the sum of `offset` and `limit` must not exceed 10000. A response that returns fewer than `limit` records indicates the last page.
+        </Note>
+
+        <Note>
+        **Close-time windowing:** a position opened before the requested window but closed inside the window returns complete aggregates — fees, average prices, and closed size cover the full position lifetime, not only the requested window.
+        </Note>
+
+        <Warning>
+        Rate limit: 12000 requests/10 sec.
+        </Warning>
+
+        <Accordion title="Error Codes">
+          - `30` - default validation error code (invalid pagination — `limit` outside 1–100, or `offset` + `limit` above 10000 — or a date filter that violates `startDate` ≤ `endDate` ≤ `now + 1s`)
+        </Accordion>
+
+        Parameters
+        ----------
+        start_date : typing.Optional[int]
+            Start of the query window as a Unix timestamp in seconds, applied to the position close time. Optional, no default. Must be ≤ `endDate`.
+
+        end_date : typing.Optional[int]
+            End of the query window as a Unix timestamp in seconds, applied to the position close time. Optional, no default. Must be ≥ `startDate` and ≤ `now + 1s`.
+
+        limit : typing.Optional[int]
+            Maximum number of records to return. Default: `50`. Minimum: `1`. Maximum: `100`.
+
+        offset : typing.Optional[int]
+            Number of records to skip. Default: `0`. The sum of `offset` and `limit` must not exceed 10000.
+
+        request : typing.Optional[str]
+
+        nonce : typing.Optional[int]
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        HttpResponse[typing.List[GetClosedPositionsPnlResponseItem]]
+            Successful response - returns an array with one aggregated record per closed position, sorted by `closeDate` descending, then `positionId` descending. Returns an empty array when no closed positions match the filters.
+        """
+        _response = self._client_wrapper.httpx_client.request(
+            "api/v4/collateral-account/positions/closed-pnl",
+            base_url=self._client_wrapper.get_environment().base,
+            method="POST",
+            json={
+                "startDate": start_date,
+                "endDate": end_date,
+                "limit": limit,
+                "offset": offset,
+                "request": request,
+                "nonce": nonce,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.List[GetClosedPositionsPnlResponseItem],
+                    parse_obj_as(
+                        type_=typing.List[GetClosedPositionsPnlResponseItem],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
+            if _response.status_code == 400:
+                raise BadRequestError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 503:
+                raise ServiceUnavailableError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
     def get_funding_history(
         self,
         *,
@@ -2330,7 +2464,7 @@ class RawCollateralTradingClient:
 
     def cancel_conditional_order(
         self, *, market: str, id: int, request: str, nonce: int, request_options: typing.Optional[RequestOptions] = None
-    ) -> HttpResponse[None]:
+    ) -> HttpResponse[typing.List[typing.Optional[typing.Any]]]:
         """
         The endpoint cancels an active conditional order ([OCO](/glossary#one-cancels-the-other-oco) or [OTO](/glossary#one-triggers-the-other-oto)) on the specified market. Both legs of the conditional order are cancelled. Use the [query unexecuted conditional orders](/api-reference/collateral-trading/query-unexecuted-conditional-orders) endpoint to obtain the conditional order `id` before cancellation.
 
@@ -2373,7 +2507,8 @@ class RawCollateralTradingClient:
 
         Returns
         -------
-        HttpResponse[None]
+        HttpResponse[typing.List[typing.Optional[typing.Any]]]
+            Order cancelled. The response body is a literal empty array.
         """
         _response = self._client_wrapper.httpx_client.request(
             "api/v4/order/conditional-cancel",
@@ -2393,7 +2528,14 @@ class RawCollateralTradingClient:
         )
         try:
             if 200 <= _response.status_code < 300:
-                return HttpResponse(response=_response, data=None)
+                _data = typing.cast(
+                    typing.List[typing.Optional[typing.Any]],
+                    parse_obj_as(
+                        type_=typing.List[typing.Optional[typing.Any]],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
             if _response.status_code == 400:
                 raise BadRequestError(
                     headers=dict(_response.headers),
@@ -2436,22 +2578,23 @@ class RawCollateralTradingClient:
         self,
         *,
         market: str,
-        order_id: int,
         request: str,
         nonce: int,
+        order_id: typing.Optional[int] = OMIT,
+        client_order_id: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> HttpResponse[CancelOcoOrderResponse]:
         """
-        The endpoint cancels an OCO order.
+        The endpoint cancels an OCO order. Identify the order by `orderId` or `clientOrderId` — exactly one of the two must be provided. A request specifying both identifiers, or neither, fails validation.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
         </Warning>
 
         <Accordion title="Error Codes">
-          - `30` - default validation error code
+          - `30` - default validation error code. Also returned when the request specifies both `orderId` and `clientOrderId`, or neither
           - `31` - market validation failed
-          - `2` - OCO order not found. Returned whether the `orderId` does not exist, or the order was already filled or already cancelled — these cases are not distinguished
+          - `2` - OCO order not found. Returned whether the identifier (`orderId` or `clientOrderId`) does not exist, or the order was already filled or already cancelled — these cases are not distinguished
         </Accordion>
 
         <Accordion title="Errors">
@@ -2469,12 +2612,17 @@ class RawCollateralTradingClient:
         Parameters
         ----------
         market : str
-
-        order_id : int
+            Market of the OCO order to cancel. Example: BTC_USDT
 
         request : str
 
         nonce : int
+
+        order_id : typing.Optional[int]
+            OCO order identifier (the `id` returned at creation and by the OCO listings). Required if `clientOrderId` is not set; mutually exclusive with `clientOrderId`.
+
+        client_order_id : typing.Optional[str]
+            Client-defined order ID supplied at order creation. Required if `orderId` is not set; mutually exclusive with `orderId`.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -2491,6 +2639,7 @@ class RawCollateralTradingClient:
             json={
                 "market": market,
                 "orderId": order_id,
+                "clientOrderId": client_order_id,
                 "request": request,
                 "nonce": nonce,
             },
@@ -2556,7 +2705,7 @@ class RawCollateralTradingClient:
         request: str,
         nonce: int,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> HttpResponse[None]:
+    ) -> HttpResponse[typing.List[typing.Optional[typing.Any]]]:
         """
         The endpoint cancels an OTO order.
 
@@ -2597,7 +2746,8 @@ class RawCollateralTradingClient:
 
         Returns
         -------
-        HttpResponse[None]
+        HttpResponse[typing.List[typing.Optional[typing.Any]]]
+            OTO order cancelled. The response body is a literal empty array.
         """
         _response = self._client_wrapper.httpx_client.request(
             "api/v4/order/oto-cancel",
@@ -2617,7 +2767,14 @@ class RawCollateralTradingClient:
         )
         try:
             if 200 <= _response.status_code < 300:
-                return HttpResponse(response=_response, data=None)
+                _data = typing.cast(
+                    typing.List[typing.Optional[typing.Any]],
+                    parse_obj_as(
+                        type_=typing.List[typing.Optional[typing.Any]],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return HttpResponse(response=_response, data=_data)
             if _response.status_code == 400:
                 raise BadRequestError(
                     headers=dict(_response.headers),
@@ -4077,6 +4234,139 @@ class AsyncRawCollateralTradingClient:
             raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
         raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
 
+    async def get_closed_positions_pnl(
+        self,
+        *,
+        start_date: typing.Optional[int] = OMIT,
+        end_date: typing.Optional[int] = OMIT,
+        limit: typing.Optional[int] = OMIT,
+        offset: typing.Optional[int] = OMIT,
+        request: typing.Optional[str] = OMIT,
+        nonce: typing.Optional[int] = OMIT,
+        request_options: typing.Optional[RequestOptions] = None,
+    ) -> AsyncHttpResponse[typing.List[GetClosedPositionsPnlResponseItem]]:
+        """
+        The endpoint returns one aggregated profit-and-loss record per closed [collateral](/glossary#balance-collateral) position for the authenticated account — the same closed-position PNL the trading terminal shows. Records are sorted by `closeDate` descending, then `positionId` descending. Use the optional `startDate` and `endDate` parameters to narrow the window; the filter applies to the position close time.
+
+        <Note>
+        The endpoint supports pagination via `limit` (default: 50, max: 100) and `offset` (default: 0); the sum of `offset` and `limit` must not exceed 10000. A response that returns fewer than `limit` records indicates the last page.
+        </Note>
+
+        <Note>
+        **Close-time windowing:** a position opened before the requested window but closed inside the window returns complete aggregates — fees, average prices, and closed size cover the full position lifetime, not only the requested window.
+        </Note>
+
+        <Warning>
+        Rate limit: 12000 requests/10 sec.
+        </Warning>
+
+        <Accordion title="Error Codes">
+          - `30` - default validation error code (invalid pagination — `limit` outside 1–100, or `offset` + `limit` above 10000 — or a date filter that violates `startDate` ≤ `endDate` ≤ `now + 1s`)
+        </Accordion>
+
+        Parameters
+        ----------
+        start_date : typing.Optional[int]
+            Start of the query window as a Unix timestamp in seconds, applied to the position close time. Optional, no default. Must be ≤ `endDate`.
+
+        end_date : typing.Optional[int]
+            End of the query window as a Unix timestamp in seconds, applied to the position close time. Optional, no default. Must be ≥ `startDate` and ≤ `now + 1s`.
+
+        limit : typing.Optional[int]
+            Maximum number of records to return. Default: `50`. Minimum: `1`. Maximum: `100`.
+
+        offset : typing.Optional[int]
+            Number of records to skip. Default: `0`. The sum of `offset` and `limit` must not exceed 10000.
+
+        request : typing.Optional[str]
+
+        nonce : typing.Optional[int]
+
+        request_options : typing.Optional[RequestOptions]
+            Request-specific configuration.
+
+        Returns
+        -------
+        AsyncHttpResponse[typing.List[GetClosedPositionsPnlResponseItem]]
+            Successful response - returns an array with one aggregated record per closed position, sorted by `closeDate` descending, then `positionId` descending. Returns an empty array when no closed positions match the filters.
+        """
+        _response = await self._client_wrapper.httpx_client.request(
+            "api/v4/collateral-account/positions/closed-pnl",
+            base_url=self._client_wrapper.get_environment().base,
+            method="POST",
+            json={
+                "startDate": start_date,
+                "endDate": end_date,
+                "limit": limit,
+                "offset": offset,
+                "request": request,
+                "nonce": nonce,
+            },
+            headers={
+                "content-type": "application/json",
+            },
+            request_options=request_options,
+            omit=OMIT,
+        )
+        try:
+            if 200 <= _response.status_code < 300:
+                _data = typing.cast(
+                    typing.List[GetClosedPositionsPnlResponseItem],
+                    parse_obj_as(
+                        type_=typing.List[GetClosedPositionsPnlResponseItem],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
+            if _response.status_code == 400:
+                raise BadRequestError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 422:
+                raise UnprocessableEntityError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 500:
+                raise InternalServerError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            if _response.status_code == 503:
+                raise ServiceUnavailableError(
+                    headers=dict(_response.headers),
+                    body=typing.cast(
+                        typing.Optional[typing.Any],
+                        parse_obj_as(
+                            type_=typing.Optional[typing.Any],  # type: ignore
+                            object_=_response.json(),
+                        ),
+                    ),
+                )
+            _response_json = _response.json()
+        except JSONDecodeError:
+            raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response.text)
+        raise ApiError(status_code=_response.status_code, headers=dict(_response.headers), body=_response_json)
+
     async def get_funding_history(
         self,
         *,
@@ -4931,7 +5221,7 @@ class AsyncRawCollateralTradingClient:
 
     async def cancel_conditional_order(
         self, *, market: str, id: int, request: str, nonce: int, request_options: typing.Optional[RequestOptions] = None
-    ) -> AsyncHttpResponse[None]:
+    ) -> AsyncHttpResponse[typing.List[typing.Optional[typing.Any]]]:
         """
         The endpoint cancels an active conditional order ([OCO](/glossary#one-cancels-the-other-oco) or [OTO](/glossary#one-triggers-the-other-oto)) on the specified market. Both legs of the conditional order are cancelled. Use the [query unexecuted conditional orders](/api-reference/collateral-trading/query-unexecuted-conditional-orders) endpoint to obtain the conditional order `id` before cancellation.
 
@@ -4974,7 +5264,8 @@ class AsyncRawCollateralTradingClient:
 
         Returns
         -------
-        AsyncHttpResponse[None]
+        AsyncHttpResponse[typing.List[typing.Optional[typing.Any]]]
+            Order cancelled. The response body is a literal empty array.
         """
         _response = await self._client_wrapper.httpx_client.request(
             "api/v4/order/conditional-cancel",
@@ -4994,7 +5285,14 @@ class AsyncRawCollateralTradingClient:
         )
         try:
             if 200 <= _response.status_code < 300:
-                return AsyncHttpResponse(response=_response, data=None)
+                _data = typing.cast(
+                    typing.List[typing.Optional[typing.Any]],
+                    parse_obj_as(
+                        type_=typing.List[typing.Optional[typing.Any]],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
             if _response.status_code == 400:
                 raise BadRequestError(
                     headers=dict(_response.headers),
@@ -5037,22 +5335,23 @@ class AsyncRawCollateralTradingClient:
         self,
         *,
         market: str,
-        order_id: int,
         request: str,
         nonce: int,
+        order_id: typing.Optional[int] = OMIT,
+        client_order_id: typing.Optional[str] = OMIT,
         request_options: typing.Optional[RequestOptions] = None,
     ) -> AsyncHttpResponse[CancelOcoOrderResponse]:
         """
-        The endpoint cancels an OCO order.
+        The endpoint cancels an OCO order. Identify the order by `orderId` or `clientOrderId` — exactly one of the two must be provided. A request specifying both identifiers, or neither, fails validation.
 
         <Warning>
         Rate limit: 10000 requests/10 sec.
         </Warning>
 
         <Accordion title="Error Codes">
-          - `30` - default validation error code
+          - `30` - default validation error code. Also returned when the request specifies both `orderId` and `clientOrderId`, or neither
           - `31` - market validation failed
-          - `2` - OCO order not found. Returned whether the `orderId` does not exist, or the order was already filled or already cancelled — these cases are not distinguished
+          - `2` - OCO order not found. Returned whether the identifier (`orderId` or `clientOrderId`) does not exist, or the order was already filled or already cancelled — these cases are not distinguished
         </Accordion>
 
         <Accordion title="Errors">
@@ -5070,12 +5369,17 @@ class AsyncRawCollateralTradingClient:
         Parameters
         ----------
         market : str
-
-        order_id : int
+            Market of the OCO order to cancel. Example: BTC_USDT
 
         request : str
 
         nonce : int
+
+        order_id : typing.Optional[int]
+            OCO order identifier (the `id` returned at creation and by the OCO listings). Required if `clientOrderId` is not set; mutually exclusive with `clientOrderId`.
+
+        client_order_id : typing.Optional[str]
+            Client-defined order ID supplied at order creation. Required if `orderId` is not set; mutually exclusive with `orderId`.
 
         request_options : typing.Optional[RequestOptions]
             Request-specific configuration.
@@ -5092,6 +5396,7 @@ class AsyncRawCollateralTradingClient:
             json={
                 "market": market,
                 "orderId": order_id,
+                "clientOrderId": client_order_id,
                 "request": request,
                 "nonce": nonce,
             },
@@ -5157,7 +5462,7 @@ class AsyncRawCollateralTradingClient:
         request: str,
         nonce: int,
         request_options: typing.Optional[RequestOptions] = None,
-    ) -> AsyncHttpResponse[None]:
+    ) -> AsyncHttpResponse[typing.List[typing.Optional[typing.Any]]]:
         """
         The endpoint cancels an OTO order.
 
@@ -5198,7 +5503,8 @@ class AsyncRawCollateralTradingClient:
 
         Returns
         -------
-        AsyncHttpResponse[None]
+        AsyncHttpResponse[typing.List[typing.Optional[typing.Any]]]
+            OTO order cancelled. The response body is a literal empty array.
         """
         _response = await self._client_wrapper.httpx_client.request(
             "api/v4/order/oto-cancel",
@@ -5218,7 +5524,14 @@ class AsyncRawCollateralTradingClient:
         )
         try:
             if 200 <= _response.status_code < 300:
-                return AsyncHttpResponse(response=_response, data=None)
+                _data = typing.cast(
+                    typing.List[typing.Optional[typing.Any]],
+                    parse_obj_as(
+                        type_=typing.List[typing.Optional[typing.Any]],  # type: ignore
+                        object_=_response.json(),
+                    ),
+                )
+                return AsyncHttpResponse(response=_response, data=_data)
             if _response.status_code == 400:
                 raise BadRequestError(
                     headers=dict(_response.headers),

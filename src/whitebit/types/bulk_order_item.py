@@ -7,25 +7,26 @@ import typing_extensions
 from ..core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 from ..core.serialization import FieldMetadata
 from .bulk_order_item_side import BulkOrderItemSide
+from .bulk_order_item_stp import BulkOrderItemStp
 
 
 class BulkOrderItem(UniversalBaseModel):
-    side: typing.Optional[BulkOrderItemSide] = pydantic.Field(default=None)
+    side: BulkOrderItemSide = pydantic.Field()
     """
     Order side. Allowed values: `buy`, `sell`.
     """
 
-    amount: typing.Optional[str] = pydantic.Field(default=None)
+    amount: str = pydantic.Field()
     """
     Order quantity in base (stock) currency. Minimum and maximum values are market-dependent. Query `GET /api/v4/public/markets` for `minAmount` and precision (`stockPrec`).
     """
 
     price: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Limit price per unit in quote (money) currency. Minimum and maximum values are market-dependent. Query `GET /api/v4/public/markets` for precision (`moneyPrec`).
+    Limit price per unit in quote (money) currency. Required unless `bboRole` is set — the BBO execution method replaces the explicit price. Minimum and maximum values are market-dependent. Query `GET /api/v4/public/markets` for precision (`moneyPrec`).
     """
 
-    market: typing.Optional[str] = pydantic.Field(default=None)
+    market: str = pydantic.Field()
     """
     Trading pair for the order. Format: `BASE_QUOTE` (e.g., `BTC_USDT`).
     """
@@ -34,7 +35,7 @@ class BulkOrderItem(UniversalBaseModel):
         default=None
     )
     """
-    Post-only flag. When `true`, the order executes only as a maker order and is rejected if it would match immediately. Default: `false`.
+    Post-only flag. When `true`, the order executes only as a maker order and is rejected if it would match immediately. Allowed only when `bboRole` is not set. Do not combine with `rpi=true` — RPI items apply post-only behavior automatically, and an item setting both flags fails validation. Default: `false`.
     """
 
     ioc: typing.Optional[bool] = pydantic.Field(default=None)
@@ -43,6 +44,7 @@ class BulkOrderItem(UniversalBaseModel):
     
     IOC does not support `rpi=true` because RPI uses post-only behavior by design.
     The API returns error code `40` when an order item sets both `ioc=true` and `rpi=true`.
+    IOC cannot be combined with `postOnly=true` (error code `37`), and with `bboRole` it is allowed only for the Counterparty method (`2`).
     """
 
     client_order_id: typing_extensions.Annotated[typing.Optional[str], FieldMetadata(alias="clientOrderId")] = (
@@ -52,11 +54,29 @@ class BulkOrderItem(UniversalBaseModel):
     Custom client order identifier. Uniqueness is enforced only among the account's open (pending) orders on the same market — once a previous order is filled or canceled, the same identifier can be reused, including on the same market. Contains only letters, numbers, dashes, dots, or underscores.
     """
 
+    bbo_role: typing_extensions.Annotated[typing.Optional[int], FieldMetadata(alias="bboRole")] = pydantic.Field(
+        default=None
+    )
+    """
+    Best Bid/Offer ([BBO](/glossary#best-bid-offer-bbo)) execution method for the item. The system selects the best market price for execution. `1` = Queue method, `2` = Counterparty method.
+    
+    When `bboRole` is set, the item's `price` is not required — the BBO method determines the execution price. `postOnly` is allowed only when `bboRole` is not set; `ioc` can be combined only with the Counterparty method (`2`).
+    """
+
+    stp: typing.Optional[BulkOrderItemStp] = pydantic.Field(default=None)
+    """
+    Self-trade prevention mode for the item. Allowed values: `no` (self-trades allowed), `cb` (cancel both the new and the existing order), `cn` (cancel the new order, keep the existing), `co` (cancel the existing order, place the new one). Default: `no`.
+    
+    Legacy values `cancel_both`, `cancel_new`, `cancel_old` are deprecated: the API accepts the legacy values with identical behavior until a deprecation deadline is announced, then rejects the legacy values. Responses always return the abbreviated form, regardless of which variant the request used.
+    
+    See [Self-Trade Prevention](/platform/self-trade-prevention).
+    """
+
     rpi: typing.Optional[bool] = pydantic.Field(default=None)
     """
     Enables Retail Price Improvement (RPI) mode. Default: `false`.
     
-    RPI orders use post-only behavior by design. An RPI order does not support `ioc=true`.
+    RPI items apply post-only behavior automatically — do not also send an explicit `postOnly=true`: an item combining the two flags fails validation. An RPI order does not support `ioc=true`.
     The API returns error code `40` when an order item sets both `rpi=true` and `ioc=true`.
     """
 

@@ -4,8 +4,7 @@ import typing
 
 import pydantic
 from ...core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
-from .cancel_oco_order_response_stop_loss import CancelOcoOrderResponseStopLoss
-from .cancel_oco_order_response_take_profit import CancelOcoOrderResponseTakeProfit
+from ...types.oco_order_leg import OcoOrderLeg
 
 
 class CancelOcoOrderResponse(UniversalBaseModel):
@@ -14,14 +13,14 @@ class CancelOcoOrderResponse(UniversalBaseModel):
     OCO order identifier
     """
 
-    stop_loss: typing.Optional[CancelOcoOrderResponseStopLoss] = pydantic.Field(default=None)
+    stop_loss: typing.Optional[OcoOrderLeg] = pydantic.Field(default=None)
     """
-    Cancelled stop loss order details
+    Cancelled stop loss order details. Includes the `activation_price` / `activation_condition` / `activated` trigger fields.
     """
 
-    take_profit: typing.Optional[CancelOcoOrderResponseTakeProfit] = pydantic.Field(default=None)
+    take_profit: typing.Optional[OcoOrderLeg] = pydantic.Field(default=None)
     """
-    Cancelled take profit order details
+    Cancelled take profit order details. The trigger fields are omitted on this leg.
     """
 
     if IS_PYDANTIC_V2:

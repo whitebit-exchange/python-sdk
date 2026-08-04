@@ -10,7 +10,7 @@ from .asset_limits_withdraw_value import AssetLimitsWithdrawValue
 
 class AssetLimits(UniversalBaseModel):
     """
-    Currency limits by each network
+    Currency limits by each network. May be absent from the response.
     """
 
     deposit: typing.Optional[typing.Dict[str, AssetLimitsDepositValue]] = pydantic.Field(default=None)

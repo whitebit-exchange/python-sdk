@@ -6,12 +6,7 @@ import pydantic
 import typing_extensions
 from ...core.pydantic_utilities import IS_PYDANTIC_V2, UniversalBaseModel
 from ...core.serialization import FieldMetadata
-from .get_conditional_orders_response_records_item_oco_stop_loss import (
-    GetConditionalOrdersResponseRecordsItemOcoStopLoss,
-)
-from .get_conditional_orders_response_records_item_oco_take_profit import (
-    GetConditionalOrdersResponseRecordsItemOcoTakeProfit,
-)
+from ...types.conditional_order_leg import ConditionalOrderLeg
 
 
 class GetConditionalOrdersResponseRecordsItemOco(UniversalBaseModel):
@@ -19,20 +14,31 @@ class GetConditionalOrdersResponseRecordsItemOco(UniversalBaseModel):
     OCO type conditional order
     """
 
-    id: typing.Optional[int] = None
-    reduce_only: typing_extensions.Annotated[typing.Optional[bool], FieldMetadata(alias="reduceOnly")] = pydantic.Field(
-        default=None
-    )
+    id: typing.Optional[int] = pydantic.Field(default=None)
     """
-    Reduce-only flag
+    Conditional order identifier
     """
 
-    stop_loss: typing_extensions.Annotated[
-        typing.Optional[GetConditionalOrdersResponseRecordsItemOcoStopLoss], FieldMetadata(alias="stopLoss")
-    ] = None
+    conditional_order_type: typing_extensions.Annotated[
+        typing.Optional[str], FieldMetadata(alias="conditionalOrderType")
+    ] = pydantic.Field(default=None)
+    """
+    Conditional order subtype. Omitted when not set.
+    """
+
+    stop_loss: typing_extensions.Annotated[typing.Optional[ConditionalOrderLeg], FieldMetadata(alias="stopLoss")] = (
+        pydantic.Field(default=None)
+    )
+    """
+    Stop-loss leg of the OCO order. The `reduceOnly` flag is returned per leg.
+    """
+
     take_profit: typing_extensions.Annotated[
-        typing.Optional[GetConditionalOrdersResponseRecordsItemOcoTakeProfit], FieldMetadata(alias="takeProfit")
-    ] = None
+        typing.Optional[ConditionalOrderLeg], FieldMetadata(alias="takeProfit")
+    ] = pydantic.Field(default=None)
+    """
+    Take-profit leg of the OCO order. The `reduceOnly` flag is returned per leg.
+    """
 
     if IS_PYDANTIC_V2:
         model_config: typing.ClassVar[pydantic.ConfigDict] = pydantic.ConfigDict(extra="allow", frozen=True)  # type: ignore # Pydantic v2

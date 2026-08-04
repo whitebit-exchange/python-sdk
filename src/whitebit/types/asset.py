@@ -43,12 +43,12 @@ class Asset(UniversalBaseModel):
 
     maker_fee: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Maker fee expressed as a direct percentage value (e.g., "0.1" means 0.1%). Note: GET /api/v4/public/markets expresses the same fee as a decimal ratio (e.g., "0.001" = 0.1%) — the formats differ between endpoints.
+    Maker fee expressed as a direct percentage value (e.g., "0.1" means 0.1%). GET /api/v4/public/markets reports the per-market `makerFee` in the same format.
     """
 
     taker_fee: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Taker fee expressed as a direct percentage value (e.g., "0.1" means 0.1%). Note: GET /api/v4/public/markets expresses the same fee as a decimal ratio (e.g., "0.001" = 0.1%) — the formats differ between endpoints.
+    Taker fee expressed as a direct percentage value (e.g., "0.1" means 0.1%). GET /api/v4/public/markets reports the per-market `takerFee` in the same format.
     """
 
     min_deposit: typing.Optional[str] = pydantic.Field(default=None)
@@ -58,7 +58,7 @@ class Asset(UniversalBaseModel):
 
     max_deposit: typing.Optional[str] = pydantic.Field(default=None)
     """
-    Max deposit amount; omitted if no limit, 0 if unlimited
+    Max deposit amount; 0 if unlimited
     """
 
     currency_precision: typing.Optional[int] = pydantic.Field(default=None)
@@ -83,7 +83,7 @@ class Asset(UniversalBaseModel):
 
     limits: typing.Optional[AssetLimits] = pydantic.Field(default=None)
     """
-    Currency limits by each network
+    Currency limits by each network. May be absent from the response.
     """
 
     confirmations: typing.Optional[typing.Dict[str, int]] = pydantic.Field(default=None)
