@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Python-≥ 3.9-3776AB?style=flat-square&logo=python" alt="Python ≥ 3.9" />
+  <img src="https://img.shields.io/badge/Python-≥ 3.10-3776AB?style=flat-square&logo=python" alt="Python ≥ 3.10" />
   <img src="https://img.shields.io/badge/license-Apache_2.0-green?style=flat-square" alt="Apache 2.0 license" />
 </p>
 
@@ -15,7 +15,7 @@
 
 | Requirement | Details |
 |-------------|---------|
-| **Python ≥ 3.9** | Required runtime |
+| **Python ≥ 3.10** | Required runtime |
 | **WhiteBit account** | Sign up at [whitebit.com](https://whitebit.com) |
 | **WhiteBit API key** | Profile → API keys → Create key (Read and/or Trade permissions) |
 
